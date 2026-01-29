@@ -47,6 +47,9 @@ export function appendInitialChild(
   parent: Instance,
   child: Instance | TextInstance,
 ): void {
+  if (child.type === 'graph-edge' && !child.props['from']) {
+    child.props = { ...child.props, from: parent.props['id'] };
+  }
   parent.children.push(child as Instance);
 }
 
@@ -91,6 +94,9 @@ export function appendChild(
   parent: Instance,
   child: Instance | TextInstance,
 ): void {
+  if (child.type === 'graph-edge' && !child.props['from']) {
+    child.props = { ...child.props, from: parent.props['id'] };
+  }
   parent.children.push(child as Instance);
 }
 
