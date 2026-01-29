@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import { transpile } from '../core/transpiler';
 import { execute } from '../core/executor';
 import { GraphwriteError } from '@graphwrite/core';
+import { startServer, broadcast } from '../server/websocket';
 
 export async function startDevServer(cwd: string, entryFile?: string) {
   let entryPoint = entryFile;
@@ -28,6 +29,9 @@ export async function startDevServer(cwd: string, entryFile?: string) {
 
   console.log(`Starting dev server... watching ${entryPoint}`);
 
+  startServer(3001);
+  console.log('WebSocket server started on port 3001');
+
   let lastSuccessState: any = null;
   let errors: any[] = [];
 
@@ -42,6 +46,8 @@ export async function startDevServer(cwd: string, entryFile?: string) {
       lastSuccessState = result;
       errors = [];
       console.log('\x1b[32mUpdated successfully.\x1b[0m');
+
+      broadcast({ type: 'graph-update', payload: result });
     } catch (error: any) {
       if (error instanceof GraphwriteError) {
         console.error(
@@ -56,6 +62,14 @@ export async function startDevServer(cwd: string, entryFile?: string) {
         console.error('\x1b[31mUnknown error occurred\x1b[0m', error);
       }
       errors.push(error);
+
+      broadcast({
+        type: 'error',
+        payload: {
+          message: error.message || 'Unknown error',
+          type: error instanceof GraphwriteError ? error.type : 'general',
+        },
+      });
     }
   };
 
