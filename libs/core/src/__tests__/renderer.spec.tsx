@@ -4,6 +4,8 @@ import { renderToGraph } from '../renderer';
 import { Sticky } from '../components/Sticky';
 import { Edge } from '../components/Edge';
 import { Group } from '../components/Group';
+import { MindMap } from '../components/MindMap';
+import { Node } from '../components/Node';
 
 describe('GraphWrite Renderer', () => {
   it('should render a simple tree to JSON', async () => {
@@ -91,6 +93,52 @@ describe('GraphWrite Renderer', () => {
                   type: 'graph-sticky',
                   props: { id: 'S1', parentId: 'G1', extent: 'parent' },
                 },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should apply ELK layout to MindMap children (assign x, y)', async () => {
+    const element = (
+      <canvas>
+        <MindMap id="root">
+          <Node id="1" text="Root" />
+          <Node id="2" text="Child" />
+          <Edge from="1" to="2" />
+        </MindMap>
+      </canvas>
+    );
+
+    const result = await renderToGraph(element);
+
+    const findNode = (id: string) => {
+      const mindmap = result.children[0].children[0];
+      return mindmap.children.find((c: any) => c.props.id === id);
+    };
+
+    const node1 = findNode('1');
+    const node2 = findNode('2');
+
+    expect(node1.props.x).toBeDefined();
+    expect(node1.props.y).toBeDefined();
+    expect(node2.props.x).toBeDefined();
+    expect(node2.props.y).toBeDefined();
+
+    expect(result).toMatchObject({
+      type: 'root',
+      children: [
+        {
+          type: 'canvas',
+          children: [
+            {
+              type: 'graph-mindmap',
+              children: [
+                { type: 'graph-sticky', props: { id: '1', text: 'Root' } },
+                { type: 'graph-sticky', props: { id: '2', text: 'Child' } },
+                { type: 'graph-edge', props: { from: '1', to: '2' } },
               ],
             },
           ],

@@ -91,8 +91,11 @@ async function layoutMindMap(node: Instance) {
           (child) => child.props['id'] === layoutedNode.id,
         );
         if (originalNode) {
-          originalNode.props['x'] = layoutedNode.x;
-          originalNode.props['y'] = layoutedNode.y;
+          originalNode.props = {
+            ...originalNode.props,
+            x: layoutedNode.x,
+            y: layoutedNode.y,
+          };
         }
       });
     }
