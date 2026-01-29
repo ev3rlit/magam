@@ -1,12 +1,13 @@
 // @ts-nocheck
 import * as React from 'react';
 import { renderToGraph } from '../renderer';
+import { Sticky } from '../components/Sticky';
 
 describe('GraphWrite Renderer', () => {
   it('should render a simple tree to JSON', async () => {
     const element = (
       <canvas>
-        <sticky id="1" text="Hello" />
+        <Sticky id="1" text="Hello" />
       </canvas>
     );
 
@@ -22,7 +23,7 @@ describe('GraphWrite Renderer', () => {
           props: { children: expect.anything() },
           children: [
             {
-              type: 'sticky',
+              type: 'graph-sticky',
               props: { id: '1', text: 'Hello' },
               children: [],
             },
