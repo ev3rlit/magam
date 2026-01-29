@@ -50,6 +50,13 @@ export function appendInitialChild(
   if (child.type === 'graph-edge' && !child.props['from']) {
     child.props = { ...child.props, from: parent.props['id'] };
   }
+  if (parent.type === 'graph-group') {
+    child.props = {
+      ...child.props,
+      parentId: parent.props['id'],
+      extent: 'parent',
+    };
+  }
   parent.children.push(child as Instance);
 }
 
@@ -96,6 +103,13 @@ export function appendChild(
 ): void {
   if (child.type === 'graph-edge' && !child.props['from']) {
     child.props = { ...child.props, from: parent.props['id'] };
+  }
+  if (parent.type === 'graph-group') {
+    child.props = {
+      ...child.props,
+      parentId: parent.props['id'],
+      extent: 'parent',
+    };
   }
   parent.children.push(child as Instance);
 }

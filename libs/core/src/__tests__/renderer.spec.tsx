@@ -3,6 +3,7 @@ import * as React from 'react';
 import { renderToGraph } from '../renderer';
 import { Sticky } from '../components/Sticky';
 import { Edge } from '../components/Edge';
+import { Group } from '../components/Group';
 
 describe('GraphWrite Renderer', () => {
   it('should render a simple tree to JSON', async () => {
@@ -59,6 +60,40 @@ describe('GraphWrite Renderer', () => {
                 {
                   type: 'graph-edge',
                   props: { from: 'A', to: 'B' },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should implicitly set "parentId" and "extent" for children of Group', async () => {
+    const element = (
+      <canvas>
+        <Group id="G1">
+          <Sticky id="S1" text="Inside" />
+        </Group>
+      </canvas>
+    );
+
+    const result = renderToGraph(element);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    expect(result).toMatchObject({
+      type: 'root',
+      children: [
+        {
+          type: 'canvas',
+          children: [
+            {
+              type: 'graph-group',
+              props: { id: 'G1' },
+              children: [
+                {
+                  type: 'graph-sticky',
+                  props: { id: 'S1', parentId: 'G1', extent: 'parent' },
                 },
               ],
             },
