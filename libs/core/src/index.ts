@@ -6,3 +6,4 @@ export * from './components/Group';
 export * from './components/MindMap';
 export * from './components/Node';
 export * from './errors';
+export * from './renderer';
