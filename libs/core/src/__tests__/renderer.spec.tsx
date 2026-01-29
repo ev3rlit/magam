@@ -146,4 +146,18 @@ describe('GraphWrite Renderer', () => {
       ],
     });
   });
+
+  it('should propagate errors from the render phase', async () => {
+    const ThrowingComponent = () => {
+      throw new Error('Test Error');
+    };
+
+    const element = (
+      <canvas>
+        <ThrowingComponent />
+      </canvas>
+    );
+
+    await expect(renderToGraph(element)).rejects.toThrow('Test Error');
+  });
 });

@@ -11,6 +11,8 @@ const LEGACY_ROOT = 0;
 
 export async function renderToGraph(element: React.ReactNode) {
   const container = { type: 'root', children: [] };
+  let capturedError: Error | null = null;
+
   const root = reconciler.createContainer(
     container,
     LEGACY_ROOT,
@@ -18,7 +20,9 @@ export async function renderToGraph(element: React.ReactNode) {
     false,
     null,
     '',
-    (e: Error) => console.error(e),
+    (e: Error) => {
+      capturedError = e;
+    },
     null,
   );
 
@@ -26,6 +30,10 @@ export async function renderToGraph(element: React.ReactNode) {
 
   // Wait for the synchronous reconciliation to finish (flushed via microtask in tests)
   await new Promise((resolve) => setTimeout(resolve, 0));
+
+  if (capturedError) {
+    throw capturedError;
+  }
 
   // Apply Async Layout
   await applyLayout(container as any);

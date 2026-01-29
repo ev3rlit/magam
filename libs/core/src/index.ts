@@ -5,3 +5,4 @@ export * from './components/Text';
 export * from './components/Group';
 export * from './components/MindMap';
 export * from './components/Node';
+export * from './errors';
