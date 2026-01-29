@@ -13,9 +13,7 @@ describe('GraphWrite Renderer', () => {
       </canvas>
     );
 
-    const result = renderToGraph(element);
-
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    const result = await renderToGraph(element);
 
     expect(result).toEqual({
       type: 'root',
@@ -44,8 +42,7 @@ describe('GraphWrite Renderer', () => {
       </canvas>
     );
 
-    const result = renderToGraph(element);
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    const result = await renderToGraph(element);
 
     expect(result).toMatchObject({
       type: 'root',
@@ -78,8 +75,7 @@ describe('GraphWrite Renderer', () => {
       </canvas>
     );
 
-    const result = renderToGraph(element);
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    const result = await renderToGraph(element);
 
     expect(result).toMatchObject({
       type: 'root',

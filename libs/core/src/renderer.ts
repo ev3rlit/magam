@@ -1,5 +1,6 @@
 import * as ReactReconciler from 'react-reconciler';
 import * as HostConfig from './reconciler/hostConfig';
+import { applyLayout } from './layout/elk';
 
 const Reconciler = (ReactReconciler as any).default || ReactReconciler;
 
@@ -8,7 +9,7 @@ const reconciler = Reconciler(HostConfig);
 
 const LEGACY_ROOT = 0;
 
-export function renderToGraph(element: React.ReactNode) {
+export async function renderToGraph(element: React.ReactNode) {
   const container = { type: 'root', children: [] };
   const root = reconciler.createContainer(
     container,
@@ -22,6 +23,12 @@ export function renderToGraph(element: React.ReactNode) {
   );
 
   reconciler.updateContainer(element, root, null, null);
+
+  // Wait for the synchronous reconciliation to finish (flushed via microtask in tests)
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  // Apply Async Layout
+  await applyLayout(container as any);
 
   return container;
 }
