@@ -132,7 +132,7 @@ Wave 3 (Advanced):
   **Commit**: YES
   - Message: `feat(core): initialize library and dependencies`
 
-- [ ] 2. Implement Reconciler Host Config (TDD)
+- [x] 2. Implement Reconciler Host Config (TDD)
 
   **What to do**:
   - Create `libs/core/src/reconciler/hostConfig.ts`.
@@ -162,7 +162,7 @@ Wave 3 (Advanced):
   **Commit**: YES
   - Message: `feat(core): implement basic react-reconciler host config`
 
-- [ ] 3. Implement Base Components (Sticky, Shape, Text)
+- [x] 3. Implement Base Components (Sticky, Shape, Text)
 
   **What to do**:
   - Create typed components in `libs/core/src/components/`.
@@ -180,7 +180,7 @@ Wave 3 (Advanced):
   **Commit**: YES
   - Message: `feat(core): add Sticky, Shape, Text components`
 
-- [ ] 4. Implement Edge Component (TDD)
+- [x] 4. Implement Edge Component (TDD)
 
   **What to do**:
   - Support two modes:
@@ -198,7 +198,7 @@ Wave 3 (Advanced):
   **Commit**: YES
   - Message: `feat(core): implement Edge component with implicit source`
 
-- [ ] 5. Implement Group Component
+- [x] 5. Implement Group Component
 
   **What to do**:
   - `<Group id="g" x={10} y={10}>...</Group>`.
@@ -215,7 +215,7 @@ Wave 3 (Advanced):
   **Commit**: YES
   - Message: `feat(core): add Group component`
 
-- [ ] 6. Implement Async Layout Pipeline (elkjs)
+- [x] 6. Implement Async Layout Pipeline (elkjs)
 
   **What to do**:
   - Create `libs/core/src/layout/elk.ts`.
@@ -236,7 +236,7 @@ Wave 3 (Advanced):
   **Commit**: YES
   - Message: `feat(core): integrate elkjs for async layout`
 
-- [ ] 7. Implement MindMap & Node Components
+- [x] 7. Implement MindMap & Node Components
 
   **What to do**:
   - `<MindMap>` acts as a layout boundary.
@@ -260,6 +260,6 @@ Wave 3 (Advanced):
 
 ### Final Checklist
 
-- [ ] `nx test core` passes with 100% coverage.
-- [ ] `renderToGraph` generates valid JSON for all example cases in design doc.
-- [ ] Async layout works correctly for `MindMap`.
+- [x] `nx test core` passes with 100% coverage.
+- [x] `renderToGraph` generates valid JSON for all example cases in design doc.
+- [x] Async layout works correctly for `MindMap`.
