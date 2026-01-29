@@ -2,13 +2,21 @@
 
 ## Executive Summary
 
-graphwrite는 AI 에이전트와 협업하여 아이디어를 시각화하는 FigJam 스타일의 화이트보드 도구입니다. 사용자는 브라우저에서 직접 편집하거나, AI 에이전트에게 자연어로 지시하여 캔버스를 조작할 수 있습니다. MCP(Model Context Protocol)를 통해 AI 에이전트와 실시간으로 통신하며, 마인드맵과 자유 형식 캔버스를 결합한 시각적 사고 도구를 제공합니다.
+## Executive Summary
+
+graphwrite는 **AI-Native Programmatic Whiteboard**입니다. 기존의 FigJam이 사용자의 직접적인 드래그 앤 드롭을 최우선으로 했다면, graphwrite는 **AI 에이전트를 통한 프로그래밍적 생성**을 최우선(Mobile-First가 아닌 **AI-First**)으로 합니다. 사용자가 자연어로 의도를 말하면, AI가 이를 코드로 변환하여 화면에 그림을 그립니다. Remotion이 비디오를 코드로 만드는 것처럼, graphwrite는 다이어그램을 코드로 만듭니다.
 
 ## Product Vision
 
-지식 작업자들은 생각을 구조화하고 아이디어를 시각화하는 데 많은 시간을 소비합니다. FigJam과 같은 도구는 훌륭하지만, AI와의 협업이 자연스럽지 않습니다. graphwrite는 MCP 프로토콜을 통해 AI 에이전트가 캔버스를 직접 조작할 수 있게 함으로써, "백엔드 아키텍처 다이어그램 만들어줘"라는 한 마디로 시각화를 시작할 수 있게 합니다.
+지식 작업의 미래는 "그리는 것"이 아니라 "설명하는 것"입니다.
+graphwrite에서 사용자는 화가(Planner)가 되고, AI 에이전트는 붓(Executor)이 됩니다.
 
-사용자는 직접 편집과 AI 지시를 자유롭게 오가며 작업할 수 있습니다. 복잡한 구조는 AI에게 맡기고, 세부 조정은 직접 드래그하는 하이브리드 워크플로우를 지원합니다.
+"이 아키텍처 그려줘"라는 말 한마디가 실제 React 컴포넌트들의 조합으로 변환되어 캔버스에 나타납니다.
+우리는 **명령형(Imperative) 도구**에서 **선언형(Declarative) 도구**로의 전환을 목표로 합니다.
+- **Old Way**: 사각형 도구 선택 -> 드래그 -> 색상 변경 -> 텍스트 입력
+- **New Way**: "파란색 데이터베이스 노드 추가해줘" (AI가 실행)
+
+물론, 세밀한 조정이 필요할 때는 여전히 마우스로 개입할 수 있는 **하이브리드 워크플로우**를 지원합니다.
 
 ## Target Users
 
@@ -377,10 +385,14 @@ interface CanvasState {
 
 ### Phase 2: Enhanced Features (3주)
 
-**Week 5-6: 마인드맵**
+**Week 5-6: 마인드맵 & 고급 도구**
 - 계층 구조 노드
 - Tree 레이아웃 알고리즘
 - 접기/펼치기 기능
+- **MCP 도구 확장**:
+    - `add_node`: 'shape' 타입(사각형, 원, 다이아몬드) 지원 추가
+    - `addChildNode`: 마인드맵 자식 노드 생성
+    - `applyLayout`: 자동 레이아웃 적용
 
 **Week 7: Polish**
 - Undo/Redo
