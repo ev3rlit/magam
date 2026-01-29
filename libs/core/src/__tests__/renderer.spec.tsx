@@ -2,16 +2,19 @@
 import * as React from 'react';
 import { renderToGraph } from '../renderer';
 import { Sticky } from '../components/Sticky';
+import { Shape } from '../components/Shape';
+import { Text } from '../components/Text';
 import { Edge } from '../components/Edge';
 import { Group } from '../components/Group';
 import { MindMap } from '../components/MindMap';
 import { Node } from '../components/Node';
+import { GraphwriteError } from '../errors';
 
 describe('GraphWrite Renderer', () => {
   it('should render a simple tree to JSON', async () => {
     const element = (
       <canvas>
-        <Sticky id="1" text="Hello" />
+        <Sticky id="1" text="Hello" x={10} y={20} />
       </canvas>
     );
 
@@ -26,7 +29,7 @@ describe('GraphWrite Renderer', () => {
           children: [
             {
               type: 'graph-sticky',
-              props: { id: '1', text: 'Hello' },
+              props: { id: '1', text: 'Hello', x: 10, y: 20 },
               children: [],
             },
           ],
@@ -38,7 +41,7 @@ describe('GraphWrite Renderer', () => {
   it('should implicitly set "from" prop for Edge nested in Sticky', async () => {
     const element = (
       <canvas>
-        <Sticky id="A" text="Source">
+        <Sticky id="A" text="Source" x={0} y={0}>
           <Edge to="B" />
         </Sticky>
       </canvas>
@@ -54,7 +57,7 @@ describe('GraphWrite Renderer', () => {
           children: [
             {
               type: 'graph-sticky',
-              props: { id: 'A' },
+              props: { id: 'A', x: 0, y: 0 },
               children: [
                 {
                   type: 'graph-edge',
@@ -72,7 +75,7 @@ describe('GraphWrite Renderer', () => {
     const element = (
       <canvas>
         <Group id="G1">
-          <Sticky id="S1" text="Inside" />
+          <Sticky id="S1" text="Inside" x={10} y={10} />
         </Group>
       </canvas>
     );
@@ -91,7 +94,13 @@ describe('GraphWrite Renderer', () => {
               children: [
                 {
                   type: 'graph-sticky',
-                  props: { id: 'S1', parentId: 'G1', extent: 'parent' },
+                  props: {
+                    id: 'S1',
+                    parentId: 'G1',
+                    extent: 'parent',
+                    x: 10,
+                    y: 10,
+                  },
                 },
               ],
             },
@@ -159,5 +168,65 @@ describe('GraphWrite Renderer', () => {
     );
 
     await expect(renderToGraph(element)).rejects.toThrow('Test Error');
+  });
+
+  describe('Validation', () => {
+    it('should throw GraphwriteError if Sticky is missing id', async () => {
+      const element = (
+        <canvas>
+          <Sticky x={0} y={0} />
+        </canvas>
+      );
+      await expect(renderToGraph(element)).rejects.toThrow(GraphwriteError);
+      await expect(renderToGraph(element)).rejects.toThrow(
+        "Missing required prop 'id'",
+      );
+    });
+
+    it('should throw GraphwriteError if Sticky is missing x', async () => {
+      const element = (
+        <canvas>
+          <Sticky id="1" y={0} />
+        </canvas>
+      );
+      await expect(renderToGraph(element)).rejects.toThrow(GraphwriteError);
+      await expect(renderToGraph(element)).rejects.toThrow(
+        "Missing required prop 'x'",
+      );
+    });
+
+    it('should throw GraphwriteError if Sticky is missing y', async () => {
+      const element = (
+        <canvas>
+          <Sticky id="1" x={0} />
+        </canvas>
+      );
+      await expect(renderToGraph(element)).rejects.toThrow(GraphwriteError);
+      await expect(renderToGraph(element)).rejects.toThrow(
+        "Missing required prop 'y'",
+      );
+    });
+
+    it('should throw GraphwriteError if Shape is missing props', async () => {
+      const element = (
+        <canvas>
+          <Shape id="s1" x={0} />
+        </canvas>
+      );
+      await expect(renderToGraph(element)).rejects.toThrow(
+        "Missing required prop 'y'",
+      );
+    });
+
+    it('should throw GraphwriteError if Text is missing props', async () => {
+      const element = (
+        <canvas>
+          <Text id="t1" x={0} />
+        </canvas>
+      );
+      await expect(renderToGraph(element)).rejects.toThrow(
+        "Missing required prop 'y'",
+      );
+    });
   });
 });
