@@ -1,0 +1,19 @@
+{
+  "name": "runtime",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/runtime/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/runtime",
+        "main": "libs/runtime/src/index.ts",
+        "tsConfig": "libs/runtime/tsconfig.lib.json",
+        "assets": ["libs/runtime/*.md"]
+      }
+    }
+  }
+}
