@@ -1,6 +1,5 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 interface TextNodeData {

@@ -1,71 +1,59 @@
-import { Canvas, MindMap, Shape, Edge, Text } from '@graphwrite/core';
+import { Canvas, MindMap, Node, Text, Edge } from '@graphwrite/core';
 
+/**
+ * MindMap Example - 문서 스펙에 맞춘 예제
+ * 
+ * 주요 특징:
+ * - x, y 좌표는 MindMap 컨테이너에서만 지정
+ * - Node 내부에서는 좌표 불필요 (자동 레이아웃)
+ * - from으로 부모-자식 관계 정의
+ * - Text children 지원
+ */
 export default function MindMapExample() {
   return (
     <Canvas>
-      <MindMap id="root">
-        {/* Main Concept */}
-        <Shape
-          id="main"
-          type="rectangle"
-          x={0}
-          y={0}
-          fill="bg-indigo-100"
-          stroke="border-indigo-500"
-          label="Rich Text Demo"
-          labelBold={true}
-          labelFontSize={18}
-          labelColor="#4338ca" // indigo-700
-        />
+      {/* Tree 레이아웃 예제 */}
+      <MindMap x={100} y={100} layout="tree" spacing={60}>
 
-        {/* Feature 1: Colored Shape Text */}
-        <Shape
-          id="feat1"
-          type="circle"
-          x={250}
-          y={-100}
-          fill="bg-rose-100"
-          label="Red Text"
-          labelColor="#ef4444" // red-500
-          labelBold={true}
-        />
+        {/* 루트 노드: from이 없습니다 */}
+        <Node id="root" className="bg-indigo-100 border-indigo-500 p-4">
+          <Text className="text-xl font-bold text-indigo-700">서비스 구조</Text>
+        </Node>
 
-        {/* Feature 2: Large Font */}
-        <Shape
-          id="feat2"
-          type="rectangle"
-          x={250}
-          y={0}
-          fill="bg-emerald-100"
-          label="Big Font"
-          labelFontSize={24}
-          labelColor="#047857" // emerald-700
-        />
+        {/* 자식 노드: from으로 부모를 지목 */}
+        <Node id="auth" from="root" className="bg-rose-100 p-3">
+          <Text className="font-bold">인증 모듈</Text>
+          <Text className="text-sm text-gray-500">Authentication</Text>
+        </Node>
 
-        {/* Feature 3: Edge Label */}
-        <Edge
-          from="main"
-          to="feat2"
-          label="Styled Edge"
-          labelBgColor="#ffffff"
-          labelTextColor="#059669" // emerald-600
-          labelFontSize={12}
-        />
+        <Node id="user" from="root" className="bg-emerald-100 p-3">
+          <Text className="font-bold">사용자 관리</Text>
+          <Text className="text-sm text-gray-500">User Management</Text>
+        </Node>
 
-        <Edge from="main" to="feat1" />
+        {/* 손자 노드 */}
+        <Node id="jwt" from="auth" edgeLabel="토큰 방식">
+          JWT
+        </Node>
 
-        {/* Feature 4: Standalone Text Node */}
-        <Text
-          id="text1"
-          x={0}
-          y={150}
-          content="This is a standalone\nText Node with custom styles"
-          color="#6b7280" // gray-500
-          italic={true}
-        />
+        <Node id="oauth" from="auth" edgeLabel="외부 연동" edgeClassName="dashed">
+          OAuth 2.0
+        </Node>
 
-        <Edge from="main" to="text1" label="Connects to Text" />
+        <Node id="profile" from="user">프로필</Node>
+        <Node id="permissions" from="user">권한 관리</Node>
 
+      </MindMap>
+
+      {/* Radial 레이아웃 예제 */}
+      <MindMap x={600} y={300} layout="radial" spacing={80}>
+        <Node id="center" className="bg-purple-200 p-4">
+          <Text className="font-bold text-purple-800">핵심 개념</Text>
+        </Node>
+        <Node id="a" from="center">개념 A</Node>
+        <Node id="b" from="center">개념 B</Node>
+        <Node id="c" from="center">개념 C</Node>
+        <Node id="d" from="center">개념 D</Node>
       </MindMap>
     </Canvas>
   );

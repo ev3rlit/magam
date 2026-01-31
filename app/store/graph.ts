@@ -25,7 +25,7 @@ export interface GraphState {
   edges: Edge[];
   files: string[];
   currentFile: string | null;
-  status: 'idle' | 'loading' | 'error' | 'success';
+  status: 'idle' | 'loading' | 'error' | 'success' | 'connected';
   error: AppError | null;
   selectedNodeIds: string[];
 

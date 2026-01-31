@@ -1,5 +1,5 @@
 import { useGraphStore } from '@/store/graph';
-import { AlertCircle, X, ChevronDown, ChevronRight, FileCode, Copy } from 'lucide-react';
+import { AlertCircle, X, ChevronDown, ChevronRight, FileCode } from 'lucide-react';
 import { useState } from 'react';
 
 export function ErrorOverlay() {

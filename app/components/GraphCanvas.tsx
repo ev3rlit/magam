@@ -90,7 +90,7 @@ export function GraphCanvas() {
         fitView
         defaultEdgeOptions={{
           type: 'smoothstep',
-          animated: true,
+          animated: false,
           style: { stroke: '#94a3b8', strokeWidth: 2 },
         }}
         proOptions={{ hideAttribution: true }}
