@@ -17,7 +17,7 @@ const TextNode = ({ data, selected }: NodeProps<TextNodeData>) => {
         <div
             className={twMerge(
                 "relative p-2 min-w-[50px] text-center pointer-events-none select-none",
-                selected && "ring-1 ring-indigo-500/50 rounded",
+                selected && "ring-1 ring-brand-500/50 rounded bg-brand-50/50",
                 data.className
             )}
         >

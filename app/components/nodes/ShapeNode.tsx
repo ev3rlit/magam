@@ -28,11 +28,11 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
   const containerClasses = twMerge(
     clsx(
       'relative w-36 h-20 flex items-center justify-center',
-      'bg-white border-2 text-slate-800 transition-all duration-300',
-      'shadow-sm hover:shadow-md',
+      'bg-node-surface border-2 border-node-border text-node-text transition-all duration-300',
+      'shadow-node',
+      'hover:shadow-node-hover hover:-translate-y-1 hover:border-brand-100', // Subtle interaction
       {
-        'border-indigo-500 shadow-xl scale-105': selected,
-        'border-slate-200 hover:border-slate-300 hover:-translate-y-1': !selected,
+        'border-brand-500 shadow-node-selected scale-105': selected,
       },
       data.color, // Assuming this is a class string for background
       shapeClasses,
