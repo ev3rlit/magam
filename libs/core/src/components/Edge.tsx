@@ -4,6 +4,11 @@ export interface EdgeProps {
   id?: string;
   from?: string;
   to: string;
+  // Label styles
+  label?: string;
+  labelBgColor?: string;
+  labelTextColor?: string;
+  labelFontSize?: number;
   [key: string]: any;
 }
 

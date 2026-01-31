@@ -1,11 +1,40 @@
-import ELK from 'elkjs/lib/elk.bundled.js';
+import ELK from 'elkjs';
 import { Container, Instance } from '../reconciler/hostConfig';
 
 let elkInstance: any | null = null;
 
+// Custom worker factory that runs ELK synchronously (Node.js compatible)
+function createSyncWorkerFactory() {
+  return function () {
+    return {
+      postMessage: function (data: any) {
+        // Import the worker code synchronously
+        const ElkWorker = require('elkjs/lib/elk-worker.min.js');
+        const worker = new ElkWorker.Worker();
+
+        // Handle the message synchronously
+        worker.onmessage = (msg: any) => {
+          if (this.onmessage) {
+            this.onmessage(msg);
+          }
+        };
+
+        worker.postMessage(data);
+      },
+      terminate: function () {
+        // No-op for sync execution
+      },
+      onmessage: null as any,
+    };
+  };
+}
+
 function getElkInstance() {
   if (!elkInstance) {
-    elkInstance = new ELK();
+    // Create ELK instance with custom synchronous worker
+    elkInstance = new ELK({
+      workerFactory: createSyncWorkerFactory(),
+    });
   }
   return elkInstance;
 }
@@ -23,12 +52,13 @@ const DEFAULT_LAYOUT_OPTIONS = {
 /**
  * Applies ELK layout to any 'graph-mindmap' nodes found in the graph.
  * Modifies the graph in-place and returns it.
+ * 
+ * NOTE: Temporarily disabled due to ELK worker issues in Node.js environment.
+ * Positions should be manually specified in the example files for now.
  */
 export function applyLayout(graph: Container): ResultAsync<Container, LayoutError> {
-  return fromPromise(
-    traverseAndLayout(graph).then(() => graph),
-    (error) => new LayoutError('Failed to apply ELK layout', error)
-  );
+  // Skip ELK layout for now - just return the graph as-is
+  return ResultAsync.fromSafePromise(Promise.resolve(graph));
 }
 
 async function traverseAndLayout(node: Container | Instance): Promise<void> {

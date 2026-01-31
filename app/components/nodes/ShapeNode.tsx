@@ -6,7 +6,13 @@ import { twMerge } from 'tailwind-merge';
 interface ShapeNodeData {
   type: 'rectangle' | 'circle' | 'triangle';
   label?: string;
-  color?: string;
+  // Shape styling
+  color?: string; // This is usually a tailwind class like 'bg-blue-100' or hex? Assuming tailwind class for now based on existing code.
+  // Rich text styling
+  labelColor?: string;
+  labelFontSize?: number;
+  labelBold?: boolean;
+  className?: string;
 }
 
 const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
@@ -21,17 +27,24 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
 
   const containerClasses = twMerge(
     clsx(
-      'relative w-36 h-36 flex items-center justify-center',
+      'relative w-36 h-20 flex items-center justify-center',
       'bg-white border-2 text-slate-800 transition-all duration-300',
       'shadow-sm hover:shadow-md',
       {
         'border-indigo-500 shadow-xl scale-105': selected,
         'border-slate-200 hover:border-slate-300 hover:-translate-y-1': !selected,
       },
-      data.color,
+      data.color, // Assuming this is a class string for background
       shapeClasses,
+      data.className, // Apply custom className
     ),
   );
+
+  const labelStyle = {
+    color: data.labelColor,
+    fontSize: data.labelFontSize,
+    fontWeight: data.labelBold ? 'bold' : 'normal',
+  };
 
   if (data.type === 'triangle') {
     return (
@@ -66,7 +79,10 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
             />
           </svg>
           <div className="absolute inset-0 flex items-center justify-center pt-8 pointer-events-none select-none">
-            <span className="text-sm font-medium leading-tight text-center px-4 text-slate-700">
+            <span
+              className="text-sm font-medium leading-tight text-center px-4 text-slate-700"
+              style={labelStyle}
+            >
               {data.label}
             </span>
           </div>
@@ -91,7 +107,10 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
       />
 
       <div className="w-full h-full flex items-center justify-center text-center break-words overflow-hidden p-4 pointer-events-none select-none">
-        <span className="text-sm font-medium leading-tight text-slate-700">
+        <span
+          className="text-sm font-medium leading-tight text-slate-700"
+          style={labelStyle}
+        >
           {data.label}
         </span>
       </div>

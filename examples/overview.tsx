@@ -1,11 +1,23 @@
-import { Canvas, Sticky, Shape, Edge } from '@graphwrite/core';
+import { Canvas, Sticky, Shape, Edge, Text } from '@graphwrite/core';
 
 export default () => (
   <Canvas>
-    <Sticky id="1" text="Start" x={100} y={100} color="bg-yellow-200" />
-    <Shape id="2" text="Process" x={300} y={100} type="rectangle" />
-    <Shape id="3" text="End" x={500} y={100} type="circle" />
-    <Edge from="1" to="2" />
-    <Edge from="2" to="3" />
+    <Text id="title" x={200} y={30} className="text-2xl font-bold">
+      프로젝트 개요
+    </Text>
+
+    <Sticky id="idea-1" x={100} y={100}>
+      핵심 아이디어
+      <Edge to="system" />
+    </Sticky>
+
+    <Sticky id="idea-2" x={100} y={200} className="bg-pink-200">
+      보조 아이디어
+      <Edge to="system" />
+    </Sticky>
+
+    <Shape id="system" x={300} y={150} shape="rectangle" className="bg-blue-100">
+      시스템
+    </Shape>
   </Canvas>
 );

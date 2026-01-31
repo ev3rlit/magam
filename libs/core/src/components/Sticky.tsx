@@ -9,6 +9,8 @@ export interface StickyProps {
   width?: number;
   height?: number;
   color?: string;
+  className?: string; // Tailwind support
+  children?: React.ReactNode; // Content and Nested Edges support
   [key: string]: any;
 }
 
@@ -23,5 +25,5 @@ export const Sticky: React.FC<StickyProps> = (props) => {
     throw new GraphwriteError("Missing required prop 'y'", 'props');
   }
 
-  return React.createElement('graph-sticky', props);
+  return React.createElement('graph-sticky', props, props.children);
 };

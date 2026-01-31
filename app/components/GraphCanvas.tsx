@@ -8,12 +8,14 @@ import 'reactflow/dist/style.css';
 import { useGraphStore } from '@/store/graph';
 import StickyNode from './nodes/StickyNode';
 import ShapeNode from './nodes/ShapeNode';
+import TextNode from './nodes/TextNode';
 
 export function GraphCanvas() {
   const nodeTypes = useMemo(
     () => ({
       sticky: StickyNode,
       shape: ShapeNode,
+      text: TextNode,
     }),
     [],
   );

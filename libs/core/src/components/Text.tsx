@@ -6,8 +6,16 @@ export interface TextProps {
   text?: string;
   x?: number;
   y?: number;
+  content?: string;
+
+  // Style props
   fontSize?: number;
   color?: string;
+  className?: string;
+  children?: React.ReactNode;
+  bold?: boolean;
+  italic?: boolean;
+
   [key: string]: any;
 }
 
@@ -22,5 +30,5 @@ export const Text: React.FC<TextProps> = (props) => {
     throw new GraphwriteError("Missing required prop 'y'", 'props');
   }
 
-  return React.createElement('graph-text', props);
+  return React.createElement('graph-text', props, props.children);
 };

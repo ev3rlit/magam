@@ -8,8 +8,17 @@ export interface ShapeProps {
   y?: number;
   width?: number;
   height?: number;
+  // Shape styles
   fill?: string;
   stroke?: string;
+  strokeWidth?: number;
+  // Text styles
+  label?: string;
+  labelColor?: string;
+  labelFontSize?: number;
+  labelBold?: boolean;
+  className?: string;
+  children?: React.ReactNode;
   [key: string]: any;
 }
 
@@ -24,5 +33,5 @@ export const Shape: React.FC<ShapeProps> = (props) => {
     throw new GraphwriteError("Missing required prop 'y'", 'props');
   }
 
-  return React.createElement('graph-shape', props);
+  return React.createElement('graph-shape', props, props.children);
 };
