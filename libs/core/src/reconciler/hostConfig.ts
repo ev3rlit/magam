@@ -64,6 +64,12 @@ export function appendInitialChild(
       extent: 'parent',
     };
   }
+  // MindMap container: Node children are processed by layout engine
+  // Keep the from prop intact for edge generation
+  if (parent.type === 'graph-mindmap' && child.type === 'graph-node') {
+    // Node's from prop is used by layout engine to create edges
+    // No additional processing needed here
+  }
   parent.children.push(child as Instance);
 }
 
@@ -117,6 +123,11 @@ export function appendChild(
       parentId: parent.props['id'],
       extent: 'parent',
     };
+  }
+  // MindMap container: Node children are processed by layout engine
+  if (parent.type === 'graph-mindmap' && child.type === 'graph-node') {
+    // Node's from prop is used by layout engine to create edges
+    // No additional processing needed here
   }
   parent.children.push(child as Instance);
 }
