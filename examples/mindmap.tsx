@@ -10,8 +10,6 @@ export default function MindMapExample() {
           type="rectangle"
           x={0}
           y={0}
-          width={180}
-          height={60}
           fill="bg-indigo-100"
           stroke="border-indigo-500"
           label="Rich Text Demo"
@@ -26,8 +24,6 @@ export default function MindMapExample() {
           type="circle"
           x={250}
           y={-100}
-          width={120}
-          height={120}
           fill="bg-rose-100"
           label="Red Text"
           labelColor="#ef4444" // red-500
@@ -40,8 +36,6 @@ export default function MindMapExample() {
           type="rectangle"
           x={250}
           y={0}
-          width={120}
-          height={80}
           fill="bg-emerald-100"
           label="Big Font"
           labelFontSize={24}
@@ -66,7 +60,6 @@ export default function MindMapExample() {
           x={0}
           y={150}
           content="This is a standalone\nText Node with custom styles"
-          fontSize={20}
           color="#6b7280" // gray-500
           italic={true}
         />
