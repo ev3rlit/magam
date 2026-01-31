@@ -7,7 +7,10 @@ export * from './components/MindMap';
 export * from './components/Node';
 export * from './components/Edge';
 export * from './components/Canvas';
+export * from './components/Code';
+export * from './components/Table';
 export * from './errors';
 export * from './renderer';
 export * from './result';
 export * from './logger';
+
