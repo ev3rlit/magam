@@ -1,0 +1,1458 @@
+{
+  "app": {
+    "root": [
+      "eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets": [
+      "eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint": [
+      "eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.cache": [
+      "eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.options": [
+      "eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.inputs": [
+      "eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.outputs": [
+      "eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata": [
+      "eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.executor": [
+      "eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.options.cwd": [
+      "eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.options.command": [
+      "eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.technologies": [
+      "eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.technologies.0": [
+      "eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.description": [
+      "eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.help": [
+      "eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.help.command": [
+      "eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.help.example": [
+      "eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ]
+  },
+  "libs/cli": {
+    "root": [
+      "libs/cli/project.json",
+      "nx/core/project-json"
+    ],
+    "targets": [
+      "libs/cli/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint": [
+      "libs/cli/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.cache": [
+      "libs/cli/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.options": [
+      "libs/cli/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.inputs": [
+      "libs/cli/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.outputs": [
+      "libs/cli/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata": [
+      "libs/cli/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.executor": [
+      "libs/cli/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.options.cwd": [
+      "libs/cli/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.options.command": [
+      "libs/cli/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.technologies": [
+      "libs/cli/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.technologies.0": [
+      "libs/cli/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.description": [
+      "libs/cli/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.help": [
+      "libs/cli/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.help.command": [
+      "libs/cli/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.help.example": [
+      "libs/cli/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.test": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test.options": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test.cache": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test.inputs": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test.outputs": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test.metadata": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test.executor": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test.options.cwd": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test.options.command": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test.metadata.technologies": [
+      "libs/cli/vite.config.ts",
+      "@nx/vite/plugin"
+    ],
+    "targets.test.metadata.technologies.0": [
+      "libs/cli/vite.config.ts",
+      "@nx/vite/plugin"
+    ],
+    "targets.test.metadata.description": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test.metadata.help": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test.metadata.help.command": [
+      "libs/cli/vite.config.ts",
+      "@nx/vite/plugin"
+    ],
+    "targets.test.metadata.help.example": [
+      "libs/cli/vite.config.ts",
+      "@nx/vite/plugin"
+    ],
+    "targets.typecheck": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vite/plugin"
+    ],
+    "targets.typecheck.cache": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vite/plugin"
+    ],
+    "targets.typecheck.inputs": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vite/plugin"
+    ],
+    "targets.typecheck.options": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vite/plugin"
+    ],
+    "targets.typecheck.metadata": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vite/plugin"
+    ],
+    "targets.typecheck.executor": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vite/plugin"
+    ],
+    "targets.typecheck.options.cwd": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vite/plugin"
+    ],
+    "targets.typecheck.options.command": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vite/plugin"
+    ],
+    "targets.typecheck.metadata.description": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vite/plugin"
+    ],
+    "targets.typecheck.metadata.technologies": [
+      "libs/cli/vite.config.ts",
+      "@nx/vite/plugin"
+    ],
+    "targets.typecheck.metadata.technologies.0": [
+      "libs/cli/vite.config.ts",
+      "@nx/vite/plugin"
+    ],
+    "targets.typecheck.metadata.help": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vite/plugin"
+    ],
+    "targets.typecheck.metadata.help.command": [
+      "libs/cli/vite.config.ts",
+      "@nx/vite/plugin"
+    ],
+    "targets.typecheck.metadata.help.example": [
+      "libs/cli/vite.config.ts",
+      "@nx/vite/plugin"
+    ],
+    "targets.build-deps": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vite/plugin"
+    ],
+    "targets.build-deps.dependsOn": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vite/plugin"
+    ],
+    "targets.watch-deps": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vite/plugin"
+    ],
+    "targets.watch-deps.continuous": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vite/plugin"
+    ],
+    "targets.watch-deps.dependsOn": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vite/plugin"
+    ],
+    "targets.watch-deps.executor": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vite/plugin"
+    ],
+    "targets.watch-deps.options": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vite/plugin"
+    ],
+    "targets.watch-deps.options.command": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vite/plugin"
+    ],
+    "targets.test.metadata.technologies.1": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vite/plugin"
+    ],
+    "targets.typecheck.metadata.technologies.1": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vite/plugin"
+    ],
+    "projectType": [
+      "libs/cli/project.json",
+      "nx/core/project-json"
+    ],
+    "metadata.targetGroups": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "metadata.targetGroups.TEST (CI)": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "metadata.targetGroups.TEST (CI).0": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "metadata.targetGroups.TEST (CI).1": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "metadata.targetGroups.TEST (CI).2": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "metadata.targetGroups.TEST (CI).3": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "metadata.targetGroups.TEST (CI).4": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "metadata.targetGroups.TEST (CI).5": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test.metadata.technologies.2": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/commands/init.spec.ts": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/commands/init.spec.ts.cache": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/commands/init.spec.ts.inputs": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/commands/init.spec.ts.outputs": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/commands/init.spec.ts.options": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/commands/init.spec.ts.metadata": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/commands/init.spec.ts.executor": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/commands/init.spec.ts.options.cwd": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/commands/init.spec.ts.options.command": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/commands/init.spec.ts.metadata.technologies": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/commands/init.spec.ts.metadata.technologies.0": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/commands/init.spec.ts.metadata.description": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/commands/init.spec.ts.metadata.help": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/commands/init.spec.ts.metadata.help.command": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/commands/init.spec.ts.metadata.help.example": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/lib/cli.spec.ts": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/lib/cli.spec.ts.cache": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/lib/cli.spec.ts.inputs": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/lib/cli.spec.ts.outputs": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/lib/cli.spec.ts.options": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/lib/cli.spec.ts.metadata": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/lib/cli.spec.ts.executor": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/lib/cli.spec.ts.options.cwd": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/lib/cli.spec.ts.options.command": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/lib/cli.spec.ts.metadata.technologies": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/lib/cli.spec.ts.metadata.technologies.0": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/lib/cli.spec.ts.metadata.description": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/lib/cli.spec.ts.metadata.help": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/lib/cli.spec.ts.metadata.help.command": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/lib/cli.spec.ts.metadata.help.example": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/server/websocket.spec.ts": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/server/websocket.spec.ts.cache": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/server/websocket.spec.ts.inputs": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/server/websocket.spec.ts.outputs": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/server/websocket.spec.ts.options": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/server/websocket.spec.ts.metadata": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/server/websocket.spec.ts.executor": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/server/websocket.spec.ts.options.cwd": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/server/websocket.spec.ts.options.command": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/server/websocket.spec.ts.metadata.technologies": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/server/websocket.spec.ts.metadata.technologies.0": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/server/websocket.spec.ts.metadata.description": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/server/websocket.spec.ts.metadata.help": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/server/websocket.spec.ts.metadata.help.command": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/server/websocket.spec.ts.metadata.help.example": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/executor.spec.ts": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/executor.spec.ts.cache": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/executor.spec.ts.inputs": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/executor.spec.ts.outputs": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/executor.spec.ts.options": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/executor.spec.ts.metadata": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/executor.spec.ts.executor": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/executor.spec.ts.options.cwd": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/executor.spec.ts.options.command": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/executor.spec.ts.metadata.technologies": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/executor.spec.ts.metadata.technologies.0": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/executor.spec.ts.metadata.description": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/executor.spec.ts.metadata.help": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/executor.spec.ts.metadata.help.command": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/executor.spec.ts.metadata.help.example": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/transpiler.spec.ts": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/transpiler.spec.ts.cache": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/transpiler.spec.ts.inputs": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/transpiler.spec.ts.outputs": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/transpiler.spec.ts.options": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/transpiler.spec.ts.metadata": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/transpiler.spec.ts.executor": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/transpiler.spec.ts.options.cwd": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/transpiler.spec.ts.options.command": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/transpiler.spec.ts.metadata.technologies": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/transpiler.spec.ts.metadata.technologies.0": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/transpiler.spec.ts.metadata.description": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/transpiler.spec.ts.metadata.help": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/transpiler.spec.ts.metadata.help.command": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/transpiler.spec.ts.metadata.help.example": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci.executor": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci.cache": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci.inputs": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci.outputs": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci.dependsOn": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci.metadata": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci.metadata.technologies": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci.metadata.technologies.0": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci.metadata.description": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci.metadata.nonAtomizedTarget": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci.metadata.help": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci.metadata.help.command": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci.metadata.help.example": [
+      "libs/cli/vite.config.ts",
+      "@nx/vitest"
+    ],
+    "metadata.targetGroups.TEST (CI).6": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "metadata.targetGroups.TEST (CI).7": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "metadata.targetGroups.TEST (CI).8": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "metadata.targetGroups.TEST (CI).9": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "metadata.targetGroups.TEST (CI).10": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "metadata.targetGroups.TEST (CI).11": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test.metadata.technologies.3": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/commands/init.spec.ts.metadata.technologies.1": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/executor.spec.ts.metadata.technologies.1": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/core/transpiler.spec.ts.metadata.technologies.1": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/lib/cli.spec.ts.metadata.technologies.1": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci--src/server/websocket.spec.ts.metadata.technologies.1": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "targets.test-ci.metadata.technologies.1": [
+      "libs/cli/vitest.config.mts",
+      "@nx/vitest"
+    ],
+    "name": [
+      "libs/cli/project.json",
+      "nx/core/project-json"
+    ],
+    "tags": [
+      "libs/cli/package.json",
+      "nx/core/package-json"
+    ],
+    "tags.npm:private": [
+      "libs/cli/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js": [
+      "libs/cli/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageName": [
+      "libs/cli/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageVersion": [
+      "libs/cli/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageMain": [
+      "libs/cli/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.isInPackageManagerWorkspaces": [
+      "libs/cli/package.json",
+      "nx/core/package-json"
+    ],
+    "$schema": [
+      "libs/cli/project.json",
+      "nx/core/project-json"
+    ],
+    "sourceRoot": [
+      "libs/cli/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.build": [
+      "libs/cli/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.build.executor": [
+      "libs/cli/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.build.outputs": [
+      "libs/cli/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.build.options": [
+      "libs/cli/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.build.options.outputPath": [
+      "libs/cli/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.build.options.main": [
+      "libs/cli/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.build.options.tsConfig": [
+      "libs/cli/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.build.options.assets": [
+      "libs/cli/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.build.cache": [
+      "nx.json",
+      "nx/target-defaults"
+    ],
+    "targets.build.dependsOn": [
+      "nx.json",
+      "nx/target-defaults"
+    ],
+    "targets.build.inputs": [
+      "nx.json",
+      "nx/target-defaults"
+    ],
+    "targets.build.parallelism": [
+      "nx.json",
+      "nx/target-defaults"
+    ]
+  },
+  "libs/core": {
+    "root": [
+      "libs/core/project.json",
+      "nx/core/project-json"
+    ],
+    "targets": [
+      "libs/core/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint": [
+      "libs/core/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.cache": [
+      "libs/core/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.options": [
+      "libs/core/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.inputs": [
+      "libs/core/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.outputs": [
+      "libs/core/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata": [
+      "libs/core/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.executor": [
+      "libs/core/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.options.cwd": [
+      "libs/core/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.options.command": [
+      "libs/core/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.technologies": [
+      "libs/core/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.technologies.0": [
+      "libs/core/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.description": [
+      "libs/core/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.help": [
+      "libs/core/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.help.command": [
+      "libs/core/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.help.example": [
+      "libs/core/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.test": [
+      "libs/core/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.options": [
+      "libs/core/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.metadata": [
+      "libs/core/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.cache": [
+      "libs/core/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.inputs": [
+      "libs/core/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.outputs": [
+      "libs/core/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.executor": [
+      "libs/core/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.options.cwd": [
+      "libs/core/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.options.env": [
+      "libs/core/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.options.command": [
+      "libs/core/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.metadata.technologies": [
+      "libs/core/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.metadata.technologies.0": [
+      "libs/core/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.metadata.description": [
+      "libs/core/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.metadata.help": [
+      "libs/core/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.metadata.help.command": [
+      "libs/core/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.metadata.help.example": [
+      "libs/core/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "name": [
+      "libs/core/project.json",
+      "nx/core/project-json"
+    ],
+    "tags": [
+      "libs/core/package.json",
+      "nx/core/package-json"
+    ],
+    "tags.npm:public": [
+      "libs/core/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups": [
+      "libs/core/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js": [
+      "libs/core/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageName": [
+      "libs/core/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageVersion": [
+      "libs/core/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageMain": [
+      "libs/core/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.isInPackageManagerWorkspaces": [
+      "libs/core/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.nx-release-publish": [
+      "libs/core/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.nx-release-publish.executor": [
+      "libs/core/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.nx-release-publish.dependsOn": [
+      "libs/core/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.nx-release-publish.options": [
+      "libs/core/project.json",
+      "nx/core/project-json"
+    ],
+    "$schema": [
+      "libs/core/project.json",
+      "nx/core/project-json"
+    ],
+    "sourceRoot": [
+      "libs/core/project.json",
+      "nx/core/project-json"
+    ],
+    "projectType": [
+      "libs/core/project.json",
+      "nx/core/project-json"
+    ],
+    "release": [
+      "libs/core/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.build": [
+      "libs/core/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.build.executor": [
+      "libs/core/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.build.outputs": [
+      "libs/core/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.build.options": [
+      "libs/core/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.build.options.command": [
+      "libs/core/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.nx-release-publish.options.packageRoot": [
+      "libs/core/project.json",
+      "nx/core/project-json"
+    ]
+  },
+  "libs/runtime": {
+    "root": [
+      "libs/runtime/project.json",
+      "nx/core/project-json"
+    ],
+    "targets": [
+      "libs/runtime/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint": [
+      "libs/runtime/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.cache": [
+      "libs/runtime/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.options": [
+      "libs/runtime/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.inputs": [
+      "libs/runtime/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.outputs": [
+      "libs/runtime/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata": [
+      "libs/runtime/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.executor": [
+      "libs/runtime/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.options.cwd": [
+      "libs/runtime/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.options.command": [
+      "libs/runtime/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.technologies": [
+      "libs/runtime/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.technologies.0": [
+      "libs/runtime/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.description": [
+      "libs/runtime/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.help": [
+      "libs/runtime/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.help.command": [
+      "libs/runtime/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.help.example": [
+      "libs/runtime/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.test": [
+      "libs/runtime/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.options": [
+      "libs/runtime/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.metadata": [
+      "libs/runtime/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.cache": [
+      "libs/runtime/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.inputs": [
+      "libs/runtime/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.outputs": [
+      "libs/runtime/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.executor": [
+      "libs/runtime/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.options.cwd": [
+      "libs/runtime/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.options.env": [
+      "libs/runtime/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.options.command": [
+      "libs/runtime/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.metadata.technologies": [
+      "libs/runtime/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.metadata.technologies.0": [
+      "libs/runtime/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.metadata.description": [
+      "libs/runtime/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.metadata.help": [
+      "libs/runtime/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.metadata.help.command": [
+      "libs/runtime/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "targets.test.metadata.help.example": [
+      "libs/runtime/jest.config.cts",
+      "@nx/jest/plugin"
+    ],
+    "name": [
+      "libs/runtime/project.json",
+      "nx/core/project-json"
+    ],
+    "tags": [
+      "libs/runtime/package.json",
+      "nx/core/package-json"
+    ],
+    "tags.npm:private": [
+      "libs/runtime/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups": [
+      "libs/runtime/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js": [
+      "libs/runtime/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageName": [
+      "libs/runtime/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageVersion": [
+      "libs/runtime/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageMain": [
+      "libs/runtime/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.isInPackageManagerWorkspaces": [
+      "libs/runtime/package.json",
+      "nx/core/package-json"
+    ],
+    "$schema": [
+      "libs/runtime/project.json",
+      "nx/core/project-json"
+    ],
+    "sourceRoot": [
+      "libs/runtime/project.json",
+      "nx/core/project-json"
+    ],
+    "projectType": [
+      "libs/runtime/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.build": [
+      "libs/runtime/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.build.executor": [
+      "libs/runtime/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.build.outputs": [
+      "libs/runtime/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.build.options": [
+      "libs/runtime/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.build.options.outputPath": [
+      "libs/runtime/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.build.options.main": [
+      "libs/runtime/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.build.options.tsConfig": [
+      "libs/runtime/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.build.options.assets": [
+      "libs/runtime/project.json",
+      "nx/core/project-json"
+    ],
+    "targets.build.cache": [
+      "nx.json",
+      "nx/target-defaults"
+    ],
+    "targets.build.dependsOn": [
+      "nx.json",
+      "nx/target-defaults"
+    ],
+    "targets.build.inputs": [
+      "nx.json",
+      "nx/target-defaults"
+    ],
+    "targets.build.parallelism": [
+      "nx.json",
+      "nx/target-defaults"
+    ]
+  },
+  "libs/shared": {
+    "root": [
+      "libs/shared/project.json",
+      "nx/core/project-json"
+    ],
+    "targets": [
+      "libs/shared/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint": [
+      "libs/shared/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.cache": [
+      "libs/shared/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.options": [
+      "libs/shared/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.inputs": [
+      "libs/shared/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.outputs": [
+      "libs/shared/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata": [
+      "libs/shared/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.executor": [
+      "libs/shared/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.options.cwd": [
+      "libs/shared/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.options.command": [
+      "libs/shared/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.technologies": [
+      "libs/shared/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.technologies.0": [
+      "libs/shared/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.description": [
+      "libs/shared/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.help": [
+      "libs/shared/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.help.command": [
+      "libs/shared/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "targets.lint.metadata.help.example": [
+      "libs/shared/eslint.config.mjs",
+      "@nx/eslint/plugin"
+    ],
+    "name": [
+      "libs/shared/project.json",
+      "nx/core/project-json"
+    ],
+    "$schema": [
+      "libs/shared/project.json",
+      "nx/core/project-json"
+    ],
+    "sourceRoot": [
+      "libs/shared/project.json",
+      "nx/core/project-json"
+    ],
+    "projectType": [
+      "libs/shared/project.json",
+      "nx/core/project-json"
+    ],
+    "// targets": [
+      "libs/shared/project.json",
+      "nx/core/project-json"
+    ],
+    "tags": [
+      "libs/shared/project.json",
+      "nx/core/project-json"
+    ]
+  },
+  ".": {
+    "root": [
+      "project.json",
+      "nx/core/project-json"
+    ],
+    "name": [
+      "project.json",
+      "nx/core/project-json"
+    ],
+    "includedScripts": [
+      "package.json",
+      "nx/core/package-json"
+    ],
+    "tags": [
+      "package.json",
+      "nx/core/package-json"
+    ],
+    "tags.npm:private": [
+      "package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups": [
+      "package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js": [
+      "package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageName": [
+      "package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageVersion": [
+      "package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.isInPackageManagerWorkspaces": [
+      "package.json",
+      "nx/core/package-json"
+    ],
+    "targets": [
+      "package.json",
+      "nx/core/package-json"
+    ],
+    "$schema": [
+      "project.json",
+      "nx/core/project-json"
+    ],
+    "targets.local-registry": [
+      "project.json",
+      "nx/core/project-json"
+    ],
+    "targets.local-registry.executor": [
+      "project.json",
+      "nx/core/project-json"
+    ],
+    "targets.local-registry.options": [
+      "project.json",
+      "nx/core/project-json"
+    ],
+    "targets.local-registry.options.port": [
+      "project.json",
+      "nx/core/project-json"
+    ],
+    "targets.local-registry.options.config": [
+      "project.json",
+      "nx/core/project-json"
+    ],
+    "targets.local-registry.options.storage": [
+      "project.json",
+      "nx/core/project-json"
+    ]
+  }
+}

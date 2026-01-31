@@ -1,0 +1,52 @@
+$ bun run --filter '*' build --filter @graphwrite/core
+@graphwrite/core build: CACError: Unknown option `--filter`
+@graphwrite/core build:     at Command.checkUnknownOptions (/Users/danghamo/Documents/gituhb/graphwritev2/node_modules/cac/dist/index.js:404:17)
+@graphwrite/core build:     at CAC.runMatchedCommand (/Users/danghamo/Documents/gituhb/graphwritev2/node_modules/cac/dist/index.js:602:13)
+@graphwrite/core build:     at main (/Users/danghamo/Documents/gituhb/graphwritev2/node_modules/tsup/dist/chunk-DI5BO6XE.js:148:13)
+@graphwrite/core build:     at Object.<anonymous> (/Users/danghamo/Documents/gituhb/graphwritev2/node_modules/tsup/dist/cli-default.js:12:23)
+@graphwrite/core build:     at Module._compile (node:internal/modules/cjs/loader:1730:14)
+@graphwrite/core build:     at Object..js (node:internal/modules/cjs/loader:1895:10)
+@graphwrite/core build:     at Module.load (node:internal/modules/cjs/loader:1465:32)
+@graphwrite/core build:     at Function._load (node:internal/modules/cjs/loader:1282:12)
+@graphwrite/core build:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+@graphwrite/core build:     at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+@graphwrite/cli build: CACError: Unknown option `--filter`
+@graphwrite/cli build:     at Command.checkUnknownOptions (/Users/danghamo/Documents/gituhb/graphwritev2/node_modules/cac/dist/index.js:404:17)
+@graphwrite/cli build:     at CAC.runMatchedCommand (/Users/danghamo/Documents/gituhb/graphwritev2/node_modules/cac/dist/index.js:602:13)
+@graphwrite/cli build:     at main (/Users/danghamo/Documents/gituhb/graphwritev2/node_modules/tsup/dist/chunk-DI5BO6XE.js:148:13)
+@graphwrite/cli build:     at Object.<anonymous> (/Users/danghamo/Documents/gituhb/graphwritev2/node_modules/tsup/dist/cli-default.js:12:23)
+@graphwrite/cli build:     at Module._compile (node:internal/modules/cjs/loader:1730:14)
+@graphwrite/cli build:     at Object..js (node:internal/modules/cjs/loader:1895:10)
+@graphwrite/cli build:     at Module.load (node:internal/modules/cjs/loader:1465:32)
+@graphwrite/cli build:     at Function._load (node:internal/modules/cjs/loader:1282:12)
+@graphwrite/cli build:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+@graphwrite/cli build:     at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+@graphwrite/shared build: CACError: Unknown option `--filter`
+@graphwrite/shared build:     at Command.checkUnknownOptions (/Users/danghamo/Documents/gituhb/graphwritev2/node_modules/cac/dist/index.js:404:17)
+@graphwrite/shared build:     at CAC.runMatchedCommand (/Users/danghamo/Documents/gituhb/graphwritev2/node_modules/cac/dist/index.js:602:13)
+@graphwrite/shared build:     at main (/Users/danghamo/Documents/gituhb/graphwritev2/node_modules/tsup/dist/chunk-DI5BO6XE.js:148:13)
+@graphwrite/shared build:     at Object.<anonymous> (/Users/danghamo/Documents/gituhb/graphwritev2/node_modules/tsup/dist/cli-default.js:12:23)
+@graphwrite/shared build:     at Module._compile (node:internal/modules/cjs/loader:1730:14)
+@graphwrite/shared build:     at Object..js (node:internal/modules/cjs/loader:1895:10)
+@graphwrite/shared build:     at Module.load (node:internal/modules/cjs/loader:1465:32)
+@graphwrite/shared build:     at Function._load (node:internal/modules/cjs/loader:1282:12)
+@graphwrite/shared build:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+@graphwrite/shared build:     at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+@graphwrite/core build: Exited with code 1
+@graphwrite/cli build: Exited with code 1
+@graphwrite/shared build: Exited with code 1
+@graphwrite/runtime build: CACError: Unknown option `--filter`
+@graphwrite/runtime build:     at Command.checkUnknownOptions (/Users/danghamo/Documents/gituhb/graphwritev2/node_modules/cac/dist/index.js:404:17)
+@graphwrite/runtime build:     at CAC.runMatchedCommand (/Users/danghamo/Documents/gituhb/graphwritev2/node_modules/cac/dist/index.js:602:13)
+@graphwrite/runtime build:     at main (/Users/danghamo/Documents/gituhb/graphwritev2/node_modules/tsup/dist/chunk-DI5BO6XE.js:148:13)
+@graphwrite/runtime build:     at Object.<anonymous> (/Users/danghamo/Documents/gituhb/graphwritev2/node_modules/tsup/dist/cli-default.js:12:23)
+@graphwrite/runtime build:     at Module._compile (node:internal/modules/cjs/loader:1730:14)
+@graphwrite/runtime build:     at Object..js (node:internal/modules/cjs/loader:1895:10)
+@graphwrite/runtime build:     at Module.load (node:internal/modules/cjs/loader:1465:32)
+@graphwrite/runtime build:     at Function._load (node:internal/modules/cjs/loader:1282:12)
+@graphwrite/runtime build:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+@graphwrite/runtime build:     at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+@graphwrite/runtime build: Exited with code 1
+graphwrite-app build: error: unknown option '--filter'
+graphwrite-app build: Exited with code 1
+error: script "build" exited with code 1

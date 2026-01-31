@@ -2,11 +2,16 @@
   "name": "@graphwrite/core",
   "version": "0.0.1",
   "type": "commonjs",
-  "main": "./src/index.js",
-  "types": "./src/index.d.ts",
+  "main": "./src/index.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --external react"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0"
+  },
   "dependencies": {
     "elkjs": "^0.11.0",
-    "react-reconciler": "^0.33.0",
+    "react-reconciler": "^0.29.0",
     "tslib": "^2.3.0"
   }
 }

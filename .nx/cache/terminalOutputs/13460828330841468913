@@ -1,0 +1,4 @@
+> nx run cli:build
+
+Compiling TypeScript files for project "cli"...
+Done compiling TypeScript files for project "cli".

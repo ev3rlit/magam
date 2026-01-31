@@ -1,19 +1,39 @@
 import * as ReactReconciler from 'react-reconciler';
+import * as React from 'react';
 import * as HostConfig from './reconciler/hostConfig';
+import { Container } from './reconciler/hostConfig';
 import { applyLayout } from './layout/elk';
 
 const Reconciler = (ReactReconciler as any).default || ReactReconciler;
 
 // @ts-ignore
-const reconciler = Reconciler(HostConfig);
+let reconciler: any = null;
+
+function getReconciler() {
+  if (!reconciler) {
+    console.log('[Renderer] Initializing Reconciler');
+    console.log('[Renderer] React avail:', !!React);
+    console.log('[Renderer] React keys:', Object.keys(React || {}));
+    // @ts-ignore
+    console.log('[Renderer] Internals:', (React as any).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED);
+    // @ts-ignore
+    reconciler = Reconciler(HostConfig);
+  }
+  return reconciler;
+}
 
 const LEGACY_ROOT = 0;
 
-export async function renderToGraph(element: React.ReactNode) {
-  const container = { type: 'root', children: [] };
+import { ResultAsync, ok, err, fromPromise, fromThrowable } from './result';
+import { RenderError, LayoutError } from './result';
+
+// ... (existing helper function code to be kept)
+
+export function renderToGraph(element: React.ReactNode): ResultAsync<Container, RenderError | LayoutError> {
+  const container: Container = { type: 'root', children: [] };
   let capturedError: Error | null = null;
 
-  const root = reconciler.createContainer(
+  const root = getReconciler().createContainer(
     container,
     LEGACY_ROOT,
     null,
@@ -26,17 +46,30 @@ export async function renderToGraph(element: React.ReactNode) {
     null,
   );
 
-  reconciler.updateContainer(element, root, null, null);
+  // Wrap reconciliation in a Promise-like structure since it involves microtask timing
+  const renderPromise = new Promise<'RECONCILED' | 'ERROR'>((resolve) => {
+    try {
+      getReconciler().updateContainer(element, root, null, () => {
+        // completion callback
+      });
+      // Wait for microtasks (useEffect/rendering effects)
+      setTimeout(() => {
+        if (capturedError) resolve('ERROR');
+        else resolve('RECONCILED');
+      }, 0);
+    } catch (e) {
+      capturedError = e as Error;
+      resolve('ERROR');
+    }
+  });
 
-  // Wait for the synchronous reconciliation to finish (flushed via microtask in tests)
-  await new Promise((resolve) => setTimeout(resolve, 0));
-
-  if (capturedError) {
-    throw capturedError;
-  }
-
-  // Apply Async Layout
-  await applyLayout(container as any);
-
-  return container;
+  return fromPromise(
+    renderPromise,
+    (e) => new RenderError('Unexpected error during reconciliation promise', e)
+  ).andThen((status) => {
+    if (status === 'ERROR' || capturedError) {
+      return err(new RenderError('Reconciliation failed', capturedError));
+    }
+    return ok(container);
+  }).andThen(applyLayout);
 }

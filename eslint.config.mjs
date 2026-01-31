@@ -1,56 +1,22 @@
-import nx from "@nx/eslint-plugin";
+import tseslint from 'typescript-eslint';
+import eslint from '@eslint/js';
 
-export default [
-    ...nx.configs["flat/base"],
-    ...nx.configs["flat/typescript"],
-    ...nx.configs["flat/javascript"],
+export default tseslint.config(
+    eslint.configs.recommended,
+    ...tseslint.configs.recommended,
     {
-      "ignores": [
-        "**/dist",
-        "**/out-tsc",
-        "**/vite.config.*.timestamp*",
-        "**/vitest.config.*.timestamp*"
-      ]
+        ignores: [
+            "**/dist",
+            "**/out-tsc",
+            "**/.next",
+            "**/node_modules"
+        ]
     },
     {
-        files: [
-            "**/*.ts",
-            "**/*.tsx",
-            "**/*.js",
-            "**/*.jsx"
-        ],
+        files: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
         rules: {
-            "@nx/enforce-module-boundaries": [
-                "error",
-                {
-                    enforceBuildableLibDependency: true,
-                    allow: [
-                        "^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$"
-                    ],
-                    depConstraints: [
-                        {
-                            sourceTag: "*",
-                            onlyDependOnLibsWithTags: [
-                                "*"
-                            ]
-                        }
-                    ]
-                }
-            ]
+            "@typescript-eslint/no-explicit-any": "warn",
+            "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }]
         }
-    },
-    {
-        files: [
-            "**/*.ts",
-            "**/*.tsx",
-            "**/*.cts",
-            "**/*.mts",
-            "**/*.js",
-            "**/*.jsx",
-            "**/*.cjs",
-            "**/*.mjs"
-        ],
-        // Override or add rules here
-        rules: {}
     }
-];
+);

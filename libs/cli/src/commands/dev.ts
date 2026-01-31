@@ -1,6 +1,7 @@
 import * as chokidar from 'chokidar';
 import * as path from 'path';
 import * as fs from 'fs';
+import glob = require('fast-glob');
 import { transpile } from '../core/transpiler';
 import { execute } from '../core/executor';
 import { GraphwriteError } from '@graphwrite/core';
@@ -21,16 +22,13 @@ export async function startDevServer(cwd: string, entryFile?: string) {
     }
   }
 
-  const fullEntryPoint = path.resolve(cwd, entryPoint);
+  let fullEntryPoint = path.resolve(cwd, entryPoint);
   if (!fs.existsSync(fullEntryPoint)) {
     console.error(`\x1b[31mEntry file not found: ${fullEntryPoint}\x1b[0m`);
     return;
   }
 
   console.log(`Starting dev server... watching ${entryPoint}`);
-
-  startServer(3001);
-  console.log('WebSocket server started on port 3001');
 
   let lastSuccessState: any = null;
   let errors: any[] = [];
@@ -72,6 +70,23 @@ export async function startDevServer(cwd: string, entryFile?: string) {
       });
     }
   };
+
+  const { port } = await startServer(undefined, async (message, ws) => {
+    if (message.type === 'get-files') {
+      const files = await glob('**/*.tsx', {
+        cwd,
+        ignore: ['**/node_modules/**', '**/.git/**'],
+      });
+      ws.send(JSON.stringify({ type: 'file-list', payload: files }));
+    } else if (message.type === 'switch-file') {
+      const filename = message.payload;
+      console.log(`Switching to file: ${filename}`);
+      entryPoint = filename;
+      fullEntryPoint = path.resolve(cwd, filename);
+      await run();
+    }
+  });
+  console.log(`WebSocket server started on port ${port}`);
 
   await run();
 

@@ -1,0 +1,4 @@
+> nx run runtime:build
+
+Compiling TypeScript files for project "runtime"...
+Done compiling TypeScript files for project "runtime".

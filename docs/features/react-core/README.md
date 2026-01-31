@@ -303,5 +303,3 @@ export default function Diagram() {
   )
 }
 ```
-
-추가로 논의하거나 수정하고 싶은 부분 있으세요?

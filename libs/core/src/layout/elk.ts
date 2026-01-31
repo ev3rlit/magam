@@ -1,9 +1,18 @@
 import ELK from 'elkjs/lib/elk.bundled.js';
 import { Container, Instance } from '../reconciler/hostConfig';
 
-const elk = new ELK();
+let elkInstance: any | null = null;
 
-// Default layout options
+function getElkInstance() {
+  if (!elkInstance) {
+    elkInstance = new ELK();
+  }
+  return elkInstance;
+}
+
+import { ResultAsync, ok, err, fromPromise } from '../result';
+import { LayoutError } from '../result';
+
 const DEFAULT_LAYOUT_OPTIONS = {
   'elk.algorithm': 'layered',
   'elk.direction': 'RIGHT',
@@ -15,9 +24,11 @@ const DEFAULT_LAYOUT_OPTIONS = {
  * Applies ELK layout to any 'graph-mindmap' nodes found in the graph.
  * Modifies the graph in-place and returns it.
  */
-export async function applyLayout(graph: Container): Promise<Container> {
-  await traverseAndLayout(graph);
-  return graph;
+export function applyLayout(graph: Container): ResultAsync<Container, LayoutError> {
+  return fromPromise(
+    traverseAndLayout(graph).then(() => graph),
+    (error) => new LayoutError('Failed to apply ELK layout', error)
+  );
 }
 
 async function traverseAndLayout(node: Container | Instance): Promise<void> {
@@ -80,13 +91,13 @@ async function layoutMindMap(node: Instance) {
     edges: elkEdges,
   };
 
+  // 2. Run ELK layout
   try {
-    // 2. Run ELK layout
-    const layoutedGraph = await elk.layout(elkGraph);
+    const layoutedGraph = await getElkInstance().layout(elkGraph);
 
     // 3. Apply back x, y coordinates
     if (layoutedGraph.children) {
-      layoutedGraph.children.forEach((layoutedNode) => {
+      layoutedGraph.children.forEach((layoutedNode: any) => {
         const originalNode = node.children.find(
           (child) => child.props['id'] === layoutedNode.id,
         );
@@ -99,8 +110,8 @@ async function layoutMindMap(node: Instance) {
         }
       });
     }
-  } catch (error) {
-    console.error('ELK Layout failed:', error);
-    // On failure, we just leave nodes where they are (or where they were initialized)
+  } catch (e) {
+    // Re-throw so it's caught by fromPromise in applyLayout
+    throw e;
   }
 }

@@ -90,7 +90,34 @@ AI 에이전트가 사용할 수 있는 도구:
 npx nx test api
 ```
 
+## 🏗️ 렌더링 아키텍처 (Rendering Architecture)
+
+사용자가 파일을 클릭했을 때 캔버스에 그림이 그려지는 과정은 다음과 같습니다.
+
+### 1. Client Side (Browser)
+- **User Action**: 사이드바에서 `.tsx` 파일(예: `mindmap.tsx`)을 클릭합니다.
+- **Request**: `app/page.tsx`는 `/api/render` 엔드포인트로 파일 경로를 전송합니다.
+
+### 2. Server Side (Next.js API Route)
+- **Receive**: `/api/render/route.ts`가 요청을 받습니다.
+- **Build (Esbuild)**: `esbuild`를 사용하여 해당 파일을 메모리 상에서 번들링합니다. (React 코드를 실행 가능한 JS로 변환)
+- **Execute (Dynamic Import)**: 번들링된 코드를 서버 환경에서 동적으로 실행하여 React Element Tree를 생성합니다. (e.g., `<MindMap>...`)
+
+### 3. Core Engine (GraphWrite Core)
+- **Reconciler**: `renderToGraph()` 함수가 Custom React Reconciler를 구동합니다.
+  - React Component (`<Sticky>`, `<Edge>` 등)를 순회하며 Graph Node/Edge 데이터 구조로 변환합니다.
+- **Layout (ELK.js)**: 변환된 그래프 데이터에 레이아웃 엔진(`elkjs`)을 적용하여, 자동으로 노드들의 `x`, `y` 좌표를 계산합니다.
+  - *Note: 서버 환경(Node.js) 호환을 위해 Web Worker를 사용하지 않는 번들 버전을 사용합니다.*
+
+### 4. Client Side (Response & Render)
+- **Update Store**: 서버로부터 좌표가 계산된 최종 그래프 JSON 데이터를 받습니다.
+- **State Update**: `useGraphStore`를 통해 React Flow의 `nodes`와 `edges` 상태를 업데이트합니다.
+- **Visual Render**: React Flow가 변경된 상태를 감지하고 화면에 다이어그램을 그립니다.
+
+---
+
 ## 라이선스
+
 
 MIT
 

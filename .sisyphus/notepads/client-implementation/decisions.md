@@ -1,0 +1,1 @@
+- Refactored `useSocket` to use a module-level singleton `Socket` instance to prevent multiple connections when the hook is used in multiple components (like StickyNodes). Updated `isConnected` to track global connection state via Zustand store.

@@ -1,0 +1,885 @@
+{
+  "version": "6.0",
+  "nxVersion": "22.4.2",
+  "pathMappings": {
+    "@graphwrite/shared": [
+      "libs/shared/src/index.ts"
+    ],
+    "@graphwrite/core": [
+      "libs/core/src/index.ts"
+    ],
+    "@graphwrite/cli": [
+      "libs/cli/src/index.ts"
+    ],
+    "@graphwrite/runtime": [
+      "libs/runtime/src/index.ts"
+    ]
+  },
+  "nxJsonPlugins": [
+    {
+      "name": "@nx/eslint/plugin",
+      "options": {
+        "targetName": "lint"
+      }
+    },
+    {
+      "name": "@nx/vite/plugin",
+      "options": {
+        "buildTargetName": "build",
+        "testTargetName": "test",
+        "serveTargetName": "serve",
+        "devTargetName": "dev",
+        "previewTargetName": "preview",
+        "serveStaticTargetName": "serve-static",
+        "typecheckTargetName": "typecheck",
+        "buildDepsTargetName": "build-deps",
+        "watchDepsTargetName": "watch-deps"
+      }
+    },
+    {
+      "name": "@nx/vitest",
+      "version": "22.4.2",
+      "options": {
+        "testTargetName": "test",
+        "ciTargetName": "test-ci",
+        "testMode": "watch"
+      }
+    },
+    {
+      "name": "@nx/playwright/plugin",
+      "options": {
+        "targetName": "e2e"
+      }
+    },
+    {
+      "name": "@nx/webpack/plugin",
+      "options": {
+        "buildTargetName": "build",
+        "serveTargetName": "serve",
+        "previewTargetName": "preview",
+        "buildDepsTargetName": "build-deps",
+        "watchDepsTargetName": "watch-deps",
+        "serveStaticTargetName": "serve-static"
+      }
+    },
+    {
+      "name": "@nx/jest/plugin",
+      "options": {
+        "targetName": "test"
+      }
+    }
+  ],
+  "fileMap": {
+    "nonProjectFiles": [],
+    "projectFileMap": {
+      "runtime": [
+        {
+          "file": "libs/runtime/README.md",
+          "hash": "6478818010036808151"
+        },
+        {
+          "file": "libs/runtime/eslint.config.mjs",
+          "hash": "4313095032450400554",
+          "deps": [
+            [
+              "npm:jsonc-eslint-parser@2.4.2",
+              "dynamic"
+            ]
+          ]
+        },
+        {
+          "file": "libs/runtime/jest.config.cts",
+          "hash": "18222207615617947025"
+        },
+        {
+          "file": "libs/runtime/package.json",
+          "hash": "5696347288237405108",
+          "deps": [
+            "npm:tslib@2.8.1"
+          ]
+        },
+        {
+          "file": "libs/runtime/project.json",
+          "hash": "7502497965426941450"
+        },
+        {
+          "file": "libs/runtime/src/index.ts",
+          "hash": "15721973512366614065"
+        },
+        {
+          "file": "libs/runtime/src/lib/executor.ts",
+          "hash": "13471553813715721959",
+          "deps": [
+            [
+              "core",
+              "dynamic"
+            ]
+          ]
+        },
+        {
+          "file": "libs/runtime/src/lib/runtime.spec.ts",
+          "hash": "946115091047162457"
+        },
+        {
+          "file": "libs/runtime/src/lib/runtime.ts",
+          "hash": "8116597108083478284"
+        },
+        {
+          "file": "libs/runtime/src/lib/transpiler.ts",
+          "hash": "6245906214705765588",
+          "deps": [
+            "npm:esbuild@0.27.2"
+          ]
+        },
+        {
+          "file": "libs/runtime/src/lib/worker.ts",
+          "hash": "13204211419276168879",
+          "deps": [
+            [
+              "npm:react@19.2.4",
+              "dynamic"
+            ],
+            [
+              "core",
+              "dynamic"
+            ]
+          ]
+        },
+        {
+          "file": "libs/runtime/tsconfig.json",
+          "hash": "12975668481162286788"
+        },
+        {
+          "file": "libs/runtime/tsconfig.lib.json",
+          "hash": "13731893420473560347"
+        },
+        {
+          "file": "libs/runtime/tsconfig.spec.json",
+          "hash": "11011431583980985399"
+        }
+      ],
+      "graphwrite-app": [
+        {
+          "file": "app/app/api/files/route.ts",
+          "hash": "4881723032528070885"
+        },
+        {
+          "file": "app/app/api/render/route.ts",
+          "hash": "18113658730620286223",
+          "deps": [
+            "core",
+            "npm:esbuild@0.27.2",
+            [
+              "npm:react@19.2.4",
+              "dynamic"
+            ]
+          ]
+        },
+        {
+          "file": "app/app/globals.css",
+          "hash": "2866083945719690482"
+        },
+        {
+          "file": "app/app/layout.tsx",
+          "hash": "6220764984508319568"
+        },
+        {
+          "file": "app/app/page.tsx",
+          "hash": "6578638061910322489",
+          "deps": [
+            "npm:react@19.2.4"
+          ]
+        },
+        {
+          "file": "app/bun.lock",
+          "hash": "2337790276276638680"
+        },
+        {
+          "file": "app/components/GraphCanvas.tsx",
+          "hash": "15015107346801643344",
+          "deps": [
+            "npm:react@19.2.4",
+            "npm:reactflow@11.11.4"
+          ]
+        },
+        {
+          "file": "app/components/nodes/ShapeNode.tsx",
+          "hash": "5582711001477136189",
+          "deps": [
+            "npm:react@19.2.4",
+            "npm:reactflow@11.11.4",
+            "npm:clsx@2.1.1",
+            "npm:tailwind-merge@3.4.0"
+          ]
+        },
+        {
+          "file": "app/components/nodes/StickyNode.tsx",
+          "hash": "73685822358974851",
+          "deps": [
+            "npm:react@19.2.4",
+            "npm:reactflow@11.11.4",
+            "npm:clsx@2.1.1",
+            "npm:tailwind-merge@3.4.0"
+          ]
+        },
+        {
+          "file": "app/components/ui/ErrorOverlay.tsx",
+          "hash": "15271673785570654400",
+          "deps": [
+            "npm:react@19.2.4",
+            "npm:lucide-react@0.563.0",
+            "npm:clsx@2.1.1"
+          ]
+        },
+        {
+          "file": "app/components/ui/Footer.tsx",
+          "hash": "3970158744267528428",
+          "deps": [
+            "npm:react@19.2.4",
+            "npm:lucide-react@0.563.0",
+            "npm:clsx@2.1.1"
+          ]
+        },
+        {
+          "file": "app/components/ui/Header.tsx",
+          "hash": "3578222961960649078",
+          "deps": [
+            "npm:react@19.2.4",
+            "npm:lucide-react@0.563.0",
+            "npm:clsx@2.1.1"
+          ]
+        },
+        {
+          "file": "app/components/ui/Sidebar.tsx",
+          "hash": "8400061573240160450",
+          "deps": [
+            "npm:react@19.2.4",
+            "npm:lucide-react@0.563.0",
+            "npm:clsx@2.1.1"
+          ]
+        },
+        {
+          "file": "app/next-env.d.ts",
+          "hash": "2517811901510882550"
+        },
+        {
+          "file": "app/next.config.mjs",
+          "hash": "10172236288125696243"
+        },
+        {
+          "file": "app/package.json",
+          "hash": "550220901536079459",
+          "deps": [
+            "npm:@types/node",
+            "npm:@types/react@19.2.10",
+            "npm:@types/react-dom@19.2.3",
+            "npm:typescript@5.9.3",
+            "npm:clsx@2.1.1",
+            "npm:esbuild@0.27.2",
+            "npm:lucide-react@0.563.0",
+            "npm:react@19.2.4",
+            "npm:react-dom@19.2.4",
+            "npm:reactflow@11.11.4",
+            "npm:socket.io-client@4.8.3",
+            "npm:zustand@5.0.10"
+          ]
+        },
+        {
+          "file": "app/postcss.config.js",
+          "hash": "8055263870272897227"
+        },
+        {
+          "file": "app/store/graph.ts",
+          "hash": "16794030338565365971",
+          "deps": [
+            "npm:zustand@5.0.10",
+            "npm:reactflow@11.11.4"
+          ]
+        },
+        {
+          "file": "app/tailwind.config.js",
+          "hash": "12641419288068598007"
+        },
+        {
+          "file": "app/tsconfig.json",
+          "hash": "15999097842417215550"
+        }
+      ],
+      "cli": [
+        {
+          "file": "libs/cli/README.md",
+          "hash": "1136774106129052855"
+        },
+        {
+          "file": "libs/cli/eslint.config.mjs",
+          "hash": "11826975816517087630",
+          "deps": [
+            [
+              "npm:jsonc-eslint-parser@2.4.2",
+              "dynamic"
+            ]
+          ]
+        },
+        {
+          "file": "libs/cli/package-lock.json",
+          "hash": "15900064490612996397"
+        },
+        {
+          "file": "libs/cli/package.json",
+          "hash": "1983768121765670464",
+          "deps": [
+            "npm:fast-glob@3.3.3",
+            "npm:tslib@2.8.1"
+          ]
+        },
+        {
+          "file": "libs/cli/project.json",
+          "hash": "3761787861302859505"
+        },
+        {
+          "file": "libs/cli/src/bin.ts",
+          "hash": "7277044392232301565"
+        },
+        {
+          "file": "libs/cli/src/commands/dev.ts",
+          "hash": "6492926092311867904",
+          "deps": [
+            "npm:chokidar@4.0.3",
+            "npm:fast-glob@3.3.3",
+            "core"
+          ]
+        },
+        {
+          "file": "libs/cli/src/commands/init.spec.ts",
+          "hash": "9264781124019414059",
+          "deps": [
+            "npm:vitest@4.0.18"
+          ]
+        },
+        {
+          "file": "libs/cli/src/commands/init.ts",
+          "hash": "14498137104497507742"
+        },
+        {
+          "file": "libs/cli/src/core/executor.spec.ts",
+          "hash": "17086954259962112879",
+          "deps": [
+            "npm:vitest@4.0.18",
+            "core"
+          ]
+        },
+        {
+          "file": "libs/cli/src/core/executor.ts",
+          "hash": "15965825778819845773",
+          "deps": [
+            "core",
+            [
+              "core",
+              "dynamic"
+            ],
+            [
+              "npm:react@19.2.4",
+              "dynamic"
+            ]
+          ]
+        },
+        {
+          "file": "libs/cli/src/core/transpiler.spec.ts",
+          "hash": "3829993953537926754"
+        },
+        {
+          "file": "libs/cli/src/core/transpiler.ts",
+          "hash": "6245906214705765588",
+          "deps": [
+            "npm:esbuild@0.27.2"
+          ]
+        },
+        {
+          "file": "libs/cli/src/index.ts",
+          "hash": "11982436616986991257"
+        },
+        {
+          "file": "libs/cli/src/lib/cli.spec.ts",
+          "hash": "8379290617520627212"
+        },
+        {
+          "file": "libs/cli/src/lib/cli.ts",
+          "hash": "9561698413859333015"
+        },
+        {
+          "file": "libs/cli/src/server/websocket.spec.ts",
+          "hash": "889316719061865073",
+          "deps": [
+            "npm:vitest@4.0.18",
+            "npm:ws@8.19.0"
+          ]
+        },
+        {
+          "file": "libs/cli/src/server/websocket.ts",
+          "hash": "3989741321241796333",
+          "deps": [
+            "npm:ws@8.19.0"
+          ]
+        },
+        {
+          "file": "libs/cli/tsconfig.json",
+          "hash": "12975668481162286788"
+        },
+        {
+          "file": "libs/cli/tsconfig.lib.json",
+          "hash": "5717275705250896846"
+        },
+        {
+          "file": "libs/cli/tsconfig.spec.json",
+          "hash": "16829233919054324066"
+        },
+        {
+          "file": "libs/cli/vite.config.ts",
+          "hash": "8302875267488023043",
+          "deps": [
+            "npm:vite@7.3.1",
+            "npm:@nx/vite@22.4.2"
+          ]
+        },
+        {
+          "file": "libs/cli/vitest.config.mts",
+          "hash": "14685826251744995973",
+          "deps": [
+            "npm:vitest@4.0.18",
+            "npm:@nx/vite@22.4.2"
+          ]
+        }
+      ],
+      "shared": [
+        {
+          "file": "libs/shared/README.md",
+          "hash": "11786132251247811791"
+        },
+        {
+          "file": "libs/shared/eslint.config.mjs",
+          "hash": "1965792974734046140"
+        },
+        {
+          "file": "libs/shared/project.json",
+          "hash": "2214406144155872643"
+        },
+        {
+          "file": "libs/shared/src/index.ts",
+          "hash": "15721632429446788800"
+        },
+        {
+          "file": "libs/shared/src/lib/shared.ts",
+          "hash": "3815621113879200261"
+        },
+        {
+          "file": "libs/shared/src/lib/types.ts",
+          "hash": "7308730489476487127"
+        },
+        {
+          "file": "libs/shared/tsconfig.json",
+          "hash": "6159797437362864955"
+        },
+        {
+          "file": "libs/shared/tsconfig.lib.json",
+          "hash": "15798669420171897096"
+        }
+      ],
+      "@graphwrite/source": [
+        {
+          "file": ".editorconfig",
+          "hash": "5443105041930014821"
+        },
+        {
+          "file": ".gitignore",
+          "hash": "12945010920025166151"
+        },
+        {
+          "file": ".nxignore",
+          "hash": "5149035811847254948"
+        },
+        {
+          "file": ".prettierignore",
+          "hash": "14688272390704683536"
+        },
+        {
+          "file": ".prettierrc",
+          "hash": "16267754514737964994"
+        },
+        {
+          "file": ".sisyphus/boulder.json",
+          "hash": "7832738084386350306"
+        },
+        {
+          "file": ".sisyphus/drafts/ai-integration-plan.md",
+          "hash": "5830626359618623323"
+        },
+        {
+          "file": ".sisyphus/drafts/phase1-plan.md",
+          "hash": "504440402195028051"
+        },
+        {
+          "file": ".sisyphus/drafts/phase2-cli-plan.md",
+          "hash": "8099860832643657449"
+        },
+        {
+          "file": ".sisyphus/drafts/phase3-client-plan.md",
+          "hash": "3443966298194833403"
+        },
+        {
+          "file": ".sisyphus/drafts/react-core-design.md",
+          "hash": "14081140978521567364"
+        },
+        {
+          "file": ".sisyphus/final_report.md",
+          "hash": "11992422625779994681"
+        },
+        {
+          "file": ".sisyphus/notepads/ai-integration-interface/learnings.md",
+          "hash": "14943808519207231765"
+        },
+        {
+          "file": ".sisyphus/notepads/cli-implementation/learnings.md",
+          "hash": "6901117235703296998"
+        },
+        {
+          "file": ".sisyphus/notepads/client-implementation/decisions.md",
+          "hash": "11268629726807404622"
+        },
+        {
+          "file": ".sisyphus/notepads/react-core-implementation/learnings.md",
+          "hash": "15980807731098252396"
+        },
+        {
+          "file": ".sisyphus/notes/task-4-implementation.md",
+          "hash": "52519790051997529"
+        },
+        {
+          "file": ".sisyphus/plans/ai-integration-interface.md",
+          "hash": "16615592484827762792"
+        },
+        {
+          "file": ".sisyphus/plans/cli-implementation.md",
+          "hash": "551017044035627475"
+        },
+        {
+          "file": ".sisyphus/plans/client-implementation.md",
+          "hash": "1843971902349165653"
+        },
+        {
+          "file": ".sisyphus/plans/react-core-implementation.md",
+          "hash": "2374299476720383074"
+        },
+        {
+          "file": ".sisyphus/plans/ui-migration.md",
+          "hash": "7351698809017616504"
+        },
+        {
+          "file": ".verdaccio/config.yml",
+          "hash": "300035921567345902"
+        },
+        {
+          "file": ".vscode/extensions.json",
+          "hash": "11309362834336059819"
+        },
+        {
+          "file": ".vscode/launch.json",
+          "hash": "3029887420840362970"
+        },
+        {
+          "file": "README.md",
+          "hash": "17533940237556357152"
+        },
+        {
+          "file": "bun.lock",
+          "hash": "6634827851812068612"
+        },
+        {
+          "file": "cli.ts",
+          "hash": "6087722972372532988",
+          "deps": [
+            "npm:@types/bun@1.3.8"
+          ]
+        },
+        {
+          "file": "docs/features/canvas-ux/README.md",
+          "hash": "17142370005212047882"
+        },
+        {
+          "file": "docs/features/init-errorhandling/README.md",
+          "hash": "12827737708356141614"
+        },
+        {
+          "file": "docs/features/page-group/README.md",
+          "hash": "726548233456438262"
+        },
+        {
+          "file": "docs/features/react-core/README.md",
+          "hash": "17304514394368864445"
+        },
+        {
+          "file": "docs/features/technical-design/README.md",
+          "hash": "4941730592602056957"
+        },
+        {
+          "file": "docs/features/viewer-ux/README.md",
+          "hash": "4928240076378975479"
+        },
+        {
+          "file": "docs/plans/2026-01-29-phase1-core-foundation.md",
+          "hash": "12087992029566950638"
+        },
+        {
+          "file": "docs/plans/phase1-execution.md",
+          "hash": "9629533902611638705"
+        },
+        {
+          "file": "eslint.config.mjs",
+          "hash": "3009167784836919272",
+          "deps": [
+            "npm:@nx/eslint-plugin@22.4.2"
+          ]
+        },
+        {
+          "file": "examples/mindmap.tsx",
+          "hash": "8237989487091182224",
+          "deps": [
+            "core"
+          ]
+        },
+        {
+          "file": "examples/overview.tsx",
+          "hash": "13685440192455875022",
+          "deps": [
+            "core"
+          ]
+        },
+        {
+          "file": "inspect_elk_worker.js",
+          "hash": "15888038583029907837"
+        },
+        {
+          "file": "jest.config.ts",
+          "hash": "14236175072743533737",
+          "deps": [
+            "npm:jest@30.2.0",
+            "npm:@nx/jest@22.4.2"
+          ]
+        },
+        {
+          "file": "jest.preset.js",
+          "hash": "13737983450217408137",
+          "deps": [
+            "npm:@nx/jest@22.4.2"
+          ]
+        },
+        {
+          "file": "nx.json",
+          "hash": "1748277294829202993"
+        },
+        {
+          "file": "package-lock.json",
+          "hash": "11556907484863520961"
+        },
+        {
+          "file": "package.json",
+          "hash": "13680163308987481459"
+        },
+        {
+          "file": "prd.md",
+          "hash": "5446518983760021222"
+        },
+        {
+          "file": "project.json",
+          "hash": "5322910861016442525"
+        },
+        {
+          "file": "test_elk.js",
+          "hash": "5285629375601818735",
+          "deps": [
+            "npm:elkjs@0.11.0"
+          ]
+        },
+        {
+          "file": "tsconfig.base.json",
+          "hash": "15640888750204006292"
+        },
+        {
+          "file": "vitest.workspace.ts",
+          "hash": "8851963806934849101"
+        }
+      ],
+      "core": [
+        {
+          "file": "libs/core/README.md",
+          "hash": "9420225203192903995"
+        },
+        {
+          "file": "libs/core/eslint.config.mjs",
+          "hash": "4313095032450400554",
+          "deps": [
+            [
+              "npm:jsonc-eslint-parser@2.4.2",
+              "dynamic"
+            ]
+          ]
+        },
+        {
+          "file": "libs/core/jest.config.cts",
+          "hash": "4210434512494964979"
+        },
+        {
+          "file": "libs/core/package.json",
+          "hash": "18166317135496496223",
+          "deps": [
+            "npm:elkjs@0.11.0",
+            "npm:react-reconciler@0.33.0",
+            "npm:tslib@2.8.1"
+          ]
+        },
+        {
+          "file": "libs/core/project.json",
+          "hash": "2295530810203279758"
+        },
+        {
+          "file": "libs/core/src/__tests__/renderer.spec.tsx",
+          "hash": "8867613356341047846",
+          "deps": [
+            "npm:react@19.2.4"
+          ]
+        },
+        {
+          "file": "libs/core/src/components/Canvas.tsx",
+          "hash": "8604196619101573768",
+          "deps": [
+            "npm:react@19.2.4"
+          ]
+        },
+        {
+          "file": "libs/core/src/components/Edge.tsx",
+          "hash": "9745178023347626553",
+          "deps": [
+            "npm:react@19.2.4"
+          ]
+        },
+        {
+          "file": "libs/core/src/components/Group.tsx",
+          "hash": "5409390463563723836",
+          "deps": [
+            "npm:react@19.2.4"
+          ]
+        },
+        {
+          "file": "libs/core/src/components/MindMap.tsx",
+          "hash": "2598109885476962004",
+          "deps": [
+            "npm:react@19.2.4"
+          ]
+        },
+        {
+          "file": "libs/core/src/components/Node.tsx",
+          "hash": "9606562506758715902",
+          "deps": [
+            "npm:react@19.2.4"
+          ]
+        },
+        {
+          "file": "libs/core/src/components/Shape.tsx",
+          "hash": "16161355566265989295",
+          "deps": [
+            "npm:react@19.2.4"
+          ]
+        },
+        {
+          "file": "libs/core/src/components/Sticky.tsx",
+          "hash": "7563461298278610268",
+          "deps": [
+            "npm:react@19.2.4"
+          ]
+        },
+        {
+          "file": "libs/core/src/components/Text.tsx",
+          "hash": "9236161603940801789",
+          "deps": [
+            "npm:react@19.2.4"
+          ]
+        },
+        {
+          "file": "libs/core/src/errors.ts",
+          "hash": "5253418249053248905"
+        },
+        {
+          "file": "libs/core/src/index.ts",
+          "hash": "4826670438669309708"
+        },
+        {
+          "file": "libs/core/src/layout/elk.spec.ts",
+          "hash": "17368625506394488658"
+        },
+        {
+          "file": "libs/core/src/layout/elk.ts",
+          "hash": "7660030751533355971",
+          "deps": [
+            "npm:elkjs@0.11.0"
+          ]
+        },
+        {
+          "file": "libs/core/src/lib/core.spec.ts",
+          "hash": "3658659510497139392"
+        },
+        {
+          "file": "libs/core/src/lib/core.ts",
+          "hash": "14885622587354129707"
+        },
+        {
+          "file": "libs/core/src/logger.ts",
+          "hash": "13277941175660945973",
+          "deps": [
+            "npm:pino@10.3.0"
+          ]
+        },
+        {
+          "file": "libs/core/src/reconciler/hostConfig.ts",
+          "hash": "13902711553865814267"
+        },
+        {
+          "file": "libs/core/src/renderer.ts",
+          "hash": "17304775685956611778",
+          "deps": [
+            "npm:react-reconciler@0.33.0"
+          ]
+        },
+        {
+          "file": "libs/core/src/result.ts",
+          "hash": "4297736555815119465",
+          "deps": [
+            "npm:neverthrow@8.2.0"
+          ]
+        },
+        {
+          "file": "libs/core/src/types.d.ts",
+          "hash": "13400254654461874569"
+        },
+        {
+          "file": "libs/core/tsconfig.json",
+          "hash": "12975668481162286788"
+        },
+        {
+          "file": "libs/core/tsconfig.lib.json",
+          "hash": "4426729346223094144"
+        },
+        {
+          "file": "libs/core/tsconfig.spec.json",
+          "hash": "811223175895549381"
+        },
+        {
+          "file": "libs/core/tsup.config.ts",
+          "hash": "4894615385928094901",
+          "deps": [
+            "npm:tsup@8.5.1"
+          ]
+        }
+      ]
+    }
+  },
+  "externalNodesHash": "17966105685650423500"
+}
