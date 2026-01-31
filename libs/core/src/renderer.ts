@@ -58,6 +58,7 @@ export function renderToGraph(element: React.ReactNode): ResultAsync<Container, 
         else resolve('RECONCILED');
       }, 0);
     } catch (e) {
+      console.error('[Renderer] Reconciliation Error:', e);
       capturedError = e as Error;
       resolve('ERROR');
     }

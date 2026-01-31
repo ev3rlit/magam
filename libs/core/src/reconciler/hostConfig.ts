@@ -23,11 +23,18 @@ export function createInstance(
   hostContext: HostContext,
   internalHandle: any,
 ): Instance {
-  return {
-    type,
-    props,
-    children: [],
-  };
+  console.log('[HostConfig] createInstance', type);
+  try {
+    const { children, ...safeProps } = props;
+    return {
+      type,
+      props: safeProps,
+      children: [],
+    };
+  } catch (e) {
+    console.error('[HostConfig] Error in createInstance', e);
+    throw e;
+  }
 }
 
 export function createTextInstance(
@@ -159,11 +166,11 @@ export function removeChildFromContainer(
 export function prepareForCommit(containerInfo: Container): null {
   return null;
 }
-export function resetAfterCommit(containerInfo: Container): void {}
+export function resetAfterCommit(containerInfo: Container): void { }
 export function clearContainer(container: Container): void {
   container.children = [];
 }
-export function detachDeletedInstance(node: Instance): void {}
+export function detachDeletedInstance(node: Instance): void { }
 
 export const scheduleMicrotask = (callback: () => void) => {
   if (typeof queueMicrotask === 'function') {
@@ -179,23 +186,23 @@ export function getCurrentEventPriority() {
 export function getInstanceFromNode(node: any) {
   return null;
 }
-export function beforeActiveInstanceBlur() {}
-export function afterActiveInstanceBlur() {}
-export function preparePortalMount(containerInfo: any) {}
-export function prepareScopeUpdate(scope: any, instance: any) {}
+export function beforeActiveInstanceBlur() { }
+export function afterActiveInstanceBlur() { }
+export function preparePortalMount(containerInfo: any) { }
+export function prepareScopeUpdate(scope: any, instance: any) { }
 export function getInstanceFromScope(scope: any) {
   return null;
 }
-export function requestPaint() {}
+export function requestPaint() { }
 
 export function resolveUpdatePriority() {
   return 16;
 }
-export function setCurrentUpdatePriority(priority: number) {}
+export function setCurrentUpdatePriority(priority: number) { }
 export function getCurrentUpdatePriority() {
   return 16;
 }
-export function trackSchedulerEvent() {}
+export function trackSchedulerEvent() { }
 export function resolveEventType() {
   return null;
 }
