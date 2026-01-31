@@ -8,6 +8,39 @@ import { Footer } from '@/components/ui/Footer';
 import { ErrorOverlay } from '@/components/ui/ErrorOverlay';
 import { useGraphStore } from '@/store/graph';
 
+interface RenderNode {
+  type: string;
+  props: {
+    id?: string;
+    from?: string;
+    to?: string;
+    label?: string;
+    text?: string;
+    title?: string;
+    x?: number;
+    y?: number;
+    type?: string;
+    color?: string;
+    bg?: string;
+    className?: string;
+    fontSize?: number;
+    labelColor?: string;
+    labelFontSize?: number;
+    labelBold?: boolean;
+    bold?: boolean;
+    fill?: string;
+    stroke?: string;
+    strokeWidth?: number;
+    labelTextColor?: string;
+    labelBgColor?: string;
+    // MindMap Node specific
+    edgeLabel?: string;
+    edgeClassName?: string;
+    children?: any; // Keep children loosely typed for now as it can be strings/numbers/arrays
+  };
+  children?: RenderNode[];
+}
+
 export default function Home() {
   const { setFiles, setGraph, currentFile, setError: setGraphError } = useGraphStore();
 
@@ -78,19 +111,51 @@ export default function Home() {
           const nodes: any[] = [];
           const edges: any[] = [];
 
+          // Helper to map user edge types to React Flow types
+          const getEdgeType = (type?: string) => {
+            // default -> smoothstep (rounded polyline, default in React Flow logic below)
+            // straight -> straight
+            // curved -> default (bezier)
+            // step -> step
+            switch (type) {
+              case 'straight': return 'straight';
+              case 'curved': return 'default';
+              case 'step': return 'step';
+              case 'default': return 'smoothstep';
+              default: return 'smoothstep';
+            }
+          };
+
+          // Helper to map Tailwind classes to SVG stroke styles
+          const getStrokeStyle = (className?: string) => {
+            if (!className) return {};
+            if (className.includes('dashed') || className.includes('border-dashed')) {
+              return { strokeDasharray: '5 5' };
+            }
+            if (className.includes('dotted') || className.includes('border-dotted')) {
+              return { strokeDasharray: '2 2' };
+            }
+            return {};
+          };
+
+          // Counter for generating unique IDs
+          let nodeIdCounter = 0;
+          let edgeIdCounter = 0;
+
           // Helper to process children recursively or flatly
-          const processChildren = (childElements: any[]) => {
-            childElements.forEach((child: any, index: number) => {
+          const processChildren = (childElements: RenderNode[]) => {
+            childElements.forEach((child: RenderNode) => {
               if (child.type === 'graph-edge') {
                 // Top-level edge
                 edges.push({
-                  id: child.props.id || `edge-${edges.length}`,
+                  id: child.props.id || `edge-${edgeIdCounter++}`,
                   source: child.props.from,
                   target: child.props.to,
                   label: child.props.label,
                   style: {
                     stroke: child.props.stroke || '#94a3b8',
-                    strokeWidth: child.props.strokeWidth || 2
+                    strokeWidth: child.props.strokeWidth || 2,
+                    ...getStrokeStyle(child.props.className),
                   },
                   labelStyle: {
                     fill: child.props.labelTextColor,
@@ -100,15 +165,88 @@ export default function Home() {
                   labelBgStyle: child.props.labelBgColor ? {
                     fill: child.props.labelBgColor,
                   } : undefined,
-                  animated: true,
-                  type: 'smoothstep',
+                  animated: false,
+                  type: getEdgeType(child.props.type),
+                });
+              } else if (child.type === 'graph-mindmap') {
+                // MindMap container: recursively process its children
+                if (child.children && child.children.length > 0) {
+                  processChildren(child.children);
+                }
+              } else if (child.type === 'graph-node') {
+                // MindMap Node: process as a regular node and create edge from 'from' prop
+                const nodeId = child.props.id || `node-${nodeIdCounter++}`;
+
+                // Create edge from 'from' prop if it exists
+                if (child.props.from) {
+                  edges.push({
+                    id: `edge-${child.props.from}-${nodeId}`,
+                    source: child.props.from,
+                    target: nodeId,
+                    label: child.props.edgeLabel,
+                    style: {
+                      stroke: '#94a3b8',
+                      strokeWidth: 2,
+                      ...getStrokeStyle(child.props.edgeClassName),
+                    },
+                    animated: false,
+                    type: 'smoothstep',
+                  });
+                }
+
+                // Extract content from children
+                const contentChildren: any[] = [];
+                const rendererChildren = child.children || [];
+
+                rendererChildren.forEach((grandChild: RenderNode) => {
+                  if (grandChild.type === 'text') {
+                    contentChildren.push(grandChild.props.text);
+                  } else if (grandChild.type === 'graph-text') {
+                    // Also handle graph-text children
+                    const textContent = grandChild.children?.find((c: any) => c.type === 'text');
+                    if (textContent) {
+                      contentChildren.push(textContent.props.text);
+                    } else if (grandChild.props.children) {
+                      contentChildren.push(grandChild.props.children);
+                    }
+                  }
+                });
+
+                // Fallback to props.children
+                if (rendererChildren.length === 0 && child.props.children) {
+                  const propsChildren = Array.isArray(child.props.children)
+                    ? child.props.children
+                    : [child.props.children];
+                  propsChildren.forEach((c: any) => {
+                    if (typeof c === 'string' || typeof c === 'number') {
+                      contentChildren.push(c);
+                    }
+                  });
+                }
+
+                const safeLabel = contentChildren
+                  .map(c => typeof c === 'string' || typeof c === 'number' ? String(c) : '')
+                  .join('\n') || child.props.label || '';
+
+                nodes.push({
+                  id: nodeId,
+                  type: 'shape', // Use shape type for mindmap nodes
+                  position: { x: child.props.x || 0, y: child.props.y || 0 },
+                  data: {
+                    label: safeLabel,
+                    type: 'rectangle',
+                    className: child.props.className,
+                    fill: child.props.fill,
+                    stroke: child.props.stroke,
+                  }
                 });
               } else {
                 // It's a Node (Sticky, Shape, Text)
+                const nodeId = child.props.id || `node-${nodeIdCounter++}`;
 
                 // Separate node content from nested edges
-                let contentChildren: any[] = [];
-                const nestedEdges: any[] = [];
+                const contentChildren: any[] = [];
+                const nestedEdges: RenderNode[] = [];
 
                 // Check render output children first (from renderer.ts)
                 const rendererChildren = child.children || [];
@@ -116,7 +254,7 @@ export default function Home() {
                 // Also check props.children for simple string content case if renderer didn't wrap it
                 // (Though renderer usually wraps strings in 'text' nodes)
 
-                rendererChildren.forEach((grandChild: any) => {
+                rendererChildren.forEach((grandChild: RenderNode) => {
                   if (grandChild.type === 'graph-edge') {
                     nestedEdges.push(grandChild);
                   } else if (grandChild.type === 'text') {
@@ -142,18 +280,19 @@ export default function Home() {
                 }
 
                 // Process nested edges: source is implicitly the parent node
-                nestedEdges.forEach((edgeChild: any, edgeIndex: number) => {
+                nestedEdges.forEach((edgeChild: RenderNode, edgeIndex: number) => {
                   // If 'from' is missing, inject parent id
-                  const sourceId = edgeChild.props.from || child.props.id;
+                  const sourceId = edgeChild.props.from || nodeId;
 
                   edges.push({
-                    id: edgeChild.props.id || `nested-edge-${child.props.id}-${edgeIndex}`,
+                    id: edgeChild.props.id || `nested-edge-${nodeId}-${edgeIndex}`,
                     source: sourceId,
                     target: edgeChild.props.to,
                     label: edgeChild.props.label,
                     style: {
                       stroke: edgeChild.props.stroke || '#94a3b8',
-                      strokeWidth: edgeChild.props.strokeWidth || 2
+                      strokeWidth: edgeChild.props.strokeWidth || 2,
+                      ...getStrokeStyle(edgeChild.props.className),
                     },
                     labelStyle: {
                       fill: edgeChild.props.labelTextColor,
@@ -163,8 +302,8 @@ export default function Home() {
                     labelBgStyle: edgeChild.props.labelBgColor ? {
                       fill: edgeChild.props.labelBgColor,
                     } : undefined,
-                    animated: true,
-                    type: 'smoothstep',
+                    animated: false,
+                    type: getEdgeType(edgeChild.props.type),
                   });
                 });
 
@@ -179,7 +318,7 @@ export default function Home() {
                     : 'shape';
 
                 nodes.push({
-                  id: child.props.id,
+                  id: nodeId,
                   type: nodeType,
                   position: { x: child.props.x || 0, y: child.props.y || 0 },
                   data: {
