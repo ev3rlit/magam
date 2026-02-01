@@ -11,6 +11,7 @@ import { useGraphStore } from '@/store/graph';
 import StickyNode from './nodes/StickyNode';
 import ShapeNode from './nodes/ShapeNode';
 import TextNode from './nodes/TextNode';
+import MarkdownNode from './nodes/MarkdownNode'; // Import MarkdownNode
 import { useElkLayout } from '../hooks/useElkLayout';
 import { Loader2 } from 'lucide-react';
 
@@ -20,6 +21,7 @@ function GraphCanvasContent() {
       sticky: StickyNode,
       shape: ShapeNode,
       text: TextNode,
+      markdown: MarkdownNode, // Register markdown type
     }),
     [],
   );
