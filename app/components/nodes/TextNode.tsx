@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
-import { Handle, Position, NodeProps } from 'reactflow';
+import { NodeProps } from 'reactflow';
 import { twMerge } from 'tailwind-merge';
+import { BaseNode } from './BaseNode';
 
 interface TextNodeData {
     label: string;
@@ -13,19 +14,13 @@ interface TextNodeData {
 
 const TextNode = ({ data, selected }: NodeProps<TextNodeData>) => {
     return (
-        <div
+        <BaseNode
             className={twMerge(
-                "relative p-2 min-w-[50px] text-center pointer-events-none select-none",
+                "p-2 min-w-[50px] text-center pointer-events-none select-none",
                 selected && "ring-1 ring-brand-500/50 rounded bg-brand-50/50",
                 data.className
             )}
         >
-            <Handle
-                type="target"
-                position={Position.Top}
-                className="w-2 h-2 !bg-indigo-400/50 !border-0 opacity-0 group-hover:opacity-100 transition-opacity"
-            />
-
             <div
                 className="text-center whitespace-pre-wrap leading-tight"
                 style={{
@@ -37,13 +32,7 @@ const TextNode = ({ data, selected }: NodeProps<TextNodeData>) => {
             >
                 {data.label || 'Text'}
             </div>
-
-            <Handle
-                type="source"
-                position={Position.Bottom}
-                className="w-2 h-2 !bg-indigo-400/50 !border-0 opacity-0 group-hover:opacity-100 transition-opacity"
-            />
-        </div>
+        </BaseNode>
     );
 };
 

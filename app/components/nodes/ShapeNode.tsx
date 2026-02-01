@@ -1,13 +1,14 @@
 import React, { memo } from 'react';
-import { Handle, Position, NodeProps } from 'reactflow';
+import { NodeProps } from 'reactflow';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { BaseNode } from './BaseNode';
 
 interface ShapeNodeData {
   type: 'rectangle' | 'circle' | 'triangle';
   label?: string;
   // Shape styling
-  color?: string; // This is usually a tailwind class like 'bg-blue-100' or hex? Assuming tailwind class for now based on existing code.
+  color?: string;
   // Rich text styling
   labelColor?: string;
   labelFontSize?: number;
@@ -27,7 +28,7 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
 
   const containerClasses = twMerge(
     clsx(
-      'relative min-w-36 min-h-20 w-auto h-auto flex items-center justify-center p-4',
+      'min-w-36 min-h-20 w-auto h-auto flex items-center justify-center p-4',
       'bg-white border-2 border-node-border text-node-text transition-all duration-300',
       'shadow-node rounded-lg',
       'hover:shadow-node-hover hover:-translate-y-1 hover:border-brand-100', // Subtle interaction
@@ -48,14 +49,7 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
 
   if (data.type === 'triangle') {
     return (
-      <div className="relative w-32 h-32 flex items-center justify-center">
-        <Handle
-          type="target"
-          position={Position.Top}
-          className="w-3 h-3 !bg-slate-400/50 !border-0 opacity-0 group-hover:opacity-100 transition-opacity"
-          style={{ top: 0 }}
-        />
-
+      <BaseNode className="w-32 h-32 flex items-center justify-center">
         <div
           className={twMerge(
             clsx(
@@ -87,25 +81,12 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
             </span>
           </div>
         </div>
-
-        <Handle
-          type="source"
-          position={Position.Bottom}
-          className="w-3 h-3 !bg-slate-400/50 !border-0 opacity-0 group-hover:opacity-100 transition-opacity"
-          style={{ bottom: 0 }}
-        />
-      </div>
+      </BaseNode>
     );
   }
 
   return (
-    <div className={containerClasses}>
-      <Handle
-        type="target"
-        position={Position.Top}
-        className="w-3 h-3 !bg-slate-400/50 !border-0 opacity-0 group-hover:opacity-100 transition-opacity"
-      />
-
+    <BaseNode className={containerClasses}>
       <div className="w-full flex items-start justify-center text-left break-words p-4 pointer-events-none select-none">
         <span
           className="text-sm font-medium leading-relaxed text-slate-700 whitespace-pre-wrap"
@@ -114,13 +95,7 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
           {data.label}
         </span>
       </div>
-
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="w-3 h-3 !bg-slate-400/50 !border-0 opacity-0 group-hover:opacity-100 transition-opacity"
-      />
-    </div>
+    </BaseNode>
   );
 };
 
