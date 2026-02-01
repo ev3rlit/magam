@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -24,22 +24,38 @@ function GraphCanvasContent() {
     [],
   );
 
-  const { nodes, edges, onNodesChange, onEdgesChange, setSelectedNodes } =
+  const { nodes, edges, onNodesChange, onEdgesChange, setSelectedNodes, graphId } =
     useGraphStore();
 
   const { calculateLayout, isLayouting } = useElkLayout();
   const nodesInitialized = useNodesInitialized();
   const hasLayouted = useRef(false);
+  const lastLayoutedGraphId = useRef<string | null>(null);
+  const [isGraphVisible, setIsGraphVisible] = useState(false);
+
+  // Reset layout state when new graph is loaded
+  useEffect(() => {
+    if (graphId !== lastLayoutedGraphId.current) {
+      console.log('[Layout] New graph detected, resetting layout state.');
+      hasLayouted.current = false;
+      setIsGraphVisible(false); // Hide graph
+      lastLayoutedGraphId.current = graphId;
+    }
+  }, [graphId]);
 
   // Trigger Layout when all nodes are initialized (measured)
   useEffect(() => {
     // Check if we have nodes, they are fully initialized (width/height measured), and we haven't run layout yet.
     if (nodes.length > 0 && nodesInitialized && !hasLayouted.current) {
       console.log('[Layout] Nodes initialized, triggering ELK layout...');
-      calculateLayout({ direction: 'RIGHT' });
-      hasLayouted.current = true;
+      // Wait for layout to finish before showing the graph
+      calculateLayout({ direction: 'RIGHT' }).then(() => {
+        console.log('[Layout] Layout calculation finished.');
+        hasLayouted.current = true;
+        setIsGraphVisible(true);
+      });
     }
-  }, [nodes.length, nodesInitialized, calculateLayout]);
+  }, [nodes.length, nodesInitialized, calculateLayout, graphId]);
 
   const onSelectionChange = useCallback(
     ({ nodes: selectedNodes }: OnSelectionChangeParams) => {
@@ -103,11 +119,11 @@ function GraphCanvasContent() {
 
       {/* 
          Use opacity to prevent FOUC (Flash of Unstyled Content) / Jumpy layout.
-         We wait until initial layout is done OR if there are no nodes to layout.
+         We wait until isGraphVisible is true.
       */}
       <div
         className="w-full h-full min-h-[500px] flex-1 bg-background transition-opacity duration-300"
-        style={{ opacity: (nodes.length > 0 && !hasLayouted.current) ? 0 : 1 }}
+        style={{ opacity: isGraphVisible ? 1 : 0 }}
       >
         <ReactFlow
           nodes={nodes}

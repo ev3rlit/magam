@@ -32,13 +32,22 @@ export function useElkLayout() {
 
             const elk = new ELK();
 
-            const elkNodes: ElkNode[] = nodes.map((node) => ({
-                id: node.id,
-                // @ts-ignore - ReactFlow types might vary, usually width/height are present after render
-                width: node.width ?? node.data?.width ?? 150,
+            const elkNodes: ElkNode[] = nodes.map((node) => {
+                // Prioritize measured property which contains actual rendered dimensions (React Flow v12+ or some v11 setups)
+                // Fallback to width/height, then data.width/height, then defaults
                 // @ts-ignore
-                height: node.height ?? node.data?.height ?? 50,
-            }));
+                const w = node.measured?.width ?? node.width ?? node.data?.width ?? 150;
+                // @ts-ignore
+                const h = node.measured?.height ?? node.height ?? node.data?.height ?? 50;
+
+                return {
+                    id: node.id,
+                    width: w,
+                    height: h,
+                };
+            });
+
+            console.log('[ELK Layout] Nodes prepared:', elkNodes.map(n => ({ id: n.id, w: n.width, h: n.height })));
 
             // Use ElkExtendedEdge structure (sources/targets array)
             const elkEdges: ElkExtendedEdge[] = edges.map((edge) => ({
@@ -91,7 +100,6 @@ export function useElkLayout() {
             } catch (error) {
                 console.error('ELK Layout failed:', error);
                 // Fallback: Show nodes (grid or just visible)
-                // If layout fails, nodes might be stacked. We at least show them.
                 const visibleNodes = nodes.map(n => ({ ...n, style: { ...n.style, opacity: 1 } }));
                 setNodes(visibleNodes);
             } finally {

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { v4 as uuidv4 } from 'uuid';
 import {
   Node,
   Edge,
@@ -25,6 +26,7 @@ export interface GraphState {
   edges: Edge[];
   files: string[];
   currentFile: string | null;
+  graphId: string; // Unique ID for the current graph data version
   status: 'idle' | 'loading' | 'error' | 'success' | 'connected';
   error: AppError | null;
   selectedNodeIds: string[];
@@ -44,11 +46,12 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   edges: [],
   files: [],
   currentFile: null,
+  graphId: uuidv4(),
   status: 'idle',
   error: null,
   selectedNodeIds: [],
 
-  setGraph: ({ nodes, edges }) => set({ nodes, edges }),
+  setGraph: ({ nodes, edges }) => set({ nodes, edges, graphId: uuidv4() }),
   setFiles: (files) => set({ files }),
   setCurrentFile: (currentFile) => set({ currentFile }),
   setStatus: (status) => set({ status }),
