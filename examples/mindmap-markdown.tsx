@@ -52,7 +52,7 @@ console.log(greeting);
                 </Node>
 
                 {/* 커스텀 스타일 예제 */}
-                <Node id="custom-style" from="intro" className="bg-slate-50 p-4 w-[260px]">
+                <Node id="custom-style" from="intro" className="">
                     <Markdown className="prose-headings:text-blue-600 prose-a:text-blue-500">
                         {`## 커스텀 스타일
 
