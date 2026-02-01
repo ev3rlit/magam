@@ -46,7 +46,7 @@ export default function MindMapExample() {
       </MindMap>
 
       {/* Radial 레이아웃 예제 */}
-      <MindMap x={600} y={300} layout="radial" spacing={80}>
+      <MindMap x={1200} y={1200} layout="radial" spacing={80}>
         <Node id="center" className="bg-purple-200 p-4">
           <Text className="font-bold text-purple-800">핵심 개념</Text>
         </Node>

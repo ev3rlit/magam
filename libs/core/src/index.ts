@@ -9,6 +9,7 @@ export * from './components/Edge';
 export * from './components/Canvas';
 export * from './components/Code';
 export * from './components/Table';
+export * from './components/Markdown';
 export * from './errors';
 export * from './renderer';
 export * from './result';

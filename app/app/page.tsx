@@ -36,6 +36,9 @@ interface RenderNode {
     // MindMap Node specific
     edgeLabel?: string;
     edgeClassName?: string;
+    // Markdown specific
+    content?: string;
+    variant?: string;
     children?: any; // Keep children loosely typed for now as it can be strings/numbers/arrays
   };
   children?: RenderNode[];
@@ -209,6 +212,11 @@ export default function Home() {
                     } else if (grandChild.props.children) {
                       contentChildren.push(grandChild.props.children);
                     }
+                  } else if (grandChild.type === 'graph-markdown') {
+                    // Handle graph-markdown children - extract content prop
+                    if (grandChild.props.content) {
+                      contentChildren.push(grandChild.props.content);
+                    }
                   }
                 });
 
@@ -260,6 +268,11 @@ export default function Home() {
                   } else if (grandChild.type === 'text') {
                     // Extract text from text node
                     contentChildren.push(grandChild.props.text);
+                  } else if (grandChild.type === 'graph-markdown') {
+                    // Handle graph-markdown children - extract content prop
+                    if (grandChild.props.content) {
+                      contentChildren.push(grandChild.props.content);
+                    }
                   } else {
                     // Other content
                     contentChildren.push(grandChild);

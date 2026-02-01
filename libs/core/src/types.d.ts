@@ -5,8 +5,9 @@ declare global {
       sticky: any;
       'graph-edge': any;
       'graph-mindmap': any;
+      'graph-markdown': any;
     }
   }
 }
 
-export {};
+export { };

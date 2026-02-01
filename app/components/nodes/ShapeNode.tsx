@@ -27,7 +27,7 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
 
   const containerClasses = twMerge(
     clsx(
-      'relative w-36 h-20 flex items-center justify-center',
+      'relative min-w-36 min-h-20 w-auto h-auto flex items-center justify-center',
       'bg-node-surface border-2 border-node-border text-node-text transition-all duration-300',
       'shadow-node',
       'hover:shadow-node-hover hover:-translate-y-1 hover:border-brand-100', // Subtle interaction
@@ -80,7 +80,7 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
           </svg>
           <div className="absolute inset-0 flex items-center justify-center pt-8 pointer-events-none select-none">
             <span
-              className="text-sm font-medium leading-tight text-center px-4 text-slate-700"
+              className="text-sm font-medium leading-tight text-center px-4 text-slate-700 whitespace-pre-wrap"
               style={labelStyle}
             >
               {data.label}
@@ -106,9 +106,9 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
         className="w-3 h-3 !bg-slate-400/50 !border-0 opacity-0 group-hover:opacity-100 transition-opacity"
       />
 
-      <div className="w-full h-full flex items-center justify-center text-center break-words overflow-hidden p-4 pointer-events-none select-none">
+      <div className="w-full flex items-start justify-center text-left break-words p-4 pointer-events-none select-none">
         <span
-          className="text-sm font-medium leading-tight text-slate-700"
+          className="text-sm font-medium leading-relaxed text-slate-700 whitespace-pre-wrap"
           style={labelStyle}
         >
           {data.label}
