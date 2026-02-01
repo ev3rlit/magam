@@ -18,7 +18,8 @@ const StickyNode = ({ data, selected }: NodeProps<StickyNodeData>) => {
           'w-40 h-40 p-6 flex flex-col justify-center items-center transition-all duration-300',
           'bg-node-sticky text-node-text',
           'shadow-node rounded-lg',
-          'hover:shadow-node-hover hover:-translate-y-1',
+          // Only apply hover effects if NOT selected
+          !selected && 'hover:shadow-node-hover hover:-translate-y-1',
           {
             'shadow-node-selected scale-105': selected,
           },

@@ -31,7 +31,8 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
       'min-w-36 min-h-20 w-auto h-auto flex items-center justify-center p-4',
       'bg-white border-2 border-node-border text-node-text transition-all duration-300',
       'shadow-node rounded-lg',
-      'hover:shadow-node-hover hover:-translate-y-1 hover:border-brand-100', // Subtle interaction
+      // Only apply hover effects if NOT selected
+      !selected && 'hover:shadow-node-hover hover:-translate-y-1 hover:border-brand-100',
       {
         'border-brand-500 shadow-node-selected scale-105': selected,
       },
