@@ -1,84 +1,293 @@
-import { Canvas, MindMap, Node, Markdown, Text } from '@graphwrite/core';
+import { Canvas, MindMap, Node, Markdown } from '@graphwrite/core';
 
 /**
  * MindMap Markdown Example
  * 
- * Node 내부에서 Markdown 컴포넌트를 사용하여 
- * 헤더, 리스트, 테이블, 코드블럭 등을 렌더링합니다.
+ * Demonstrates Code Blocks with Long Content (Trie Algorithm)
  */
 export default function MindMapMarkdownExample() {
     return (
         <Canvas>
-            <MindMap x={100} y={100} layout="tree" spacing={80}>
+            <MindMap x={50} y={50} layout="tree" spacing={150}>
 
-                {/* 루트 노드: 마크다운으로 프로젝트 소개 */}
-                <Node id="intro" className="bg-white p-4 w-[300px]">
+                {/* Root Node */}
+                <Node id="root" className="bg-white p-6 w-[350px]">
                     <Markdown>
-                        {`# 프로젝트 소개
+                        {`# Code Block Test
+                        
+Testing long code blocks with **Trie (Prefix Tree)** implementations in 5 languages.
 
-React 기반 **다이어그램** 도구입니다.
-
-- 마인드맵 지원
-- 마크다운 렌더링
-- 커스텀 스타일링`}
+Check for:
+- Syntax Highlighting
+- Horizontal Scrolling
+- Vertical Height
+- Copy Functionality`}
                     </Markdown>
                 </Node>
 
-                {/* 코드 블록 예제 */}
-                <Node id="code-example" from="intro" className="bg-white p-4 w-[320px]">
+                {/* TypeScript Example */}
+                <Node id="ts" from="root" className="bg-white p-2 w-[600px]">
                     <Markdown>
-                        {`## 코드 예시
-
+                        {`### TypeScript
 \`\`\`typescript
-const greeting = "Hello, World!";
-console.log(greeting);
-\`\`\`
+class TrieNode {
+    children: Map<string, TrieNode>;
+    isEndOfWord: boolean;
 
-인라인 코드도 지원합니다: \`npm install\``}
+    constructor() {
+        this.children = new Map();
+        this.isEndOfWord = false;
+    }
+}
+
+class Trie {
+    private root: TrieNode;
+
+    constructor() {
+        this.root = new TrieNode();
+    }
+
+    // Inserts a word into the trie.
+    insert(word: string): void {
+        let current = this.root;
+        for (const char of word) {
+            if (!current.children.has(char)) {
+                current.children.set(char, new TrieNode());
+            }
+            current = current.children.get(char)!;
+        }
+        current.isEndOfWord = true;
+    }
+
+    // Returns true if the word is in the trie.
+    search(word: string): boolean {
+        let current = this.root;
+        for (const char of word) {
+            if (!current.children.has(char)) {
+                return false;
+            }
+            current = current.children.get(char)!;
+        }
+        return current.isEndOfWord;
+    }
+
+    // Returns true if there is any word in the trie that starts with the given prefix.
+    startsWith(prefix: string): boolean {
+        let current = this.root;
+        for (const char of prefix) {
+            if (!current.children.has(char)) {
+                return false;
+            }
+            current = current.children.get(char)!;
+        }
+        return true;
+    }
+}
+\`\`\``}
                     </Markdown>
                 </Node>
 
-                {/* 테이블 예제 */}
-                <Node id="table-example" from="intro" className="bg-white p-4 w-[280px]">
+                {/* Go Example */}
+                <Node id="go" from="root" className="bg-white p-2 w-[600px]">
                     <Markdown>
-                        {`## API 엔드포인트
+                        {`### Go (Golang)
+\`\`\`go
+package main
 
-| Method | Path | 설명 |
-|--------|------|------|
-| GET | /users | 사용자 목록 |
-| POST | /users | 사용자 생성 |
-| DELETE | /users/:id | 삭제 |`}
+import "fmt"
+
+type TrieNode struct {
+    children map[rune]*TrieNode
+    isEnd    bool
+}
+
+type Trie struct {
+    root *TrieNode
+}
+
+func Constructor() Trie {
+    return Trie{root: &TrieNode{children: make(map[rune]*TrieNode)}}
+}
+
+func (this *Trie) Insert(word string) {
+    node := this.root
+    for _, char := range word {
+        if _, exists := node.children[char]; !exists {
+            node.children[char] = &TrieNode{children: make(map[rune]*TrieNode)}
+        }
+        node = node.children[char]
+    }
+    node.isEnd = true
+}
+
+func (this *Trie) Search(word string) bool {
+    node := this.root
+    for _, char := range word {
+        if _, exists := node.children[char]; !exists {
+            return false
+        }
+        node = node.children[char]
+    }
+    return node.isEnd
+}
+
+func (this *Trie) StartsWith(prefix string) bool {
+    node := this.root
+    for _, char := range prefix {
+        if _, exists := node.children[char]; !exists {
+            return false
+        }
+        node = node.children[char]
+    }
+    return true
+}
+\`\`\``}
                     </Markdown>
                 </Node>
 
-                {/* 커스텀 스타일 예제 */}
-                <Node id="custom-style" from="intro" className="">
-                    <Markdown className="prose-headings:text-blue-600 prose-a:text-blue-500">
-                        {`## 커스텀 스타일
-
-Tailwind CSS \`prose\` 수정자로 스타일을 변경할 수 있습니다.
-
-[공식 문서 →](https://tailwindcss.com/docs/typography-plugin)`}
-                    </Markdown>
-                </Node>
-
-                {/* 리스트 예제 (하위 노드) */}
-                <Node id="nested-list" from="code-example" className="bg-white p-3 w-[220px]">
+                {/* Python Example */}
+                <Node id="python" from="root" className="bg-white p-2 w-[600px]">
                     <Markdown>
-                        {`### 순서 있는 리스트
+                        {`### Python
+\`\`\`python
+class TrieNode:
+    def __init__(self):
+        self.children = {}
+        self.is_end_of_word = False
 
-1. 첫 번째
-2. 두 번째
-3. 세 번째`}
+class Trie:
+    def __init__(self):
+        self.root = TrieNode()
+
+    def insert(self, word: str) -> None:
+        node = self.root
+        for char in word:
+            if char not in node.children:
+                node.children[char] = TrieNode()
+            node = node.children[char]
+        node.is_end_of_word = True
+
+    def search(self, word: str) -> bool:
+        node = self.root
+        for char in word:
+            if char not in node.children:
+                return False
+            node = node.children[char]
+        return node.is_end_of_word
+
+    def startsWith(self, prefix: str) -> bool:
+        node = self.root
+        for char in prefix:
+            if char not in node.children:
+                return False
+            node = node.children[char]
+        return True
+\`\`\``}
                     </Markdown>
                 </Node>
 
-                {/* Minimal 스타일 예제 */}
-                <Node id="minimal-example" from="table-example" className="bg-white p-3 w-[200px]">
-                    <Markdown variant="minimal">
-                        {`### Minimal 스타일
+                {/* Java Example */}
+                <Node id="java" from="root" className="bg-white p-2 w-[600px]">
+                    <Markdown>
+                        {`### Java
+\`\`\`java
+class TrieNode {
+    private TrieNode[] links;
+    private final int R = 26;
+    private boolean isEnd;
 
-더 간결한 스타일입니다.`}
+    public TrieNode() {
+        links = new TrieNode[R];
+    }
+
+    public boolean containsKey(char ch) {
+        return links[ch - 'a'] != null;
+    }
+
+    public TrieNode get(char ch) {
+        return links[ch - 'a'];
+    }
+
+    public void put(char ch, TrieNode node) {
+        links[ch - 'a'] = node;
+    }
+
+    public void setEnd() {
+        isEnd = true;
+    }
+
+    public boolean isEnd() {
+        return isEnd;
+    }
+}
+
+class Trie {
+    private TrieNode root;
+
+    public Trie() {
+        root = new TrieNode();
+    }
+
+    public void insert(String word) {
+        TrieNode node = root;
+        for (int i = 0; i < word.length(); i++) {
+            char currentChar = word.charAt(i);
+            if (!node.containsKey(currentChar)) {
+                node.put(currentChar, new TrieNode());
+            }
+            node = node.get(currentChar);
+        }
+        node.setEnd();
+    }
+}
+\`\`\``}
+                    </Markdown>
+                </Node>
+
+                {/* C++ Example */}
+                <Node id="cpp" from="root" className="bg-white p-2 w-[600px]">
+                    <Markdown>
+                        {`### C++
+\`\`\`cpp
+#include <iostream>
+#include <vector>
+using namespace std;
+
+struct TrieNode {
+    struct TrieNode *children[26];
+    bool isEndOfWord;
+};
+
+struct TrieNode *getNode(void) {
+    struct TrieNode *pNode = new TrieNode;
+    pNode->isEndOfWord = false;
+    for (int i = 0; i < 26; i++)
+        pNode->children[i] = NULL;
+    return pNode;
+}
+
+void insert(struct TrieNode *root, string key) {
+    struct TrieNode *pCrawl = root;
+    for (int i = 0; i < key.length(); i++) {
+        int index = key[i] - 'a';
+        if (!pCrawl->children[index])
+            pCrawl->children[index] = getNode();
+        pCrawl = pCrawl->children[index];
+    }
+    pCrawl->isEndOfWord = true;
+}
+
+bool search(struct TrieNode *root, string key) {
+    struct TrieNode *pCrawl = root;
+    for (int i = 0; i < key.length(); i++) {
+        int index = key[i] - 'a';
+        if (!pCrawl->children[index])
+            return false;
+        pCrawl = pCrawl->children[index];
+    }
+    return (pCrawl != NULL && pCrawl->isEndOfWord);
+}
+\`\`\``}
                     </Markdown>
                 </Node>
 
