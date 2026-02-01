@@ -82,7 +82,6 @@ export default function Home() {
           const errorMessage = data.error || 'Unknown rendering error';
 
           // Try to extract location info from the error message or details
-          // This is a heuristic - backend improvements would make this cleaner
           let location = undefined;
 
           // Regex to find "at filename:line:col" pattern common in stack traces
@@ -236,14 +235,26 @@ export default function Home() {
                   .map(c => typeof c === 'string' || typeof c === 'number' ? String(c) : '')
                   .join('\n') || child.props.label || '';
 
+                // Check if any child is graph-markdown to switch node type
+                const hasMarkdown = rendererChildren.some((c: RenderNode) => c.type === 'graph-markdown');
+
                 nodes.push({
                   id: nodeId,
-                  type: 'shape', // Use shape type for mindmap nodes
+                  // Use 'markdown' type if markdown content is present, otherwise 'shape'
+                  type: hasMarkdown ? 'markdown' : 'shape',
                   position: { x: child.props.x || 0, y: child.props.y || 0 },
                   data: {
                     label: safeLabel,
-                    type: 'rectangle',
-                    className: child.props.className,
+                    type: child.props.type || 'rectangle', // for shapes
+                    color: child.props.color || child.props.bg,
+                    className: child.props.className, // Tailwind support
+
+                    // Rich text props
+                    fontSize: child.props.fontSize,
+                    // ... pass through other style props manually or spread carefully
+                    labelColor: child.props.labelColor || child.props.color, // Text nodes might use color prop
+                    labelFontSize: child.props.labelFontSize || child.props.fontSize,
+                    labelBold: child.props.labelBold || child.props.bold,
                     fill: child.props.fill,
                     stroke: child.props.stroke,
                   }
@@ -258,9 +269,6 @@ export default function Home() {
 
                 // Check render output children first (from renderer.ts)
                 const rendererChildren = child.children || [];
-
-                // Also check props.children for simple string content case if renderer didn't wrap it
-                // (Though renderer usually wraps strings in 'text' nodes)
 
                 rendererChildren.forEach((grandChild: RenderNode) => {
                   if (grandChild.type === 'graph-edge') {
@@ -326,9 +334,25 @@ export default function Home() {
                   .join('') || child.props.label || child.props.title || child.props.text || '';
 
                 // Create Node Object
-                const nodeType = child.type === 'graph-sticky' ? 'sticky'
+                let nodeType = child.type === 'graph-sticky' ? 'sticky'
                   : child.type === 'graph-text' ? 'text'
                     : 'shape';
+
+                // If it contains markdown content, force markdown type unless sticky/text explicitly overridden
+                // Actually if user uses <Sticky> <Markdown>...</Markdown> </Sticky>, we probably still want Sticky style but with Markdown content...
+                // But StickyNode doesn't render markdown. 
+                // For now, let's treat explicit `Node` in root level (which maps to graph-node? No, Node.tsx uses graph-node)
+                // Wait, logic above was for `child.type === 'graph-node'`.
+                // This else block handles `graph-sticky`, `graph-shape` etc. 
+                // If the user uses `<Node>` (graph-node), it falls into the IF block above.
+                // The `else` block is for `Sticky` component usage.
+
+                // Let's also check markdown here just in case Sticky contains markdown
+                // Although currently we only have MarkdownNode for generic nodes.
+                // If graph-node is used (as in the example), it goes to the IF block.
+
+                // So my Previous change was in IF block for graph-node.
+                // Let's make sure I'm modifying the whole file correctly.
 
                 nodes.push({
                   id: nodeId,
