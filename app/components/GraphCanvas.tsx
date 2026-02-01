@@ -1,16 +1,20 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import ReactFlow, {
   Background,
   Controls,
   OnSelectionChangeParams,
+  useNodesInitialized,
+  ReactFlowProvider,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useGraphStore } from '@/store/graph';
 import StickyNode from './nodes/StickyNode';
 import ShapeNode from './nodes/ShapeNode';
 import TextNode from './nodes/TextNode';
+import { useElkLayout } from '../hooks/useElkLayout';
+import { Loader2 } from 'lucide-react';
 
-export function GraphCanvas() {
+function GraphCanvasContent() {
   const nodeTypes = useMemo(
     () => ({
       sticky: StickyNode,
@@ -22,6 +26,20 @@ export function GraphCanvas() {
 
   const { nodes, edges, onNodesChange, onEdgesChange, setSelectedNodes } =
     useGraphStore();
+
+  const { calculateLayout, isLayouting } = useElkLayout();
+  const nodesInitialized = useNodesInitialized();
+  const hasLayouted = useRef(false);
+
+  // Trigger Layout when all nodes are initialized (measured)
+  useEffect(() => {
+    // Check if we have nodes, they are fully initialized (width/height measured), and we haven't run layout yet.
+    if (nodes.length > 0 && nodesInitialized && !hasLayouted.current) {
+      console.log('[Layout] Nodes initialized, triggering ELK layout...');
+      calculateLayout({ direction: 'RIGHT' });
+      hasLayouted.current = true;
+    }
+  }, [nodes.length, nodesInitialized, calculateLayout]);
 
   const onSelectionChange = useCallback(
     ({ nodes: selectedNodes }: OnSelectionChangeParams) => {
@@ -73,31 +91,59 @@ export function GraphCanvas() {
   }, []);
 
   return (
-    <div className="w-full h-full min-h-[500px] flex-1 bg-background">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onSelectionChange={onSelectionChange}
-        nodeTypes={nodeTypes}
-        nodesDraggable={false}
-        nodesConnectable={false}
-        zoomOnScroll={true}
-        panOnScroll={true}
-        minZoom={0.1}
-        maxZoom={2}
-        fitView
-        defaultEdgeOptions={{
-          type: 'smoothstep',
-          animated: false,
-          style: { stroke: '#94a3b8', strokeWidth: 2 },
-        }}
-        proOptions={{ hideAttribution: true }}
+    <>
+      {isLayouting && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+            <p className="text-sm font-medium text-slate-600">Optimizing layout...</p>
+          </div>
+        </div>
+      )}
+
+      {/* 
+         Use opacity to prevent FOUC (Flash of Unstyled Content) / Jumpy layout.
+         We wait until initial layout is done OR if there are no nodes to layout.
+      */}
+      <div
+        className="w-full h-full min-h-[500px] flex-1 bg-background transition-opacity duration-300"
+        style={{ opacity: (nodes.length > 0 && !hasLayouted.current) ? 0 : 1 }}
       >
-        <Background gap={24} size={1} color="#cbd5e1" />
-        <Controls className="bg-white/90 glass border-none shadow-sm text-slate-600" />
-      </ReactFlow>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onSelectionChange={onSelectionChange}
+          nodeTypes={nodeTypes}
+          nodesDraggable={false}
+          nodesConnectable={false}
+          zoomOnScroll={true}
+          panOnScroll={true}
+          minZoom={0.1}
+          maxZoom={2}
+          fitView
+          defaultEdgeOptions={{
+            type: 'smoothstep',
+            animated: false,
+            style: { stroke: '#94a3b8', strokeWidth: 2 },
+          }}
+          proOptions={{ hideAttribution: true }}
+        >
+          <Background gap={24} size={1} color="#cbd5e1" />
+          <Controls className="bg-white/90 glass border-none shadow-sm text-slate-600" />
+        </ReactFlow>
+      </div>
+    </>
+  );
+}
+
+export function GraphCanvas() {
+  return (
+    <div className="w-full h-full min-h-[500px] flex-1 relative">
+      <ReactFlowProvider>
+        <GraphCanvasContent />
+      </ReactFlowProvider>
     </div>
   );
 }

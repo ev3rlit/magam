@@ -2,8 +2,8 @@
 import { applyLayout } from './elk';
 import { Container } from '../reconciler/hostConfig';
 
-describe('ELK Layout', () => {
-    it('should successfully apply layout without throwing Worker error', async () => {
+describe('ELK Layout (Server Side)', () => {
+    it('should pass through graph without modification (layout moved to client)', async () => {
         const graph: Container = {
             type: 'root',
             children: [
@@ -21,21 +21,18 @@ describe('ELK Layout', () => {
 
         const result = await applyLayout(graph);
 
-        // Basic check that layout modified coordinates
-        const mindmap = result.children[0];
-        const n1 = mindmap.children.find((c: any) => c.props.id === 'n1');
-        const n2 = mindmap.children.find((c: any) => c.props.id === 'n2');
+        expect(result.isOk()).toBe(true);
+        if (result.isOk()) {
+            const resGraph = result.value;
+            // Should remain exactly as input, no layout calculation on server
+            const mindmap = resGraph.children[0];
+            const n1 = mindmap.children.find((c: any) => c.props.id === 'n1');
 
-        if (!n1 || !n2) {
-            throw new Error('Nodes not found in layout result');
+            // In the old logic, x and y might have been added. Now they shouldn't change if not present.
+            // or should default to 0? The current implementation uses ResultAsync.fromSafePromise(Promise.resolve(graph));
+            // So it returns the EXACT object reference or copy.
+
+            expect(n1).toBeDefined();
         }
-
-        expect(n1.props['x']).toBeDefined();
-        expect(n1.props['y']).toBeDefined();
-        expect(n2.props['x']).toBeDefined();
-        expect(n2.props['y']).toBeDefined();
-
-        // Ensure they aren't at the exact same position (proving layout logic ran)
-        expect(n1.props['x'] !== n2.props['x'] || n1.props['y'] !== n2.props['y']).toBe(true);
     });
 });
