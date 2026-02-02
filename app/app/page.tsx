@@ -433,11 +433,14 @@ export default function Home() {
           };
 
           // Detect if any mindmap nodes exist (they need auto layout)
-          const hasMindMap = children.some((child: RenderNode) => child.type === 'graph-mindmap');
+          // Also extract the layout type from the first MindMap element
+          const mindMapElement = children.find((child: RenderNode) => child.type === 'graph-mindmap');
+          const hasMindMap = !!mindMapElement;
+          const layoutType = (mindMapElement?.props?.layout as 'tree' | 'bidirectional' | 'radial') || 'tree';
 
           processChildren(children);
 
-          setGraph({ nodes, edges, needsAutoLayout: hasMindMap });
+          setGraph({ nodes, edges, needsAutoLayout: hasMindMap, layoutType });
         }
       } catch (error) {
         console.error('Failed to render file:', error);

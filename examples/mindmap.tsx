@@ -8,7 +8,7 @@ import { Canvas, MindMap, Node, Text, Markdown } from '@graphwrite/core';
 export default function MindMapFeaturesExample() {
   return (
     <Canvas>
-      <MindMap layout="tree">
+      <MindMap layout="bidirectional">
         {/* Root node */}
         <Node id="mindmap">🧠 MindMap Features</Node>
 

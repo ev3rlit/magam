@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { useReactFlow } from 'reactflow';
+import { useReactFlow, Node, Edge } from 'reactflow';
 // @ts-ignore
 import ELK from 'elkjs/lib/elk.bundled';
 import { ElkNode, ElkExtendedEdge } from 'elkjs/lib/elk-api';
@@ -15,6 +15,101 @@ const DEFAULT_LAYOUT_OPTIONS = {
 interface UseElkLayoutOptions {
     direction?: 'RIGHT' | 'DOWN' | 'LEFT' | 'UP';
     spacing?: number;
+    bidirectional?: boolean;
+}
+
+/**
+ * Find the root node (node with no incoming edges)
+ */
+function findRootNode(nodes: Node[], edges: Edge[]): Node | null {
+    const targetIds = new Set(edges.map(e => e.target));
+    return nodes.find(n => !targetIds.has(n.id)) || null;
+}
+
+/**
+ * Collect all descendant node IDs of given root IDs (BFS)
+ */
+function collectDescendants(
+    rootIds: string[],
+    edges: Edge[]
+): Set<string> {
+    const descendants = new Set<string>(rootIds);
+    const childrenMap = new Map<string, string[]>();
+
+    edges.forEach(e => {
+        if (!childrenMap.has(e.source)) childrenMap.set(e.source, []);
+        childrenMap.get(e.source)!.push(e.target);
+    });
+
+    const queue = [...rootIds];
+    while (queue.length > 0) {
+        const current = queue.shift()!;
+        const children = childrenMap.get(current) || [];
+        children.forEach(child => {
+            if (!descendants.has(child)) {
+                descendants.add(child);
+                queue.push(child);
+            }
+        });
+    }
+
+    return descendants;
+}
+
+/**
+ * Get node dimensions from React Flow node
+ */
+function getNodeDimensions(node: Node): { width: number; height: number } {
+    // @ts-ignore
+    const w = node.measured?.width ?? node.width ?? node.data?.width ?? 150;
+    // @ts-ignore
+    const h = node.measured?.height ?? node.height ?? node.data?.height ?? 50;
+    return { width: w, height: h };
+}
+
+/**
+ * Run ELK layout on a subgraph
+ */
+async function runElkLayout(
+    nodes: Node[],
+    edges: Edge[],
+    direction: 'LEFT' | 'RIGHT',
+    spacing: number
+): Promise<Map<string, { x: number; y: number }>> {
+    const elk = new ELK();
+
+    const elkNodes: ElkNode[] = nodes.map(node => {
+        const { width, height } = getNodeDimensions(node);
+        return { id: node.id, width, height };
+    });
+
+    const elkEdges: ElkExtendedEdge[] = edges.map(edge => ({
+        id: edge.id,
+        sources: [edge.source],
+        targets: [edge.target],
+    }));
+
+    const layoutOptions = {
+        ...DEFAULT_LAYOUT_OPTIONS,
+        'elk.direction': direction,
+        'elk.spacing.nodeNode': String(spacing),
+    };
+
+    const graph: ElkNode = {
+        id: 'root',
+        layoutOptions,
+        children: elkNodes,
+        edges: elkEdges,
+    };
+
+    const layoutedGraph = await elk.layout(graph);
+
+    const positions = new Map<string, { x: number; y: number }>();
+    layoutedGraph.children?.forEach(n => {
+        positions.set(n.id, { x: n.x!, y: n.y! });
+    });
+
+    return positions;
 }
 
 export function useElkLayout() {
@@ -30,46 +125,180 @@ export function useElkLayout() {
 
             setIsLayouting(true);
 
-            const elk = new ELK();
-
-            const elkNodes: ElkNode[] = nodes.map((node) => {
-                // Prioritize measured property which contains actual rendered dimensions (React Flow v12+ or some v11 setups)
-                // Fallback to width/height, then data.width/height, then defaults
-                // @ts-ignore
-                const w = node.measured?.width ?? node.width ?? node.data?.width ?? 150;
-                // @ts-ignore
-                const h = node.measured?.height ?? node.height ?? node.data?.height ?? 50;
-
-                return {
-                    id: node.id,
-                    width: w,
-                    height: h,
-                };
-            });
-
-            console.log('[ELK Layout] Nodes prepared:', elkNodes.map(n => ({ id: n.id, w: n.width, h: n.height })));
-
-            // Use ElkExtendedEdge structure (sources/targets array)
-            const elkEdges: ElkExtendedEdge[] = edges.map((edge) => ({
-                id: edge.id,
-                sources: [edge.source],
-                targets: [edge.target],
-            }));
-
-            const layoutOptions = {
-                ...DEFAULT_LAYOUT_OPTIONS,
-                'elk.direction': options.direction || 'RIGHT',
-                'elk.spacing.nodeNode': String(options.spacing || 60),
-            };
-
-            const graph: ElkNode = {
-                id: 'root',
-                layoutOptions,
-                children: elkNodes,
-                edges: elkEdges,
-            };
-
             try {
+                // Bidirectional layout
+                if (options.bidirectional) {
+                    console.log('[ELK Bidirectional] Starting bidirectional layout...');
+
+                    const rootNode = findRootNode(nodes, edges);
+                    if (!rootNode) {
+                        console.warn('[ELK Bidirectional] No root node found, falling back to unidirectional');
+                        options.bidirectional = false;
+                    } else {
+                        // Find root's direct children
+                        const rootChildren = edges
+                            .filter(e => e.source === rootNode.id)
+                            .map(e => e.target);
+
+                        if (rootChildren.length < 2) {
+                            console.log('[ELK Bidirectional] Less than 2 children, using unidirectional');
+                            options.bidirectional = false;
+                        } else {
+                            // Split children into left and right groups
+                            const midpoint = Math.ceil(rootChildren.length / 2);
+                            const leftChildIds = rootChildren.slice(0, midpoint);
+                            const rightChildIds = rootChildren.slice(midpoint);
+
+                            console.log(`[ELK Bidirectional] Left: ${leftChildIds.length}, Right: ${rightChildIds.length}`);
+
+                            // Collect all descendants for each side
+                            const leftNodeIds = collectDescendants(leftChildIds, edges);
+                            const rightNodeIds = collectDescendants(rightChildIds, edges);
+
+                            // Add root to both sides for layout calculation
+                            leftNodeIds.add(rootNode.id);
+                            rightNodeIds.add(rootNode.id);
+
+                            // Create subgraphs
+                            const leftNodes = nodes.filter(n => leftNodeIds.has(n.id));
+                            const rightNodes = nodes.filter(n => rightNodeIds.has(n.id));
+                            const leftEdges = edges.filter(e => leftNodeIds.has(e.source) && leftNodeIds.has(e.target));
+                            const rightEdges = edges.filter(e => rightNodeIds.has(e.source) && rightNodeIds.has(e.target));
+
+                            const spacing = options.spacing || 60;
+
+                            // Run layouts in parallel
+                            const [leftPositions, rightPositions] = await Promise.all([
+                                runElkLayout(leftNodes, leftEdges, 'LEFT', spacing),
+                                runElkLayout(rightNodes, rightEdges, 'RIGHT', spacing),
+                            ]);
+
+                            // Get root position from both layouts
+                            const rootRightPos = rightPositions.get(rootNode.id);
+                            const rootLeftPos = leftPositions.get(rootNode.id);
+
+                            if (!rootRightPos || !rootLeftPos) {
+                                throw new Error('Root position not found in layout results');
+                            }
+
+                            // Calculate Y bounding box for each subtree (excluding root)
+                            const getYBounds = (positions: Map<string, { x: number; y: number }>, excludeId: string): { min: number; max: number } => {
+                                let minY = Infinity;
+                                let maxY = -Infinity;
+                                positions.forEach((pos, nodeId) => {
+                                    if (nodeId !== excludeId) {
+                                        minY = Math.min(minY, pos.y);
+                                        maxY = Math.max(maxY, pos.y);
+                                    }
+                                });
+                                return { min: minY, max: maxY };
+                            };
+
+                            const leftBounds = getYBounds(leftPositions, rootNode.id);
+                            const rightBounds = getYBounds(rightPositions, rootNode.id);
+
+                            // Calculate the Y center of each subtree
+                            const leftYCenter = (leftBounds.min + leftBounds.max) / 2;
+                            const rightYCenter = (rightBounds.min + rightBounds.max) / 2;
+
+                            // Target Y center is the average of both (or just 0)
+                            const targetYCenter = 0;
+
+                            // Calculate offsets:
+                            // X offset: align root to x=0, left side nodes go left, right side go right
+                            // Y offset: align each subtree's Y center to the target Y center
+
+                            // Right side: root at x=0, subtree Y center at 0
+                            const rightOffsetX = -rootRightPos.x;
+                            const rightOffsetY = targetYCenter - rightYCenter;
+
+                            // Left side: root at x=0, subtree Y center at 0
+                            const leftOffsetX = -rootLeftPos.x;
+                            const leftOffsetY = targetYCenter - leftYCenter;
+
+                            console.log(`[ELK Bidirectional] Left Y bounds: ${leftBounds.min} ~ ${leftBounds.max}, center: ${leftYCenter}`);
+                            console.log(`[ELK Bidirectional] Right Y bounds: ${rightBounds.min} ~ ${rightBounds.max}, center: ${rightYCenter}`);
+                            console.log(`[ELK Bidirectional] Offsets - Left: (${leftOffsetX}, ${leftOffsetY}), Right: (${rightOffsetX}, ${rightOffsetY})`);
+
+                            // Merge positions
+                            const finalPositions = new Map<string, { x: number; y: number }>();
+
+                            // Root at center (X=0, Y=0)
+                            finalPositions.set(rootNode.id, { x: 0, y: 0 });
+
+                            // Left side nodes (apply offset)
+                            leftPositions.forEach((pos, nodeId) => {
+                                if (nodeId !== rootNode.id) {
+                                    finalPositions.set(nodeId, {
+                                        x: pos.x + leftOffsetX,
+                                        y: pos.y + leftOffsetY,
+                                    });
+                                }
+                            });
+
+                            // Right side nodes (apply offset)
+                            rightPositions.forEach((pos, nodeId) => {
+                                if (nodeId !== rootNode.id) {
+                                    finalPositions.set(nodeId, {
+                                        x: pos.x + rightOffsetX,
+                                        y: pos.y + rightOffsetY,
+                                    });
+                                }
+                            });
+
+                            // Apply positions
+                            const newNodes = nodes.map(node => {
+                                const pos = finalPositions.get(node.id);
+                                if (pos) {
+                                    return {
+                                        ...node,
+                                        position: { x: pos.x, y: pos.y },
+                                        style: { ...node.style, opacity: 1 },
+                                    };
+                                }
+                                return { ...node, style: { ...node.style, opacity: 1 } };
+                            });
+
+                            setNodes(newNodes);
+                            window.requestAnimationFrame(() => {
+                                fitView({ padding: 0.1, duration: 200 });
+                            });
+
+                            console.log('[ELK Bidirectional] Complete.');
+                            return;
+                        }
+                    }
+                }
+
+                // Default: Unidirectional layout
+                const elk = new ELK();
+
+                const elkNodes: ElkNode[] = nodes.map((node) => {
+                    const { width, height } = getNodeDimensions(node);
+                    return { id: node.id, width, height };
+                });
+
+                console.log('[ELK Layout] Nodes prepared:', elkNodes.map(n => ({ id: n.id, w: n.width, h: n.height })));
+
+                const elkEdges: ElkExtendedEdge[] = edges.map((edge) => ({
+                    id: edge.id,
+                    sources: [edge.source],
+                    targets: [edge.target],
+                }));
+
+                const layoutOptions = {
+                    ...DEFAULT_LAYOUT_OPTIONS,
+                    'elk.direction': options.direction || 'RIGHT',
+                    'elk.spacing.nodeNode': String(options.spacing || 60),
+                };
+
+                const graph: ElkNode = {
+                    id: 'root',
+                    layoutOptions,
+                    children: elkNodes,
+                    edges: elkEdges,
+                };
+
                 const layoutedGraph = await elk.layout(graph);
 
                 const newNodes = nodes.map((node) => {
@@ -86,11 +315,9 @@ export function useElkLayout() {
                             style: { ...node.style, opacity: 1 },
                         };
                     }
-                    // Fallback for nodes that didn't get layout info (shouldn't happen)
                     return { ...node, style: { ...node.style, opacity: 1 } };
                 });
 
-                // Apply new positions
                 setNodes(newNodes);
 
                 window.requestAnimationFrame(() => {
@@ -99,7 +326,6 @@ export function useElkLayout() {
 
             } catch (error) {
                 console.error('ELK Layout failed:', error);
-                // Fallback: Show nodes (grid or just visible)
                 const visibleNodes = nodes.map(n => ({ ...n, style: { ...n.style, opacity: 1 } }));
                 setNodes(visibleNodes);
             } finally {
@@ -111,3 +337,4 @@ export function useElkLayout() {
 
     return { calculateLayout, isLayouting };
 }
+
