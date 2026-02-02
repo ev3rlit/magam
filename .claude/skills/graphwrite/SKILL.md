@@ -381,6 +381,7 @@ Place multiple independent MindMaps on a single Canvas. Each MindMap has its own
 6. **Group related content** using comments in JSX
 7. **Use consistent styling** with Tailwind utility classes
 8. **Keep node content concise** - use child nodes for detailed breakdowns
+9. **Split large MindMaps into multiple smaller ones** - Rather than cramming everything into one huge MindMap, separate by topic or section. This makes hierarchies clearer and improves readability. Use `anchor` positioning to arrange them spatially.
 
 ## File Structure
 
