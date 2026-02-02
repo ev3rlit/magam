@@ -10,24 +10,40 @@ export default function NestJSComprehensiveGuide() {
   return (
     <Canvas>
 
-      {/* ===== Root: NestJS 중앙 ===== */}
+      {/* ===== Root: NestJS 중앙 (목차) ===== */}
       <MindMap id="root" layout="bidirectional">
-        <Node id="main">
+        <Node id="main" bubble>
           <Markdown>
             {`# NestJS
 
 > **효율적이고 확장 가능한 서버 사이드 프레임워크**
 
 TypeScript 기반 Node.js 프레임워크
-Angular에서 영감받은 구조화된 아키텍처`}
+Angular에서 영감받은 구조화된 아키텍처
+
+---
+
+## 📚 목차
+
+1. [소개](node:/intro/title)
+2. [핵심 개념](node:/core/title)
+3. [아키텍처](node:/arch/title)
+4. [데이터베이스](node:/db/title)
+5. [인증/인가](node:/auth/title)
+6. [API 개발](node:/api/title)
+7. [테스팅](node:/testing/title)
+8. [고급 기능](node:/advanced/title)
+9. [배포](node:/deploy/title)`}
           </Markdown>
         </Node>
       </MindMap>
 
       {/* ===== 1. 소개 (루트 왼쪽) ===== */}
       <MindMap id="intro" layout="bidirectional" anchor="root" position="left" gap={200}>
-        <Node id="title">
-          <Markdown>{`## 1. 소개`}</Markdown>
+        <Node id="title" bubble>
+          <Markdown>{`## 1. 소개
+
+[← 목차](node:/root/main) | [다음: 핵심 개념 →](node:/core/title)`}</Markdown>
         </Node>
 
         <Node id="what-is-nest" from="title">
@@ -100,8 +116,10 @@ Angular에서 영감받은 구조화된 아키텍처`}
 
       {/* ===== 2. 핵심 개념 (루트 오른쪽) ===== */}
       <MindMap id="core" layout="bidirectional" anchor="root" position="right" gap={200}>
-        <Node id="title">
-          <Markdown>{`## 2. 핵심 개념`}</Markdown>
+        <Node id="title" bubble>
+          <Markdown>{`## 2. 핵심 개념
+
+[← 소개](node:/intro/title) | [목차](node:/root/main) | [다음: 아키텍처 →](node:/arch/title)`}</Markdown>
         </Node>
 
         {/* --- 모듈 --- */}
@@ -374,8 +392,10 @@ private userService: UserService;
 
       {/* ===== 3. 아키텍처 (핵심 개념 아래) ===== */}
       <MindMap id="arch" layout="bidirectional" anchor="core" position="bottom" gap={150}>
-        <Node id="title">
-          <Markdown>{`## 3. 아키텍처`}</Markdown>
+        <Node id="title" bubble>
+          <Markdown>{`## 3. 아키텍처
+
+[← 핵심 개념](node:/core/title) | [목차](node:/root/main) | [다음: 데이터베이스 →](node:/db/title)`}</Markdown>
         </Node>
 
         {/* --- 요청 라이프사이클 --- */}
@@ -654,8 +674,10 @@ export class HttpExceptionFilter
 
       {/* ===== 4. 데이터베이스 (아키텍처 아래) ===== */}
       <MindMap id="db" layout="bidirectional" anchor="arch" position="bottom" gap={150}>
-        <Node id="title">
-          <Markdown>{`## 4. 데이터베이스`}</Markdown>
+        <Node id="title" bubble>
+          <Markdown>{`## 4. 데이터베이스
+
+[← 아키텍처](node:/arch/title) | [목차](node:/root/main) | [다음: 인증/인가 →](node:/auth/title)`}</Markdown>
         </Node>
 
         {/* --- TypeORM --- */}
@@ -835,8 +857,10 @@ export const UserSchema =
 
       {/* ===== 5. 인증/인가 (소개 아래) ===== */}
       <MindMap id="auth" layout="bidirectional" anchor="intro" position="bottom" gap={150}>
-        <Node id="title">
-          <Markdown>{`## 5. 인증/인가`}</Markdown>
+        <Node id="title" bubble>
+          <Markdown>{`## 5. 인증/인가
+
+[← 데이터베이스](node:/db/title) | [목차](node:/root/main) | [다음: API 개발 →](node:/api/title)`}</Markdown>
         </Node>
 
         {/* --- Passport --- */}
@@ -1001,8 +1025,10 @@ app.use(passport.session());
 
       {/* ===== 6. API 개발 (루트 아래) ===== */}
       <MindMap id="api" layout="bidirectional" anchor="root" position="bottom" gap={200}>
-        <Node id="title">
-          <Markdown>{`## 6. API 개발`}</Markdown>
+        <Node id="title" bubble>
+          <Markdown>{`## 6. API 개발
+
+[← 인증/인가](node:/auth/title) | [목차](node:/root/main) | [다음: 테스팅 →](node:/testing/title)`}</Markdown>
         </Node>
 
         {/* --- REST API --- */}
@@ -1161,8 +1187,10 @@ export class ChatGateway {
 
       {/* ===== 7. 테스팅 (인증/인가 아래) ===== */}
       <MindMap id="testing" layout="bidirectional" anchor="auth" position="bottom" gap={150}>
-        <Node id="title">
-          <Markdown>{`## 7. 테스팅`}</Markdown>
+        <Node id="title" bubble>
+          <Markdown>{`## 7. 테스팅
+
+[← API 개발](node:/api/title) | [목차](node:/root/main) | [다음: 고급 기능 →](node:/advanced/title)`}</Markdown>
         </Node>
 
         {/* --- 단위 테스트 --- */}
@@ -1325,8 +1353,10 @@ expect(mockUserService.create)
 
       {/* ===== 8. 고급 기능 (루트 위) ===== */}
       <MindMap id="advanced" layout="bidirectional" anchor="root" position="top" gap={200}>
-        <Node id="title">
-          <Markdown>{`## 8. 고급 기능`}</Markdown>
+        <Node id="title" bubble>
+          <Markdown>{`## 8. 고급 기능
+
+[← 테스팅](node:/testing/title) | [목차](node:/root/main) | [다음: 배포 →](node:/deploy/title)`}</Markdown>
         </Node>
 
         {/* --- 마이크로서비스 --- */}
@@ -1539,8 +1569,10 @@ export class TaskService {
 
       {/* ===== 9. 배포 (API 개발 아래) ===== */}
       <MindMap id="deploy" layout="bidirectional" anchor="api" position="bottom" gap={150}>
-        <Node id="title">
-          <Markdown>{`## 9. 배포`}</Markdown>
+        <Node id="title" bubble>
+          <Markdown>{`## 9. 배포
+
+[← 고급 기능](node:/advanced/title) | [목차](node:/root/main)`}</Markdown>
         </Node>
 
         {/* --- Docker --- */}

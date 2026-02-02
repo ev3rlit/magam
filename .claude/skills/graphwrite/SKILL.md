@@ -154,6 +154,30 @@ Content here...
 - Text over 40 characters is truncated with `...`
 - Bubble appears as floating overlay on top of original content
 
+**Best Practices:**
+
+| Level | Recommendation | Reason |
+|-------|----------------|--------|
+| Root node | ✅ Always use | Main topic visibility at any zoom |
+| Level 1-2 (children of root) | ✅ Recommended | Section titles remain readable when zoomed out |
+| Level 3 | ⚠️ Selective | Only for key concepts that need visibility |
+| Level 4+ | ❌ Usually skip | Too many bubbles cause visual clutter |
+
+- **Use for navigation nodes**: Nodes with Table of Contents or section headers benefit from bubbles
+- **Use for key landmarks**: Important concepts users need to locate quickly
+- **Skip for leaf nodes**: Detail nodes don't need bubble labels—users will zoom in to read them
+- **Skip for repetitive content**: If many siblings have similar structure, bubble only the parent
+
+```tsx
+{/* Good: bubbles on structural nodes */}
+<MindMap id="docs">
+  <Node id="root" bubble>Main Topic</Node>
+  <Node id="section1" from="root" bubble>Section 1</Node>
+  <Node id="section2" from="root" bubble>Section 2</Node>
+  <Node id="detail1" from="section1">Detail (no bubble)</Node>
+</MindMap>
+```
+
 
 ### Text
 
@@ -416,6 +440,7 @@ Place multiple independent MindMaps on a single Canvas. Each MindMap has its own
 7. **Use consistent styling** with Tailwind utility classes
 8. **Keep node content concise** - use child nodes for detailed breakdowns
 9. **Split large MindMaps into multiple smaller ones** - Rather than cramming everything into one huge MindMap, separate by topic or section. This makes hierarchies clearer and improves readability. Use `anchor` positioning to arrange them spatially.
+10. **Use `bubble` for semantic zoom** - Add `bubble` prop to root nodes and level 1-2 children so section titles remain visible when zoomed out. Skip bubbles on level 4+ detail nodes to avoid visual clutter.
 
 ## File Structure
 
