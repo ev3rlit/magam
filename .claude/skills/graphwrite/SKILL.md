@@ -175,6 +175,42 @@ function hello() {
 </Node>
 ```
 
+### Node Links (Internal Navigation)
+
+Navigate between nodes using the `node:` scheme in Markdown links. Clicking a node link smoothly animates the viewport to the target node.
+
+**Syntax:** `[link text](node:/mindmapId/nodeId)`
+
+```tsx
+<Node id="intro">
+  <Markdown>{`
+## Introduction
+
+Learn the basics first, then move on.
+
+[Next: Core Concepts](node:/main/concepts)
+  `}</Markdown>
+</Node>
+
+<Node id="concepts" from="intro">
+  <Markdown>{`
+## Core Concepts
+
+- Canvas: Infinite drawing area
+- MindMap: Auto-layout container
+- Node: Content container
+
+[← Previous](node:/main/intro) | [Next →](node:/main/examples)
+  `}</Markdown>
+</Node>
+```
+
+**Path Formats:**
+- `/mindmapId/nodeId` → navigates to `mindmapId.nodeId`
+- `/nodeId` → navigates to `nodeId` (for single MindMap)
+
+**Styling:** Node links are styled with indigo color and arrow prefix (→) to distinguish from external links.
+
 ### Edge
 
 Connection line between elements.
