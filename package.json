@@ -7,7 +7,8 @@
     "libs/*"
   ],
   "scripts": {
-    "dev": "bun --watch run cli.ts dev",
+    "build:core": "cd libs/core && bun run build",
+    "dev": "bun run build:core && bun --watch run cli.ts dev",
     "build": "bun run --filter '*' build",
     "test": "bun test"
   },
@@ -64,6 +65,7 @@
     "@nestjs/serve-static": "^5.0.4",
     "@nestjs/websockets": "^11.1.12",
     "@tailwindcss/typography": "^0.5.19",
+    "@types/react-syntax-highlighter": "^15.5.13",
     "axios": "^1.6.0",
     "chokidar": "^4.0.3",
     "clsx": "^2.1.1",
