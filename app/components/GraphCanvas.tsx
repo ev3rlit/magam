@@ -14,7 +14,6 @@ import TextNode from './nodes/TextNode';
 import MarkdownNode from './nodes/MarkdownNode';
 import FloatingEdge from './edges/FloatingEdge';
 import { useElkLayout } from '../hooks/useElkLayout';
-import { useAnchorLayout } from '../hooks/useAnchorLayout';
 import { NavigationProvider } from '@/contexts/NavigationContext';
 import { Loader2 } from 'lucide-react';
 
@@ -41,7 +40,6 @@ function GraphCanvasContent() {
     useGraphStore();
 
   const { calculateLayout, isLayouting } = useElkLayout();
-  const { resolveLayout, isResolving } = useAnchorLayout();
   const nodesInitialized = useNodesInitialized();
   const hasLayouted = useRef(false);
   const lastLayoutedGraphId = useRef<string | null>(null);
@@ -62,31 +60,28 @@ function GraphCanvasContent() {
     // Check if we have nodes, they are fully initialized (width/height measured), and we haven't run layout yet.
     if (nodes.length > 0 && nodesInitialized && !hasLayouted.current) {
       const runLayout = async () => {
-        // 1. First, if MindMap mode, apply ELK layout to position nodes within groups
         if (needsAutoLayout) {
-          console.log(`[Layout] Step 1: Triggering ELK layout (${layoutType} mode, ${mindMapGroups.length} group(s))...`);
+          // ELK layout now handles everything:
+          // - Internal group layouts
+          // - Global group positioning (with anchor resolution)
+          console.log(`[Layout] Triggering ELK layout (${layoutType} mode, ${mindMapGroups.length} group(s))...`);
           await calculateLayout({
             direction: 'RIGHT',
             bidirectional: layoutType === 'bidirectional',
             mindMapGroups,
           });
         } else {
-          console.log('[Layout] Step 1: Canvas mode, skipping ELK layout.');
+          console.log('[Layout] Canvas mode, skipping ELK layout.');
         }
-
-        // 2. Then, resolve anchor-based positions between MindMap groups
-        console.log('[Layout] Step 2: Resolving anchor positions between groups...');
-        await resolveLayout();
 
         console.log('[Layout] Layout pipeline finished.');
         hasLayouted.current = true;
         setIsGraphVisible(true);
       };
 
-
       runLayout();
     }
-  }, [nodes.length, nodesInitialized, calculateLayout, resolveLayout, graphId, needsAutoLayout, layoutType]);
+  }, [nodes.length, nodesInitialized, calculateLayout, graphId, needsAutoLayout, layoutType, mindMapGroups]);
 
   const onSelectionChange = useCallback(
     ({ nodes: selectedNodes }: OnSelectionChangeParams) => {
