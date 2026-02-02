@@ -1,31 +1,36 @@
 import { Canvas, MindMap, Node, Text, Markdown } from '@graphwrite/core';
 
 /**
- * NestJS 종합 문서화 마인드맵
+ * NestJS 종합 문서화 마인드맵 (Multiple MindMaps 버전)
  *
  * 처음 보는 사람도 이해할 수 있는 NestJS 종합 가이드
- * 의미 기반 깊은 트리 구조
+ * 10개의 독립적인 MindMap (앵커 기반 자동 배치)
  */
 export default function NestJSComprehensiveGuide() {
   return (
     <Canvas>
-      <MindMap layout="bidirectional">
 
-        {/* ===== Root: NestJS ===== */}
-        <Node id="root">
+      {/* ===== Root: NestJS 중앙 ===== */}
+      <MindMap id="root" layout="bidirectional">
+        <Node id="main">
           <Markdown>
             {`# NestJS
 
-> **효율적이고 확장 가능한 서버 사이드 프레임워크**`}
+> **효율적이고 확장 가능한 서버 사이드 프레임워크**
+
+TypeScript 기반 Node.js 프레임워크
+Angular에서 영감받은 구조화된 아키텍처`}
           </Markdown>
         </Node>
+      </MindMap>
 
-        {/* ===== 1. 소개 ===== */}
-        <Node id="intro" from="root">
-          <Text>1. 소개</Text>
+      {/* ===== 1. 소개 (루트 왼쪽) ===== */}
+      <MindMap id="intro" layout="bidirectional" anchor="root" position="left" gap={200}>
+        <Node id="title">
+          <Markdown>{`## 1. 소개`}</Markdown>
         </Node>
 
-        <Node id="what-is-nest" from="intro">
+        <Node id="what-is-nest" from="title">
           <Text>NestJS란?</Text>
         </Node>
 
@@ -49,7 +54,7 @@ export default function NestJSComprehensiveGuide() {
           </Markdown>
         </Node>
 
-        <Node id="why-nest" from="intro">
+        <Node id="why-nest" from="title">
           <Text>왜 NestJS인가?</Text>
         </Node>
 
@@ -78,7 +83,7 @@ export default function NestJSComprehensiveGuide() {
           </Markdown>
         </Node>
 
-        <Node id="philosophy" from="intro">
+        <Node id="philosophy" from="title">
           <Text>핵심 철학</Text>
         </Node>
 
@@ -91,14 +96,16 @@ export default function NestJSComprehensiveGuide() {
 - **단일 책임** (SRP)`}
           </Markdown>
         </Node>
+      </MindMap>
 
-        {/* ===== 2. 핵심 개념 ===== */}
-        <Node id="core-concepts" from="root">
-          <Text>2. 핵심 개념</Text>
+      {/* ===== 2. 핵심 개념 (루트 오른쪽) ===== */}
+      <MindMap id="core" layout="bidirectional" anchor="root" position="right" gap={200}>
+        <Node id="title">
+          <Markdown>{`## 2. 핵심 개념`}</Markdown>
         </Node>
 
         {/* --- 모듈 --- */}
-        <Node id="module" from="core-concepts">
+        <Node id="module" from="title">
           <Text>모듈 (Module)</Text>
         </Node>
 
@@ -168,7 +175,7 @@ import한 모듈에서 사용 가능`}
         </Node>
 
         {/* --- 컨트롤러 --- */}
-        <Node id="controller" from="core-concepts">
+        <Node id="controller" from="title">
           <Text>컨트롤러 (Controller)</Text>
         </Node>
 
@@ -240,7 +247,7 @@ export class UserController {
         </Node>
 
         {/* --- 프로바이더/서비스 --- */}
-        <Node id="provider" from="core-concepts">
+        <Node id="provider" from="title">
           <Text>프로바이더 (Provider)</Text>
         </Node>
 
@@ -309,7 +316,7 @@ DB CRUD 작업`}
         </Node>
 
         {/* --- 의존성 주입 --- */}
-        <Node id="di" from="core-concepts">
+        <Node id="di" from="title">
           <Text>의존성 주입 (DI)</Text>
         </Node>
 
@@ -363,14 +370,16 @@ private userService: UserService;
 - 유지보수 편의`}
           </Markdown>
         </Node>
+      </MindMap>
 
-        {/* ===== 3. 아키텍처 ===== */}
-        <Node id="architecture" from="root">
-          <Text>3. 아키텍처</Text>
+      {/* ===== 3. 아키텍처 (핵심 개념 아래) ===== */}
+      <MindMap id="arch" layout="bidirectional" anchor="core" position="bottom" gap={150}>
+        <Node id="title">
+          <Markdown>{`## 3. 아키텍처`}</Markdown>
         </Node>
 
         {/* --- 요청 라이프사이클 --- */}
-        <Node id="lifecycle" from="architecture">
+        <Node id="lifecycle" from="title">
           <Text>요청 라이프사이클</Text>
         </Node>
 
@@ -389,7 +398,7 @@ private userService: UserService;
         </Node>
 
         {/* --- 미들웨어 --- */}
-        <Node id="middleware" from="architecture">
+        <Node id="middleware" from="title">
           <Text>미들웨어 (Middleware)</Text>
         </Node>
 
@@ -433,7 +442,7 @@ export class LoggerMiddleware
         </Node>
 
         {/* --- 가드 --- */}
-        <Node id="guard" from="architecture">
+        <Node id="guard" from="title">
           <Text>가드 (Guard)</Text>
         </Node>
 
@@ -489,18 +498,8 @@ app.useGlobalGuards(new AuthGuard());
           </Markdown>
         </Node>
 
-        <Node id="guard-return" from="guard">
-          <Markdown>
-            {`**반환값**
-
-- \`true\`: 요청 계속 진행
-- \`false\`: 403 Forbidden
-- 예외 throw: 해당 에러 반환`}
-          </Markdown>
-        </Node>
-
         {/* --- 인터셉터 --- */}
-        <Node id="interceptor" from="architecture">
+        <Node id="interceptor" from="title">
           <Text>인터셉터 (Interceptor)</Text>
         </Node>
 
@@ -537,38 +536,17 @@ export class TransformInterceptor
         </Node>
 
         <Node id="interceptor-usecases" from="interceptor">
-          <Text>사용 사례</Text>
-        </Node>
-
-        <Node id="interceptor-transform" from="interceptor-usecases">
           <Markdown>
-            {`**응답 변환**
+            {`**사용 사례**
 
-일관된 응답 형식 래핑
-\`{ success, data, timestamp }\``}
-          </Markdown>
-        </Node>
-
-        <Node id="interceptor-logging" from="interceptor-usecases">
-          <Markdown>
-            {`**로깅/타이밍**
-
-요청 처리 시간 측정
-전후 로그 기록`}
-          </Markdown>
-        </Node>
-
-        <Node id="interceptor-cache" from="interceptor-usecases">
-          <Markdown>
-            {`**캐싱**
-
-응답 캐시 저장/반환
-DB 부하 감소`}
+- 응답 변환 (일관된 형식)
+- 로깅/타이밍 측정
+- 캐싱`}
           </Markdown>
         </Node>
 
         {/* --- 파이프 --- */}
-        <Node id="pipe" from="architecture">
+        <Node id="pipe" from="title">
           <Text>파이프 (Pipe)</Text>
         </Node>
 
@@ -582,12 +560,8 @@ DB 부하 감소`}
         </Node>
 
         <Node id="pipe-builtin" from="pipe">
-          <Text>내장 파이프</Text>
-        </Node>
-
-        <Node id="pipe-parse" from="pipe-builtin">
           <Markdown>
-            {`**Parse 파이프**
+            {`**내장 파이프**
 
 \`\`\`typescript
 @Get(':id')
@@ -597,23 +571,7 @@ findOne(
 \`\`\`
 
 \`ParseIntPipe\`, \`ParseBoolPipe\`,
-\`ParseUUIDPipe\`, \`ParseArrayPipe\``}
-          </Markdown>
-        </Node>
-
-        <Node id="pipe-validation" from="pipe-builtin">
-          <Markdown>
-            {`**ValidationPipe**
-
-\`\`\`typescript
-@Post()
-create(
-  @Body(new ValidationPipe())
-  dto: CreateUserDto
-) { }
-\`\`\`
-
-class-validator 데코레이터 사용`}
+\`ParseUUIDPipe\`, \`ValidationPipe\``}
           </Markdown>
         </Node>
 
@@ -639,7 +597,7 @@ export class CreateUserDto {
         </Node>
 
         {/* --- 예외 필터 --- */}
-        <Node id="exception-filter" from="architecture">
+        <Node id="exception-filter" from="title">
           <Text>예외 필터 (Exception Filter)</Text>
         </Node>
 
@@ -678,13 +636,9 @@ export class HttpExceptionFilter
           </Markdown>
         </Node>
 
-        <Node id="filter-builtin" from="exception-filter">
-          <Text>내장 예외</Text>
-        </Node>
-
-        <Node id="filter-exceptions" from="filter-builtin">
+        <Node id="filter-exceptions" from="exception-filter">
           <Markdown>
-            {`**HttpException 종류**
+            {`**내장 예외**
 
 | 예외 | 상태 코드 |
 |------|-----------|
@@ -696,14 +650,16 @@ export class HttpExceptionFilter
 | \`InternalServerErrorException\` | 500 |`}
           </Markdown>
         </Node>
+      </MindMap>
 
-        {/* ===== 4. 데이터베이스 ===== */}
-        <Node id="database" from="root">
-          <Text>4. 데이터베이스</Text>
+      {/* ===== 4. 데이터베이스 (아키텍처 아래) ===== */}
+      <MindMap id="db" layout="bidirectional" anchor="arch" position="bottom" gap={150}>
+        <Node id="title">
+          <Markdown>{`## 4. 데이터베이스`}</Markdown>
         </Node>
 
         {/* --- TypeORM --- */}
-        <Node id="typeorm" from="database">
+        <Node id="typeorm" from="title">
           <Text>TypeORM</Text>
         </Node>
 
@@ -760,30 +716,18 @@ export class User {
         </Node>
 
         <Node id="typeorm-relations" from="typeorm">
-          <Text>관계 설정</Text>
-        </Node>
-
-        <Node id="typeorm-one-to-many" from="typeorm-relations">
           <Markdown>
-            {`**OneToMany / ManyToOne**
+            {`**관계 설정**
 
 \`\`\`typescript
-// User (1) -> Post (N)
+// OneToMany / ManyToOne
 @OneToMany(() => Post, post => post.author)
 posts: Post[];
 
-// Post (N) -> User (1)
 @ManyToOne(() => User, user => user.posts)
 author: User;
-\`\`\``}
-          </Markdown>
-        </Node>
 
-        <Node id="typeorm-many-to-many" from="typeorm-relations">
-          <Markdown>
-            {`**ManyToMany**
-
-\`\`\`typescript
+// ManyToMany
 @ManyToMany(() => Tag)
 @JoinTable()
 tags: Tag[];
@@ -792,7 +736,7 @@ tags: Tag[];
         </Node>
 
         {/* --- Prisma --- */}
-        <Node id="prisma" from="database">
+        <Node id="prisma" from="title">
           <Text>Prisma</Text>
         </Node>
 
@@ -852,7 +796,7 @@ export class UserService {
         </Node>
 
         {/* --- MongoDB --- */}
-        <Node id="mongodb" from="database">
+        <Node id="mongodb" from="title">
           <Text>MongoDB / Mongoose</Text>
         </Node>
 
@@ -887,33 +831,16 @@ export const UserSchema =
 \`\`\``}
           </Markdown>
         </Node>
+      </MindMap>
 
-        <Node id="mongodb-config" from="mongodb">
-          <Markdown>
-            {`**모듈 설정**
-
-\`\`\`typescript
-@Module({
-  imports: [
-    MongooseModule.forRoot(
-      'mongodb://localhost/nest'
-    ),
-    MongooseModule.forFeature([
-      { name: User.name, schema: UserSchema }
-    ]),
-  ],
-})
-\`\`\``}
-          </Markdown>
-        </Node>
-
-        {/* ===== 5. 인증/인가 ===== */}
-        <Node id="auth" from="root">
-          <Text>5. 인증/인가</Text>
+      {/* ===== 5. 인증/인가 (소개 아래) ===== */}
+      <MindMap id="auth" layout="bidirectional" anchor="intro" position="bottom" gap={150}>
+        <Node id="title">
+          <Markdown>{`## 5. 인증/인가`}</Markdown>
         </Node>
 
         {/* --- Passport --- */}
-        <Node id="passport" from="auth">
+        <Node id="passport" from="title">
           <Text>Passport.js</Text>
         </Node>
 
@@ -965,7 +892,7 @@ export class LocalStrategy
         </Node>
 
         {/* --- JWT --- */}
-        <Node id="jwt" from="auth">
+        <Node id="jwt" from="title">
           <Text>JWT 인증</Text>
         </Node>
 
@@ -1026,7 +953,7 @@ async login(user: User) {
         </Node>
 
         {/* --- 세션 --- */}
-        <Node id="session" from="auth">
+        <Node id="session" from="title">
           <Text>세션 기반 인증</Text>
         </Node>
 
@@ -1070,14 +997,16 @@ app.use(passport.session());
 - 토큰 탈취 위험 감소`}
           </Markdown>
         </Node>
+      </MindMap>
 
-        {/* ===== 6. API 개발 ===== */}
-        <Node id="api" from="root">
-          <Text>6. API 개발</Text>
+      {/* ===== 6. API 개발 (루트 아래) ===== */}
+      <MindMap id="api" layout="bidirectional" anchor="root" position="bottom" gap={200}>
+        <Node id="title">
+          <Markdown>{`## 6. API 개발`}</Markdown>
         </Node>
 
         {/* --- REST API --- */}
-        <Node id="rest-api" from="api">
+        <Node id="rest-api" from="title">
           <Text>REST API</Text>
         </Node>
 
@@ -1139,7 +1068,7 @@ export class UserController {
         </Node>
 
         {/* --- GraphQL --- */}
-        <Node id="graphql" from="api">
+        <Node id="graphql" from="title">
           <Text>GraphQL</Text>
         </Node>
 
@@ -1152,15 +1081,9 @@ export class UserController {
           </Markdown>
         </Node>
 
-        <Node id="graphql-approach" from="graphql">
-          <Text>구현 방식</Text>
-        </Node>
-
-        <Node id="graphql-code-first" from="graphql-approach">
+        <Node id="graphql-code-first" from="graphql">
           <Markdown>
             {`**Code First**
-
-TypeScript 클래스로 스키마 생성
 
 \`\`\`typescript
 @ObjectType()
@@ -1170,22 +1093,6 @@ export class User {
 
   @Field()
   name: string;
-}
-\`\`\``}
-          </Markdown>
-        </Node>
-
-        <Node id="graphql-schema-first" from="graphql-approach">
-          <Markdown>
-            {`**Schema First**
-
-.graphql 파일로 스키마 정의
-
-\`\`\`graphql
-type User {
-  id: Int!
-  name: String!
-  posts: [Post!]!
 }
 \`\`\``}
           </Markdown>
@@ -1207,18 +1114,13 @@ export class UserResolver {
   createUser(@Args('input') input: CreateUserInput) {
     return this.userService.create(input);
   }
-
-  @ResolveField()
-  posts(@Parent() user: User) {
-    return this.postService.findByUserId(user.id);
-  }
 }
 \`\`\``}
           </Markdown>
         </Node>
 
         {/* --- WebSocket --- */}
-        <Node id="websocket" from="api">
+        <Node id="websocket" from="title">
           <Text>WebSocket</Text>
         </Node>
 
@@ -1255,32 +1157,16 @@ export class ChatGateway {
 \`\`\``}
           </Markdown>
         </Node>
+      </MindMap>
 
-        <Node id="websocket-events" from="websocket">
-          <Markdown>
-            {`**라이프사이클 이벤트**
-
-\`\`\`typescript
-handleConnection(client: Socket) {
-  console.log(\`Connected: \${client.id}\`);
-}
-
-handleDisconnect(client: Socket) {
-  console.log(\`Disconnected: \${client.id}\`);
-}
-\`\`\`
-
-Socket.io 또는 ws 라이브러리 사용`}
-          </Markdown>
-        </Node>
-
-        {/* ===== 7. 테스팅 ===== */}
-        <Node id="testing" from="root">
-          <Text>7. 테스팅</Text>
+      {/* ===== 7. 테스팅 (인증/인가 아래) ===== */}
+      <MindMap id="testing" layout="bidirectional" anchor="auth" position="bottom" gap={150}>
+        <Node id="title">
+          <Markdown>{`## 7. 테스팅`}</Markdown>
         </Node>
 
         {/* --- 단위 테스트 --- */}
-        <Node id="unit-test" from="testing">
+        <Node id="unit-test" from="title">
           <Text>단위 테스트</Text>
         </Node>
 
@@ -1340,7 +1226,7 @@ describe('UserService', () => {
         </Node>
 
         {/* --- E2E 테스트 --- */}
-        <Node id="e2e-test" from="testing">
+        <Node id="e2e-test" from="title">
           <Text>E2E 테스트</Text>
         </Node>
 
@@ -1388,17 +1274,8 @@ describe('UserController (e2e)', () => {
         </Node>
 
         {/* --- 모킹 --- */}
-        <Node id="mocking" from="testing">
+        <Node id="mocking" from="title">
           <Text>테스트 모킹</Text>
-        </Node>
-
-        <Node id="mock-intro" from="mocking">
-          <Markdown>
-            {`**목적**
-
-**의존성 격리**
-외부 서비스 호출 없이 테스트`}
-          </Markdown>
         </Node>
 
         <Node id="mock-example" from="mocking">
@@ -1444,14 +1321,16 @@ expect(mockUserService.create)
 \`\`\``}
           </Markdown>
         </Node>
+      </MindMap>
 
-        {/* ===== 8. 고급 기능 ===== */}
-        <Node id="advanced" from="root">
-          <Text>8. 고급 기능</Text>
+      {/* ===== 8. 고급 기능 (루트 위) ===== */}
+      <MindMap id="advanced" layout="bidirectional" anchor="root" position="top" gap={200}>
+        <Node id="title">
+          <Markdown>{`## 8. 고급 기능`}</Markdown>
         </Node>
 
         {/* --- 마이크로서비스 --- */}
-        <Node id="microservices" from="advanced">
+        <Node id="microservices" from="title">
           <Text>마이크로서비스</Text>
         </Node>
 
@@ -1475,24 +1354,6 @@ expect(mockUserService.create)
 | RabbitMQ | 메시지 큐 |
 | Kafka | 대용량 스트리밍 |
 | gRPC | 고성능 RPC |`}
-          </Markdown>
-        </Node>
-
-        <Node id="micro-server" from="microservices">
-          <Markdown>
-            {`**마이크로서비스 생성**
-
-\`\`\`typescript
-// main.ts
-const app = await NestFactory.createMicroservice(
-  AppModule,
-  {
-    transport: Transport.TCP,
-    options: { port: 3001 },
-  },
-);
-await app.listen();
-\`\`\``}
           </Markdown>
         </Node>
 
@@ -1520,7 +1381,7 @@ getUser(id: number) {
         </Node>
 
         {/* --- 큐 --- */}
-        <Node id="queue" from="advanced">
+        <Node id="queue" from="title">
           <Text>큐 (Queue)</Text>
         </Node>
 
@@ -1580,7 +1441,7 @@ Bull (Redis 기반) 라이브러리`}
         </Node>
 
         {/* --- 캐싱 --- */}
-        <Node id="caching" from="advanced">
+        <Node id="caching" from="title">
           <Text>캐싱 (Caching)</Text>
         </Node>
 
@@ -1637,7 +1498,7 @@ export class UserService {
         </Node>
 
         {/* --- 스케줄링 --- */}
-        <Node id="scheduling" from="advanced">
+        <Node id="scheduling" from="title">
           <Text>태스크 스케줄링</Text>
         </Node>
 
@@ -1669,39 +1530,21 @@ export class TaskService {
   @Cron('0 9 * * MON')
   handleWeekly() { }
 }
-\`\`\``}
-          </Markdown>
-        </Node>
-
-        <Node id="schedule-interval" from="scheduling">
-          <Markdown>
-            {`**간격/타임아웃**
-
-\`\`\`typescript
-// 10초마다 반복
-@Interval(10000)
-handleInterval() {
-  console.log('Called every 10 seconds');
-}
-
-// 5초 후 1회 실행
-@Timeout(5000)
-handleTimeout() {
-  console.log('Called once after 5 seconds');
-}
 \`\`\`
 
 \`@nestjs/schedule\` 패키지`}
           </Markdown>
         </Node>
+      </MindMap>
 
-        {/* ===== 9. 배포 ===== */}
-        <Node id="deployment" from="root">
-          <Text>9. 배포</Text>
+      {/* ===== 9. 배포 (API 개발 아래) ===== */}
+      <MindMap id="deploy" layout="bidirectional" anchor="api" position="bottom" gap={150}>
+        <Node id="title">
+          <Markdown>{`## 9. 배포`}</Markdown>
         </Node>
 
         {/* --- Docker --- */}
-        <Node id="docker" from="deployment">
+        <Node id="docker" from="title">
           <Text>Docker</Text>
         </Node>
 
@@ -1762,7 +1605,7 @@ services:
         </Node>
 
         {/* --- PM2 --- */}
-        <Node id="pm2" from="deployment">
+        <Node id="pm2" from="title">
           <Text>PM2</Text>
         </Node>
 
@@ -1813,7 +1656,7 @@ pm2 monit       # 모니터링
         </Node>
 
         {/* --- 클라우드 --- */}
-        <Node id="cloud" from="deployment">
+        <Node id="cloud" from="title">
           <Text>클라우드 배포</Text>
         </Node>
 
@@ -1863,8 +1706,8 @@ jobs:
 - 오토스케일링 설정`}
           </Markdown>
         </Node>
-
       </MindMap>
+
     </Canvas>
   );
 }
