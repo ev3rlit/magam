@@ -1,10 +1,15 @@
 import * as React from 'react';
 
 export interface MindMapProps {
-  /** 필수: 마인드맵 앵커(루트)의 X 좌표 (px) */
-  x: number;
-  /** 필수: 마인드맵 앵커(루트)의 Y 좌표 (px) */
-  y: number;
+  /** X 좌표 (px) - anchor 사용 시 선택적 */
+  x?: number;
+  /** Y 좌표 (px) - anchor 사용 시 선택적 */
+  y?: number;
+  /** Anchor-based positioning (alternative to x/y) */
+  anchor?: string;
+  position?: 'top' | 'bottom' | 'left' | 'right' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  gap?: number;
+  align?: 'start' | 'center' | 'end';
   /** 레이아웃 알고리즘. 'tree' (좌→우 계층형) | 'radial' (방사형). 기본값 'tree' */
   layout?: 'tree' | 'radial';
   /** 노드 간 간격 (px). 기본값 50 */
@@ -19,6 +24,10 @@ export interface MindMapProps {
 export const MindMap: React.FC<MindMapProps> = ({
   x,
   y,
+  anchor,
+  position,
+  gap,
+  align,
   layout = 'tree',
   spacing = 50,
   ...rest
@@ -26,6 +35,10 @@ export const MindMap: React.FC<MindMapProps> = ({
   return React.createElement('graph-mindmap', {
     x,
     y,
+    anchor,
+    position,
+    gap,
+    align,
     layout,
     spacing,
     ...rest,

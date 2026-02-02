@@ -4,8 +4,15 @@ import { GraphwriteError } from '../errors';
 export interface TextProps {
   id?: string;
   text?: string;
+  // Position: either x/y or anchor/position
   x?: number;
   y?: number;
+  // Anchor-based positioning (alternative to x/y)
+  anchor?: string;
+  position?: 'top' | 'bottom' | 'left' | 'right' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  gap?: number;
+  align?: 'start' | 'center' | 'end';
+
   content?: string;
 
   // Style props
