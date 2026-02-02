@@ -11,6 +11,8 @@ const DEFAULT_LAYOUT_OPTIONS = {
     'elk.direction': 'RIGHT',
     'elk.spacing.nodeNode': '20',
     'elk.layered.spacing.nodeNodeBetweenLayers': '40',
+    // Preserve node/edge order as declared in the source code
+    'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
 };
 
 interface UseElkLayoutOptions {
