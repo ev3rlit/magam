@@ -9,6 +9,8 @@ import { useNodeNavigation } from '@/contexts/NavigationContext';
 
 interface MarkdownNodeData {
     label: string;
+    /** Enable bubble overlay when zoomed out. Text auto-extracted from label. */
+    bubble?: boolean;
     className?: string;
     variant?: 'default' | 'minimal';
 }
@@ -21,11 +23,9 @@ const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
         e.stopPropagation();
 
         if (href.startsWith('node:')) {
-            // Internal node navigation
-            const path = href.slice(5); // Remove "node:"
+            const path = href.slice(5);
             navigateToNode(path);
         } else {
-            // External link - open in new tab
             window.open(href, '_blank', 'noopener,noreferrer');
         }
     }, [navigateToNode]);
@@ -40,16 +40,15 @@ const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
                 selected && "border-brand-500 ring-2 ring-brand-500/20 shadow-xl",
                 data.className
             )}
+            bubble={data.bubble}
+            label={data.label}
         >
             <div className="prose prose-sm prose-slate max-w-none pointer-events-none select-none">
                 <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
-                    // Allow node: scheme URLs (react-markdown sanitizes unknown schemes by default)
                     urlTransform={(url) => url}
                     components={{
-                        // Remove the default pre wrapper which causes the "Navy" background (prose style)
                         pre: ({ children }) => <>{children}</>,
-
                         a: ({ node, href, children, ...props }) => {
                             const actualHref = href || (node as any)?.properties?.href || '';
                             const isNodeLink = actualHref?.startsWith('node:');
@@ -80,7 +79,7 @@ const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
                                 <CodeBlock
                                     language={match[1]}
                                     value={String(children).replace(/\n$/, '')}
-                                    className="not-prose" // Prevent prose styles from messing up external highlighter
+                                    className="not-prose"
                                 />
                             ) : (
                                 <code className="bg-slate-100 rounded px-1.5 py-0.5 text-[0.9em] font-mono text-pink-600 border border-slate-200" {...props}>
@@ -98,4 +97,3 @@ const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
 };
 
 export default memo(MarkdownNode);
-

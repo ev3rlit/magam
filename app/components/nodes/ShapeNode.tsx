@@ -14,6 +14,8 @@ interface PortData {
 interface ShapeNodeData {
   type: 'rectangle' | 'circle' | 'triangle';
   label?: string;
+  /** Enable bubble overlay when zoomed out */
+  bubble?: boolean;
   // Shape styling
   color?: string;
   // Rich text styling
@@ -126,7 +128,7 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
 
   if (data.type === 'triangle') {
     return (
-      <BaseNode className="w-32 h-32 flex items-center justify-center">
+      <BaseNode className="w-32 h-32 flex items-center justify-center" bubble={data.bubble} label={data.label}>
         <div
           className={twMerge(
             clsx(
@@ -164,7 +166,7 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
   }
 
   return (
-    <BaseNode className={containerClasses}>
+    <BaseNode className={containerClasses} bubble={data.bubble} label={data.label}>
       <div className="w-full flex items-start justify-center text-left break-words p-4 pointer-events-none select-none">
         <span
           className="text-sm font-medium leading-relaxed text-slate-700 whitespace-pre-wrap"
