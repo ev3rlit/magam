@@ -48,6 +48,9 @@ interface RenderNode {
     // Size
     width?: number;
     height?: number;
+    // MindMap container specific
+    layout?: 'tree' | 'bidirectional' | 'radial';
+    spacing?: number;
     children?: any; // Keep children loosely typed for now as it can be strings/numbers/arrays
   };
   children?: RenderNode[];
@@ -161,23 +164,42 @@ export default function Home() {
             return {};
           };
 
-          // Counter for generating unique IDs
           let nodeIdCounter = 0;
           let edgeIdCounter = 0;
+          let mindmapIdCounter = 0;
 
+          // Track MindMap groups for layout
+          const mindMapGroups: { id: string; layoutType: 'tree' | 'bidirectional' | 'radial'; basePosition: { x: number; y: number }; spacing?: number; anchor?: string; anchorPosition?: string; anchorGap?: number }[] = [];
+
+          // Helper to resolve node ID with mindmap scope
+          // - If ID contains '.', it's already fully qualified (e.g., "map1.node1")
+          // - Otherwise, prefix with current mindmapId if inside a mindmap
+          const resolveNodeId = (id: string, currentMindmapId?: string): string => {
+            if (!id) return id;
+            if (id.includes('.')) return id; // Already fully qualified
+            if (currentMindmapId) return `${currentMindmapId}.${id}`; // Add prefix
+            return id; // No prefix for Canvas nodes
+          };
           // Helper to process children recursively or flatly
-          const processChildren = (childElements: RenderNode[]) => {
+          // mindmapId: current MindMap context (undefined for Canvas)
+          const processChildren = (childElements: RenderNode[], mindmapId?: string) => {
             childElements.forEach((child: RenderNode) => {
               if (child.type === 'graph-edge') {
                 // Top-level edge
-                // Parse source and target for ports (nodeId:portId)
+                // Parse source and target for ports (nodeId:portId) or cross-mindmap (map.node:port)
                 const parseEdgeEndpoint = (val?: string) => {
                   if (!val) return { id: undefined, handle: undefined };
-                  if (val.includes(':')) {
-                    const [id, handle] = val.split(':');
-                    return { id, handle };
+
+                  // Check for port notation (id:handle)
+                  // But also support dot notation for cross-mindmap (map.node)
+                  // Format: "nodeId", "nodeId:handle", "map.nodeId", "map.nodeId:handle"
+                  const colonIndex = val.lastIndexOf(':');
+                  if (colonIndex > 0) {
+                    const id = val.substring(0, colonIndex);
+                    const handle = val.substring(colonIndex + 1);
+                    return { id: resolveNodeId(id, mindmapId), handle };
                   }
-                  return { id: val, handle: undefined };
+                  return { id: resolveNodeId(val, mindmapId), handle: undefined };
                 };
 
                 const sourceMeta = parseEdgeEndpoint(child.props.from);
@@ -211,19 +233,39 @@ export default function Home() {
                   type: edgeType,
                 });
               } else if (child.type === 'graph-mindmap') {
-                // MindMap container: recursively process its children
+                // MindMap container: extract ID and process children with scope
+                const mmId = child.props.id || `mindmap-${mindmapIdCounter++}`;
+                const layoutType = (child.props.layout as 'tree' | 'bidirectional' | 'radial') || 'tree';
+                const baseX = child.props.x ?? 0;
+                const baseY = child.props.y ?? 0;
+
+                // Register MindMap group
+                mindMapGroups.push({
+                  id: mmId,
+                  layoutType,
+                  basePosition: { x: baseX, y: baseY },
+                  spacing: child.props.spacing,
+                  anchor: child.props.anchor,
+                  anchorPosition: child.props.position,
+                  anchorGap: child.props.gap,
+                });
+
+                // Process children with this MindMap's ID as scope
                 if (child.children && child.children.length > 0) {
-                  processChildren(child.children);
+                  processChildren(child.children, mmId);
                 }
               } else if (child.type === 'graph-node') {
                 // MindMap Node: process as a regular node and create edge from 'from' prop
-                const nodeId = child.props.id || `node-${nodeIdCounter++}`;
+                const rawNodeId = child.props.id || `node-${nodeIdCounter++}`;
+                const nodeId = resolveNodeId(rawNodeId, mindmapId);
 
                 // Create edge from 'from' prop if it exists
                 if (child.props.from) {
+                  // Resolve the source node ID (supports dot notation for cross-MindMap refs)
+                  const sourceId = resolveNodeId(child.props.from, mindmapId);
                   edges.push({
-                    id: `edge-${child.props.from}-${nodeId}`,
-                    source: child.props.from,
+                    id: `edge-${sourceId}-${nodeId}`,
+                    source: sourceId,
                     target: nodeId,
                     label: child.props.edgeLabel,
                     style: {
@@ -288,6 +330,7 @@ export default function Home() {
                     type: child.props.type || 'rectangle', // for shapes
                     color: child.props.color || child.props.bg,
                     className: child.props.className, // Tailwind support
+                    groupId: mindmapId, // For multi-MindMap layout grouping
 
                     // Rich text props
                     fontSize: child.props.fontSize,
@@ -432,15 +475,16 @@ export default function Home() {
             });
           };
 
-          // Detect if any mindmap nodes exist (they need auto layout)
-          // Also extract the layout type from the first MindMap element
-          const mindMapElement = children.find((child: RenderNode) => child.type === 'graph-mindmap');
-          const hasMindMap = !!mindMapElement;
-          const layoutType = (mindMapElement?.props?.layout as 'tree' | 'bidirectional' | 'radial') || 'tree';
-
+          // Process all children (populates mindMapGroups)
           processChildren(children);
 
-          setGraph({ nodes, edges, needsAutoLayout: hasMindMap, layoutType });
+          // Detect if any mindmap nodes exist (they need auto layout)
+          // Use mindMapGroups collected during processing
+          const hasMindMap = mindMapGroups.length > 0;
+          // For backward compatibility, use first MindMap's layoutType as default
+          const layoutType = mindMapGroups[0]?.layoutType || 'tree';
+
+          setGraph({ nodes, edges, needsAutoLayout: hasMindMap, layoutType, mindMapGroups });
         }
       } catch (error) {
         console.error('Failed to render file:', error);
