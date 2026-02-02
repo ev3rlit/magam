@@ -16,6 +16,8 @@ import FloatingEdge from './edges/FloatingEdge';
 import { useElkLayout } from '../hooks/useElkLayout';
 import { NavigationProvider } from '@/contexts/NavigationContext';
 import { ZoomProvider } from '@/contexts/ZoomContext';
+import { BubbleProvider } from '@/contexts/BubbleContext';
+import { BubbleOverlay } from './BubbleOverlay';
 import { Loader2 } from 'lucide-react';
 
 
@@ -199,6 +201,8 @@ function GraphCanvasContent() {
           <Background gap={24} size={1} color="#cbd5e1" />
           <Controls className="bg-white/90 glass border-none shadow-sm text-slate-600" />
         </ReactFlow>
+        {/* Bubble overlay - renders all bubbles above nodes */}
+        <BubbleOverlay />
       </div>
     </>
   );
@@ -210,7 +214,9 @@ export function GraphCanvas() {
       <ReactFlowProvider>
         <NavigationProvider>
           <ZoomProvider>
-            <GraphCanvasContent />
+            <BubbleProvider>
+              <GraphCanvasContent />
+            </BubbleProvider>
           </ZoomProvider>
         </NavigationProvider>
       </ReactFlowProvider>

@@ -1,8 +1,9 @@
-import React, { ReactNode, useMemo } from 'react';
-import { Handle, Position } from 'reactflow';
+import React, { ReactNode, useMemo, useEffect } from 'react';
+import { Handle, Position, useNodeId } from 'reactflow';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { useZoom } from '@/contexts/ZoomContext';
+import { useBubbles } from '@/contexts/BubbleContext';
+import { useGraphStore } from '@/store/graph';
 
 /** Maximum length for bubble text before truncation */
 const BUBBLE_MAX_LENGTH = 40;
@@ -53,7 +54,9 @@ export const BaseNode = ({
     bubble = false,
     label,
 }: BaseNodeProps) => {
-    const { isBubbleMode, inverseScale } = useZoom();
+    const { registerBubble, unregisterBubble } = useBubbles();
+    const nodeId = useNodeId();
+    const nodes = useGraphStore(state => state.nodes);
 
     const handleClasses = clsx(
         '!w-3 !h-3 !border-0 transition-opacity duration-200',
@@ -71,8 +74,31 @@ export const BaseNode = ({
         return text;
     }, [label]);
 
-    // Show floating bubble only if: 1) bubble=true AND 2) in bubble mode
-    const showBubble = bubble && isBubbleMode;
+    // Register bubble to overlay layer (not rendered here)
+    useEffect(() => {
+        if (!bubble || !nodeId || !bubbleText) return;
+
+        // Find node position from store
+        const node = nodes.find(n => n.id === nodeId);
+        if (!node) return;
+
+        // Get center position of node
+        const x = (node.position?.x ?? 0) + (node.width ?? 0) / 2;
+        const y = (node.position?.y ?? 0) + (node.height ?? 0) / 2;
+
+        registerBubble({
+            nodeId,
+            text: bubbleText,
+            x,
+            y,
+        });
+
+        return () => {
+            unregisterBubble(nodeId);
+        };
+    }, [bubble, nodeId, bubbleText, nodes, registerBubble, unregisterBubble]);
+
+    // Bubble is now rendered in BubbleOverlay, not here
 
     return (
         <div className={twMerge("relative group", className)}>
@@ -88,24 +114,8 @@ export const BaseNode = ({
             )}
 
             {/* Original node content - always rendered */}
+            {/* Bubble is now rendered in BubbleOverlay component */}
             {children}
-
-            {/* Floating bubble overlay - only when bubble=true AND zoomed out */}
-            {showBubble && (
-                <div
-                    className="bubble-label"
-                    style={{
-                        transform: `scale(${inverseScale}) translate(-50%, -50%)`,
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        zIndex: 100,
-                        transformOrigin: 'top left',
-                    }}
-                >
-                    {bubbleText}
-                </div>
-            )}
 
             {/* Source handle */}
             {startHandle && (
