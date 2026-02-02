@@ -21,6 +21,16 @@ export interface AppError {
   details?: any;
 }
 
+export interface MindMapGroup {
+  id: string;
+  layoutType: 'tree' | 'bidirectional' | 'radial';
+  basePosition: { x: number; y: number };
+  spacing?: number;
+  anchor?: string;
+  anchorPosition?: string;
+  anchorGap?: number;
+}
+
 export interface GraphState {
   nodes: Node[];
   edges: Edge[];
@@ -31,9 +41,10 @@ export interface GraphState {
   error: AppError | null;
   selectedNodeIds: string[];
   needsAutoLayout: boolean; // true for MindMap, false for Canvas with explicit positions
-  layoutType: 'tree' | 'bidirectional' | 'radial'; // Layout algorithm type
+  layoutType: 'tree' | 'bidirectional' | 'radial'; // Layout algorithm type (legacy, for single MindMap)
+  mindMapGroups: MindMapGroup[]; // Multiple MindMap support
 
-  setGraph: (graph: { nodes: Node[]; edges: Edge[]; needsAutoLayout?: boolean; layoutType?: 'tree' | 'bidirectional' | 'radial' }) => void;
+  setGraph: (graph: { nodes: Node[]; edges: Edge[]; needsAutoLayout?: boolean; layoutType?: 'tree' | 'bidirectional' | 'radial'; mindMapGroups?: MindMapGroup[] }) => void;
   setFiles: (files: string[]) => void;
   setCurrentFile: (file: string) => void;
   setStatus: (status: GraphState['status']) => void;
@@ -54,8 +65,9 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   selectedNodeIds: [],
   needsAutoLayout: false,
   layoutType: 'tree',
+  mindMapGroups: [],
 
-  setGraph: ({ nodes, edges, needsAutoLayout = false, layoutType = 'tree' }) => set({ nodes, edges, needsAutoLayout, layoutType, graphId: uuidv4() }),
+  setGraph: ({ nodes, edges, needsAutoLayout = false, layoutType = 'tree', mindMapGroups = [] }) => set({ nodes, edges, needsAutoLayout, layoutType, mindMapGroups, graphId: uuidv4() }),
   setFiles: (files) => set({ files }),
   setCurrentFile: (currentFile) => set({ currentFile }),
   setStatus: (status) => set({ status }),

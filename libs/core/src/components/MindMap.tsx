@@ -1,6 +1,8 @@
 import * as React from 'react';
 
 export interface MindMapProps {
+  /** MindMap 식별자 (다중 MindMap 시 필수) */
+  id?: string;
   /** X 좌표 (px) - anchor 사용 시 선택적 */
   x?: number;
   /** Y 좌표 (px) - anchor 사용 시 선택적 */
@@ -22,6 +24,7 @@ export interface MindMapProps {
 }
 
 export const MindMap: React.FC<MindMapProps> = ({
+  id,
   x,
   y,
   anchor,
@@ -33,6 +36,7 @@ export const MindMap: React.FC<MindMapProps> = ({
   ...rest
 }) => {
   return React.createElement('graph-mindmap', {
+    id,
     x,
     y,
     anchor,
