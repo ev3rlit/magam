@@ -17,6 +17,16 @@ export interface HttpServerResult {
   close: () => Promise<void>;
 }
 
+/**
+ * File tree node structure for folder tree view
+ */
+export interface FileTreeNode {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  children?: FileTreeNode[];
+}
+
 export async function startHttpServer(config: HttpServerConfig): Promise<HttpServerResult> {
   const port = config.port ?? (parseInt(process.env.GRAPHWRITE_HTTP_PORT || '') || DEFAULT_PORT);
 
@@ -39,6 +49,8 @@ export async function startHttpServer(config: HttpServerConfig): Promise<HttpSer
         await handleRender(req, res, config.targetDir);
       } else if (req.method === 'GET' && url.pathname === '/files') {
         await handleFiles(req, res, config.targetDir);
+      } else if (req.method === 'GET' && url.pathname === '/file-tree') {
+        await handleFileTree(req, res, config.targetDir);
       } else if (req.method === 'GET' && url.pathname === '/health') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'ok', targetDir: config.targetDir }));
@@ -128,6 +140,78 @@ async function handleFiles(req: http.IncomingMessage, res: http.ServerResponse, 
     res.end(JSON.stringify({
       error: error.message,
       type: 'FILES_ERROR'
+    }));
+  }
+}
+
+/**
+ * Build a tree structure from a flat list of file paths
+ */
+function buildFileTree(files: string[], rootName: string = 'root'): FileTreeNode {
+  const root: FileTreeNode = {
+    name: rootName,
+    path: '',
+    type: 'directory',
+    children: []
+  };
+
+  for (const filePath of files) {
+    const parts = filePath.split('/');
+    let current = root;
+
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      const isFile = i === parts.length - 1;
+      const currentPath = parts.slice(0, i + 1).join('/');
+
+      // Find existing child or create new one
+      let child = current.children?.find(c => c.name === part);
+
+      if (!child) {
+        child = {
+          name: part,
+          path: currentPath,
+          type: isFile ? 'file' : 'directory',
+          children: isFile ? undefined : []
+        };
+        current.children?.push(child);
+      }
+
+      if (!isFile) {
+        current = child;
+      }
+    }
+  }
+
+  // Sort children: directories first, then files, both alphabetically
+  const sortChildren = (node: FileTreeNode) => {
+    if (node.children) {
+      node.children.sort((a, b) => {
+        if (a.type !== b.type) {
+          return a.type === 'directory' ? -1 : 1;
+        }
+        return a.name.localeCompare(b.name);
+      });
+      node.children.forEach(sortChildren);
+    }
+  };
+  sortChildren(root);
+
+  return root;
+}
+
+async function handleFileTree(req: http.IncomingMessage, res: http.ServerResponse, targetDir: string) {
+  try {
+    const files = await glob('**/*.tsx', { cwd: targetDir });
+    const tree = buildFileTree(files, path.basename(targetDir));
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ tree }));
+  } catch (error: any) {
+    console.error('FileTree Error:', error);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: error.message,
+      type: 'FILE_TREE_ERROR'
     }));
   }
 }

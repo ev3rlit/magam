@@ -31,10 +31,22 @@ export interface MindMapGroup {
   anchorGap?: number;
 }
 
+/**
+ * File tree node structure for folder tree view
+ */
+export interface FileTreeNode {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  children?: FileTreeNode[];
+}
+
 export interface GraphState {
   nodes: Node[];
   edges: Edge[];
   files: string[];
+  fileTree: FileTreeNode | null;
+  expandedFolders: Set<string>;
   currentFile: string | null;
   graphId: string; // Unique ID for the current graph data version
   status: 'idle' | 'loading' | 'error' | 'success' | 'connected';
@@ -46,6 +58,8 @@ export interface GraphState {
 
   setGraph: (graph: { nodes: Node[]; edges: Edge[]; needsAutoLayout?: boolean; layoutType?: 'tree' | 'bidirectional' | 'radial'; mindMapGroups?: MindMapGroup[] }) => void;
   setFiles: (files: string[]) => void;
+  setFileTree: (tree: FileTreeNode | null) => void;
+  toggleFolder: (path: string) => void;
   setCurrentFile: (file: string) => void;
   setStatus: (status: GraphState['status']) => void;
   setError: (error: AppError | null) => void;
@@ -58,6 +72,8 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   nodes: [],
   edges: [],
   files: [],
+  fileTree: null,
+  expandedFolders: new Set<string>(),
   currentFile: null,
   graphId: uuidv4(),
   status: 'idle',
@@ -69,6 +85,16 @@ export const useGraphStore = create<GraphState>((set, get) => ({
 
   setGraph: ({ nodes, edges, needsAutoLayout = false, layoutType = 'tree', mindMapGroups = [] }) => set({ nodes, edges, needsAutoLayout, layoutType, mindMapGroups, graphId: uuidv4() }),
   setFiles: (files) => set({ files }),
+  setFileTree: (fileTree) => set({ fileTree }),
+  toggleFolder: (path) => set((state) => {
+    const newExpanded = new Set(state.expandedFolders);
+    if (newExpanded.has(path)) {
+      newExpanded.delete(path);
+    } else {
+      newExpanded.add(path);
+    }
+    return { expandedFolders: newExpanded };
+  }),
   setCurrentFile: (currentFile) => set({ currentFile }),
   setStatus: (status) => set({ status }),
   setError: (error) => set({ error }),
