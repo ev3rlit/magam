@@ -1,10 +1,11 @@
-import React, { memo } from 'react';
+import React, { memo, useCallback } from 'react';
 import { NodeProps } from 'reactflow';
 import ReactMarkdown from 'react-markdown';
 import { twMerge } from 'tailwind-merge';
 import { BaseNode } from './BaseNode';
 import remarkGfm from 'remark-gfm';
 import { CodeBlock } from '../ui/CodeBlock';
+import { useNodeNavigation } from '@/contexts/NavigationContext';
 
 interface MarkdownNodeData {
     label: string;
@@ -13,6 +14,22 @@ interface MarkdownNodeData {
 }
 
 const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
+    const { navigateToNode } = useNodeNavigation();
+
+    const handleLinkClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (href.startsWith('node:')) {
+            // Internal node navigation
+            const path = href.slice(5); // Remove "node:"
+            navigateToNode(path);
+        } else {
+            // External link - open in new tab
+            window.open(href, '_blank', 'noopener,noreferrer');
+        }
+    }, [navigateToNode]);
+
     return (
         <BaseNode
             className={twMerge(
@@ -27,19 +44,32 @@ const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
             <div className="prose prose-sm prose-slate max-w-none pointer-events-none select-none">
                 <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
+                    // Allow node: scheme URLs (react-markdown sanitizes unknown schemes by default)
+                    urlTransform={(url) => url}
                     components={{
                         // Remove the default pre wrapper which causes the "Navy" background (prose style)
                         pre: ({ children }) => <>{children}</>,
 
-                        a: ({ node, ...props }) => (
-                            <a
-                                className="text-blue-500 hover:underline cursor-pointer pointer-events-auto"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                {...props}
-                            />
-                        ),
+                        a: ({ node, href, children, ...props }) => {
+                            const actualHref = href || (node as any)?.properties?.href || '';
+                            const isNodeLink = actualHref?.startsWith('node:');
+                            return (
+                                <a
+                                    href={actualHref}
+                                    className={twMerge(
+                                        "cursor-pointer pointer-events-auto",
+                                        isNodeLink
+                                            ? "text-indigo-600 hover:text-indigo-800 font-medium underline decoration-indigo-300 hover:decoration-indigo-500"
+                                            : "text-blue-500 hover:underline"
+                                    )}
+                                    onClick={(e) => handleLinkClick(e, actualHref)}
+                                    {...props}
+                                >
+                                    {isNodeLink && <span className="mr-1">→</span>}
+                                    {children}
+                                </a>
+                            );
+                        },
                         code: ({ node, className, children, ...props }) => {
                             // @ts-ignore
                             const match = /language-(\w+)/.exec(className || '');
@@ -68,3 +98,4 @@ const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
 };
 
 export default memo(MarkdownNode);
+
