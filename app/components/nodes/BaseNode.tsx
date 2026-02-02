@@ -20,35 +20,38 @@ export const BaseNode = ({
     startHandle = true,
     endHandle = true,
 }: BaseNodeProps) => {
-    // Common handle styles
-    // We use group-hover on the node so handles appear when checking the node.
-    // Note: The parent/consumer must add 'group' class to the container if they want hover effects!
-    // But ReactFlow nodes usually don't have 'group' on the wrapper by default unless we add it to this wrapper.
-
+    // For Floating Edge: invisible handles positioned anywhere (we use top/bottom but they're invisible)
+    // The actual edge path calculation ignores handle positions and uses node boundaries instead.
+    // These handles are just needed for React Flow to recognize the node as connectable.
     const handleClasses = clsx(
         '!w-3 !h-3 !border-0 transition-opacity duration-200',
-        '!bg-slate-400/50', // Default color
-        'opacity-0 group-hover:opacity-100', // Hover effect
-        handleColor && `!bg-[${handleColor}]` // Custom color if provided
+        '!bg-transparent !opacity-0', // Invisible for Floating Edge mode
+        handleColor && `!bg-[${handleColor}]`
     );
 
     return (
         <div className={twMerge("relative group", className)}>
+            {/* Target handle - invisible, for React Flow connectivity */}
             {endHandle && (
                 <Handle
                     type="target"
                     position={Position.Left}
+                    id="center-target"
                     className={handleClasses}
+                    style={{ opacity: 0 }}
                 />
             )}
 
             {children}
 
+            {/* Source handle - invisible, for React Flow connectivity */}
             {startHandle && (
                 <Handle
                     type="source"
                     position={Position.Right}
+                    id="center-source"
                     className={handleClasses}
+                    style={{ opacity: 0 }}
                 />
             )}
         </div>

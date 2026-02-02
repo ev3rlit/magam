@@ -1,8 +1,15 @@
 import React, { memo } from 'react';
-import { NodeProps } from 'reactflow';
+import { NodeProps, Handle, Position } from 'reactflow';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { BaseNode } from './BaseNode';
+
+interface PortData {
+  id: string;
+  position?: string;
+  className?: string;
+  style?: React.CSSProperties;
+}
 
 interface ShapeNodeData {
   type: 'rectangle' | 'circle' | 'triangle';
@@ -14,7 +21,56 @@ interface ShapeNodeData {
   labelFontSize?: number;
   labelBold?: boolean;
   className?: string;
+  ports?: PortData[];
 }
+
+// Helper to determine Handle position and style based on string position
+const getHandleConfig = (pos: string = 'top') => {
+  let position = Position.Top;
+  let style: React.CSSProperties = {};
+
+  switch (pos) {
+    case 'top': position = Position.Top; break;
+    case 'right': position = Position.Right; break;
+    case 'bottom': position = Position.Bottom; break;
+    case 'left': position = Position.Left; break;
+    // Composite positions to absolute styling overrides
+    case 'top-left':
+      position = Position.Top;
+      style = { left: '25%' };
+      break;
+    case 'top-right':
+      position = Position.Top;
+      style = { left: '75%' };
+      break;
+    case 'bottom-left':
+      position = Position.Bottom;
+      style = { left: '25%' };
+      break;
+    case 'bottom-right':
+      position = Position.Bottom;
+      style = { left: '75%' };
+      break;
+    case 'left-top':
+      position = Position.Left;
+      style = { top: '25%' };
+      break;
+    case 'left-bottom':
+      position = Position.Left;
+      style = { top: '75%' };
+      break;
+    case 'right-top':
+      position = Position.Right;
+      style = { top: '25%' };
+      break;
+    case 'right-bottom':
+      position = Position.Right;
+      style = { top: '75%' };
+      break;
+    default: position = Position.Top;
+  }
+  return { position, style };
+};
 
 const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
   const shapeClasses = clsx(
@@ -46,6 +102,26 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
     color: data.labelColor,
     fontSize: data.labelFontSize,
     fontWeight: data.labelBold ? 'bold' : 'normal',
+  };
+
+  // Render ports
+  const renderPorts = () => {
+    if (!data.ports || data.ports.length === 0) return null;
+
+    return data.ports.map((port) => {
+      const { position, style: posStyle } = getHandleConfig(port.position);
+
+      return (
+        <Handle
+          key={port.id}
+          id={port.id}
+          type="source" // In ReactFlow, handles are often source/target agnostic if connectionMode is loose, but let's default to source
+          position={position}
+          className={clsx('w-3 h-3 bg-slate-400 border-2 border-white', port.className)}
+          style={{ ...posStyle, ...port.style }}
+        />
+      );
+    });
   };
 
   if (data.type === 'triangle') {
@@ -81,6 +157,7 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
               {data.label}
             </span>
           </div>
+          {renderPorts()}
         </div>
       </BaseNode>
     );
@@ -96,6 +173,7 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
           {data.label}
         </span>
       </div>
+      {renderPorts()}
     </BaseNode>
   );
 };
