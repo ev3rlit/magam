@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { useFileSync } from '@/hooks/useFileSync';
 import { GraphCanvas } from '@/components/GraphCanvas';
 import { Sidebar } from '@/components/ui/Sidebar';
 import { Header } from '@/components/ui/Header';
@@ -54,21 +55,33 @@ interface RenderNode {
 
 export default function Home() {
   const { setFiles, setGraph, currentFile, setError: setGraphError } = useGraphStore();
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  useEffect(() => {
-    async function loadFiles() {
-      try {
-        const res = await fetch('/api/files');
-        const data = await res.json();
-        if (data.files) {
-          setFiles(data.files);
-        }
-      } catch (error) {
-        console.error('Failed to load files:', error);
+  // File sync - triggers re-render when file changes externally
+  const handleFileChange = useCallback(() => {
+    setRefreshKey((k) => k + 1);
+  }, []);
+
+  // Load file list from API
+  const loadFiles = useCallback(async () => {
+    try {
+      const res = await fetch('/api/files');
+      const data = await res.json();
+      if (data.files) {
+        setFiles(data.files);
       }
+    } catch (error) {
+      console.error('Failed to load files:', error);
     }
-    loadFiles();
   }, [setFiles]);
+
+  // File sync with reload callback for file list changes
+  const { updateNode } = useFileSync(currentFile, handleFileChange, loadFiles);
+
+  // Initial file load
+  useEffect(() => {
+    loadFiles();
+  }, [loadFiles]);
 
   useEffect(() => {
     async function renderFile() {
@@ -432,7 +445,7 @@ export default function Home() {
     }
 
     renderFile();
-  }, [currentFile, setGraph]);
+  }, [currentFile, setGraph, refreshKey]); // refreshKey triggers re-render on file changes
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-white text-slate-900">
