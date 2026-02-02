@@ -1,293 +1,109 @@
 import { Canvas, MindMap, Node, Markdown } from '@graphwrite/core';
 
 /**
- * MindMap Markdown Example
+ * Markdown Showcase Example
  * 
- * Demonstrates Code Blocks with Long Content (Trie Algorithm)
+ * Demonstrates all Markdown features available in GraphWrite
  */
-export default function MindMapMarkdownExample() {
+export default function MarkdownShowcaseExample() {
     return (
         <Canvas>
-            <MindMap x={50} y={50} layout="tree" spacing={150}>
+            <MindMap layout="tree" spacing={100}>
 
-                {/* Root Node */}
-                <Node id="root" className="bg-white p-6 w-[350px]">
+                {/* Root: GraphWrite */}
+                <Node id="root">
                     <Markdown>
-                        {`# Code Block Test
-                        
-Testing long code blocks with **Trie (Prefix Tree)** implementations in 5 languages.
+                        {`# 📝 GraphWrite
 
-Check for:
-- Syntax Highlighting
-- Horizontal Scrolling
-- Vertical Height
-- Copy Functionality`}
+> **Describe, Don't Draw.**
+
+Create diagrams with *code* and **AI**.`}
                     </Markdown>
                 </Node>
 
-                {/* TypeScript Example */}
-                <Node id="ts" from="root" className="bg-white p-2 w-[600px]">
+                {/* Features with Lists */}
+                <Node id="features" from="root">
                     <Markdown>
-                        {`### TypeScript
-\`\`\`typescript
-class TrieNode {
-    children: Map<string, TrieNode>;
-    isEndOfWord: boolean;
+                        {`## ✨ Features
 
-    constructor() {
-        this.children = new Map();
-        this.isEndOfWord = false;
-    }
-}
+- **Declarative Syntax**
+- *AI-First* Design  
+- React Components
+- Markdown Support
+- Live File Sync`}
+                    </Markdown>
+                </Node>
 
-class Trie {
-    private root: TrieNode;
+                {/* Code Block */}
+                <Node id="code" from="root">
+                    <Markdown>
+                        {`## 💻 Code Example
 
-    constructor() {
-        this.root = new TrieNode();
-    }
-
-    // Inserts a word into the trie.
-    insert(word: string): void {
-        let current = this.root;
-        for (const char of word) {
-            if (!current.children.has(char)) {
-                current.children.set(char, new TrieNode());
-            }
-            current = current.children.get(char)!;
-        }
-        current.isEndOfWord = true;
-    }
-
-    // Returns true if the word is in the trie.
-    search(word: string): boolean {
-        let current = this.root;
-        for (const char of word) {
-            if (!current.children.has(char)) {
-                return false;
-            }
-            current = current.children.get(char)!;
-        }
-        return current.isEndOfWord;
-    }
-
-    // Returns true if there is any word in the trie that starts with the given prefix.
-    startsWith(prefix: string): boolean {
-        let current = this.root;
-        for (const char of prefix) {
-            if (!current.children.has(char)) {
-                return false;
-            }
-            current = current.children.get(char)!;
-        }
-        return true;
-    }
-}
+\`\`\`tsx
+<MindMap layout="tree">
+  <Node id="root">
+    Hello World
+  </Node>
+  <Node id="child" from="root">
+    Child Node
+  </Node>
+</MindMap>
 \`\`\``}
                     </Markdown>
                 </Node>
 
-                {/* Go Example */}
-                <Node id="go" from="root" className="bg-white p-2 w-[600px]">
+                {/* Table */}
+                <Node id="components" from="root">
                     <Markdown>
-                        {`### Go (Golang)
-\`\`\`go
-package main
+                        {`## 🧩 Components
 
-import "fmt"
-
-type TrieNode struct {
-    children map[rune]*TrieNode
-    isEnd    bool
-}
-
-type Trie struct {
-    root *TrieNode
-}
-
-func Constructor() Trie {
-    return Trie{root: &TrieNode{children: make(map[rune]*TrieNode)}}
-}
-
-func (this *Trie) Insert(word string) {
-    node := this.root
-    for _, char := range word {
-        if _, exists := node.children[char]; !exists {
-            node.children[char] = &TrieNode{children: make(map[rune]*TrieNode)}
-        }
-        node = node.children[char]
-    }
-    node.isEnd = true
-}
-
-func (this *Trie) Search(word string) bool {
-    node := this.root
-    for _, char := range word {
-        if _, exists := node.children[char]; !exists {
-            return false
-        }
-        node = node.children[char]
-    }
-    return node.isEnd
-}
-
-func (this *Trie) StartsWith(prefix string) bool {
-    node := this.root
-    for _, char := range prefix {
-        if _, exists := node.children[char]; !exists {
-            return false
-        }
-        node = node.children[char]
-    }
-    return true
-}
-\`\`\``}
+| Name | Description |
+|------|-------------|
+| \`Canvas\` | Root container |
+| \`Shape\` | Rectangle node |
+| \`MindMap\` | Auto-layout tree |
+| \`Node\` | MindMap node |
+| \`Edge\` | Connection line |`}
                     </Markdown>
                 </Node>
 
-                {/* Python Example */}
-                <Node id="python" from="root" className="bg-white p-2 w-[600px]">
+                {/* Blockquote & Links */}
+                <Node id="philosophy" from="root">
                     <Markdown>
-                        {`### Python
-\`\`\`python
-class TrieNode:
-    def __init__(self):
-        self.children = {}
-        self.is_end_of_word = False
+                        {`## 💡 Philosophy
 
-class Trie:
-    def __init__(self):
-        self.root = TrieNode()
+> Knowledge work should be
+> **describing intent**, not drawing.
 
-    def insert(self, word: str) -> None:
-        node = self.root
-        for char in word:
-            if char not in node.children:
-                node.children[char] = TrieNode()
-            node = node.children[char]
-        node.is_end_of_word = True
-
-    def search(self, word: str) -> bool:
-        node = self.root
-        for char in word:
-            if char not in node.children:
-                return False
-            node = node.children[char]
-        return node.is_end_of_word
-
-    def startsWith(self, prefix: str) -> bool:
-        node = self.root
-        for char in prefix:
-            if char not in node.children:
-                return False
-            node = node.children[char]
-        return True
-\`\`\``}
+\`Inline code\` is also supported.`}
                     </Markdown>
                 </Node>
 
-                {/* Java Example */}
-                <Node id="java" from="root" className="bg-white p-2 w-[600px]">
+                {/* Nested List */}
+                <Node id="layouts" from="features">
                     <Markdown>
-                        {`### Java
-\`\`\`java
-class TrieNode {
-    private TrieNode[] links;
-    private final int R = 26;
-    private boolean isEnd;
+                        {`### Layout Options
 
-    public TrieNode() {
-        links = new TrieNode[R];
-    }
+1. **Tree** (horizontal)
+2. **Radial** (circular)  
+3. **Vertical** (top-down)
 
-    public boolean containsKey(char ch) {
-        return links[ch - 'a'] != null;
-    }
+---
 
-    public TrieNode get(char ch) {
-        return links[ch - 'a'];
-    }
-
-    public void put(char ch, TrieNode node) {
-        links[ch - 'a'] = node;
-    }
-
-    public void setEnd() {
-        isEnd = true;
-    }
-
-    public boolean isEnd() {
-        return isEnd;
-    }
-}
-
-class Trie {
-    private TrieNode root;
-
-    public Trie() {
-        root = new TrieNode();
-    }
-
-    public void insert(String word) {
-        TrieNode node = root;
-        for (int i = 0; i < word.length(); i++) {
-            char currentChar = word.charAt(i);
-            if (!node.containsKey(currentChar)) {
-                node.put(currentChar, new TrieNode());
-            }
-            node = node.get(currentChar);
-        }
-        node.setEnd();
-    }
-}
-\`\`\``}
+*Powered by ELK.js*`}
                     </Markdown>
                 </Node>
 
-                {/* C++ Example */}
-                <Node id="cpp" from="root" className="bg-white p-2 w-[600px]">
+                {/* Checklist */}
+                <Node id="roadmap" from="features">
                     <Markdown>
-                        {`### C++
-\`\`\`cpp
-#include <iostream>
-#include <vector>
-using namespace std;
+                        {`### Roadmap
 
-struct TrieNode {
-    struct TrieNode *children[26];
-    bool isEndOfWord;
-};
-
-struct TrieNode *getNode(void) {
-    struct TrieNode *pNode = new TrieNode;
-    pNode->isEndOfWord = false;
-    for (int i = 0; i < 26; i++)
-        pNode->children[i] = NULL;
-    return pNode;
-}
-
-void insert(struct TrieNode *root, string key) {
-    struct TrieNode *pCrawl = root;
-    for (int i = 0; i < key.length(); i++) {
-        int index = key[i] - 'a';
-        if (!pCrawl->children[index])
-            pCrawl->children[index] = getNode();
-        pCrawl = pCrawl->children[index];
-    }
-    pCrawl->isEndOfWord = true;
-}
-
-bool search(struct TrieNode *root, string key) {
-    struct TrieNode *pCrawl = root;
-    for (int i = 0; i < key.length(); i++) {
-        int index = key[i] - 'a';
-        if (!pCrawl->children[index])
-            return false;
-        pCrawl = pCrawl->children[index];
-    }
-    return (pCrawl != NULL && pCrawl->isEndOfWord);
-}
-\`\`\``}
+- [x] MindMap Component
+- [x] Markdown Support
+- [x] File Sync
+- [ ] Export to PNG
+- [ ] Obsidian Plugin`}
                     </Markdown>
                 </Node>
 
