@@ -113,13 +113,47 @@ MindMap node element. Must be used inside a MindMap.
 **Props:**
 - `id` (required): Unique identifier
 - `from`: Parent node ID (creates connection automatically)
+- `bubble`: Enable floating label when zoomed out (semantic zoom)
 
 **Content Options:**
 - Plain text: `<Node id="x">Plain text</Node>`
 - With emoji: `<Node id="x">🎯 With emoji</Node>`
 - Text component: `<Node id="x"><Text>Styled</Text></Node>`
 - Multiple Text: `<Node id="x"><Text>Line 1</Text><Text>Line 2</Text></Node>`
-- Markdown: `<Node id="x"><Markdown>{content}</Markdown></Node>`
+- Markdown: `<Node id="x"><Markdown>content</Markdown></Node>`
+- Markdown with bubble: `<Node id="x"><Markdown bubble>{content}</Markdown></Node>`
+
+### Semantic Zoom (Bubble)
+
+When zoomed out (zoom < 0.4), nodes with the `bubble` prop display a floating label overlay. The label text is auto-extracted from the first line of content.
+
+**Usage:**
+```tsx
+{/* On Node directly */}
+<Node id="x" bubble>
+  <Text>This text becomes bubble label</Text>
+</Node>
+
+{/* On Markdown inside Node */}
+<Node id="x">
+  <Markdown bubble>{`
+# Heading becomes bubble
+Content here...
+  `}</Markdown>
+</Node>
+
+{/* On Shape */}
+<Shape id="x" label="Bubble text" bubble>
+  <Text>Shape content</Text>
+</Shape>
+```
+
+**Behavior:**
+- First line of content is extracted as bubble text
+- Markdown syntax (headings, bold, etc.) is cleaned
+- Text over 40 characters is truncated with `...`
+- Bubble appears as floating overlay on top of original content
+
 
 ### Text
 
