@@ -59,9 +59,30 @@ function GraphCanvasContent() {
 
   // Trigger Layout when all nodes are initialized (measured)
   useEffect(() => {
+    // Additional check: verify ALL nodes have actual measured dimensions
+    // This prevents race condition where nodesInitialized is briefly true
+    // before new nodes are fully rendered after file watch updates
+    const areAllNodesMeasured = nodes.length > 0 && nodes.every(
+      (node) => typeof node.width === 'number' && typeof node.height === 'number' && node.width > 0 && node.height > 0
+    );
+
     // Check if we have nodes, they are fully initialized (width/height measured), and we haven't run layout yet.
-    if (nodes.length > 0 && nodesInitialized && !hasLayouted.current) {
+    if (nodes.length > 0 && nodesInitialized && areAllNodesMeasured && !hasLayouted.current) {
       const runLayout = async () => {
+        // Double-check: wait one more frame to ensure DOM is fully settled
+        await new Promise(resolve => requestAnimationFrame(resolve));
+
+        // Re-verify measurements after the frame (in case of rapid updates)
+        const currentNodes = useGraphStore.getState().nodes;
+        const stillMeasured = currentNodes.every(
+          (node) => typeof node.width === 'number' && typeof node.height === 'number' && node.width > 0 && node.height > 0
+        );
+
+        if (!stillMeasured || hasLayouted.current) {
+          console.log('[Layout] Aborted: nodes changed or already layouted.');
+          return;
+        }
+
         if (needsAutoLayout) {
           // ELK layout now handles everything:
           // - Internal group layouts
@@ -83,7 +104,7 @@ function GraphCanvasContent() {
 
       runLayout();
     }
-  }, [nodes.length, nodesInitialized, calculateLayout, graphId, needsAutoLayout, layoutType, mindMapGroups]);
+  }, [nodes.length, nodesInitialized, calculateLayout, graphId, needsAutoLayout, layoutType, mindMapGroups, nodes]);
 
   const onSelectionChange = useCallback(
     ({ nodes: selectedNodes }: OnSelectionChangeParams) => {
