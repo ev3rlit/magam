@@ -39,6 +39,14 @@ interface RenderNode {
     // Markdown specific
     content?: string;
     variant?: string;
+    // Anchor positioning
+    anchor?: string;
+    position?: string;
+    gap?: number;
+    align?: 'start' | 'center' | 'end';
+    // Size
+    width?: number;
+    height?: number;
     children?: any; // Keep children loosely typed for now as it can be strings/numbers/arrays
   };
   children?: RenderNode[];
@@ -149,10 +157,29 @@ export default function Home() {
             childElements.forEach((child: RenderNode) => {
               if (child.type === 'graph-edge') {
                 // Top-level edge
+                // Parse source and target for ports (nodeId:portId)
+                const parseEdgeEndpoint = (val?: string) => {
+                  if (!val) return { id: undefined, handle: undefined };
+                  if (val.includes(':')) {
+                    const [id, handle] = val.split(':');
+                    return { id, handle };
+                  }
+                  return { id: val, handle: undefined };
+                };
+
+                const sourceMeta = parseEdgeEndpoint(child.props.from);
+                const targetMeta = parseEdgeEndpoint(child.props.to);
+
+                // Determine edge type: if handles are specified, use traditional edge; otherwise use floating
+                const hasHandles = sourceMeta.handle || targetMeta.handle;
+                const edgeType = hasHandles ? getEdgeType(child.props.type) : 'floating';
+
                 edges.push({
                   id: child.props.id || `edge-${edgeIdCounter++}`,
-                  source: child.props.from,
-                  target: child.props.to,
+                  source: sourceMeta.id,
+                  sourceHandle: sourceMeta.handle,
+                  target: targetMeta.id,
+                  targetHandle: targetMeta.handle,
                   label: child.props.label,
                   style: {
                     stroke: child.props.stroke || '#94a3b8',
@@ -168,7 +195,7 @@ export default function Home() {
                     fill: child.props.labelBgColor,
                   } : undefined,
                   animated: false,
-                  type: getEdgeType(child.props.type),
+                  type: edgeType,
                 });
               } else if (child.type === 'graph-mindmap') {
                 // MindMap container: recursively process its children
@@ -192,7 +219,7 @@ export default function Home() {
                       ...getStrokeStyle(child.props.edgeClassName),
                     },
                     animated: false,
-                    type: 'smoothstep',
+                    type: 'floating', // Use floating edge for MindMap
                   });
                 }
 
@@ -266,6 +293,7 @@ export default function Home() {
                 // Separate node content from nested edges
                 const contentChildren: any[] = [];
                 const nestedEdges: RenderNode[] = [];
+                const ports: any[] = [];
 
                 // Check render output children first (from renderer.ts)
                 const rendererChildren = child.children || [];
@@ -273,6 +301,8 @@ export default function Home() {
                 rendererChildren.forEach((grandChild: RenderNode) => {
                   if (grandChild.type === 'graph-edge') {
                     nestedEdges.push(grandChild);
+                  } else if (grandChild.type === 'graph-port') {
+                    ports.push(grandChild.props);
                   } else if (grandChild.type === 'text') {
                     // Extract text from text node
                     contentChildren.push(grandChild.props.text);
@@ -372,15 +402,29 @@ export default function Home() {
                     labelBold: child.props.labelBold || child.props.bold,
                     fill: child.props.fill,
                     stroke: child.props.stroke,
+                    ports: ports, // Inject ports
+
+                    // Anchor positioning props
+                    anchor: child.props.anchor,
+                    position: child.props.position,
+                    gap: child.props.gap,
+                    align: child.props.align,
+
+                    // Size hints for anchor calculations
+                    width: child.props.width,
+                    height: child.props.height,
                   }
                 });
               }
             });
           };
 
+          // Detect if any mindmap nodes exist (they need auto layout)
+          const hasMindMap = children.some((child: RenderNode) => child.type === 'graph-mindmap');
+
           processChildren(children);
 
-          setGraph({ nodes, edges });
+          setGraph({ nodes, edges, needsAutoLayout: hasMindMap });
         }
       } catch (error) {
         console.error('Failed to render file:', error);

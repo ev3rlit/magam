@@ -30,8 +30,9 @@ export interface GraphState {
   status: 'idle' | 'loading' | 'error' | 'success' | 'connected';
   error: AppError | null;
   selectedNodeIds: string[];
+  needsAutoLayout: boolean; // true for MindMap, false for Canvas with explicit positions
 
-  setGraph: (graph: { nodes: Node[]; edges: Edge[] }) => void;
+  setGraph: (graph: { nodes: Node[]; edges: Edge[]; needsAutoLayout?: boolean }) => void;
   setFiles: (files: string[]) => void;
   setCurrentFile: (file: string) => void;
   setStatus: (status: GraphState['status']) => void;
@@ -50,8 +51,9 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   status: 'idle',
   error: null,
   selectedNodeIds: [],
+  needsAutoLayout: false,
 
-  setGraph: ({ nodes, edges }) => set({ nodes, edges, graphId: uuidv4() }),
+  setGraph: ({ nodes, edges, needsAutoLayout = false }) => set({ nodes, edges, needsAutoLayout, graphId: uuidv4() }),
   setFiles: (files) => set({ files }),
   setCurrentFile: (currentFile) => set({ currentFile }),
   setStatus: (status) => set({ status }),

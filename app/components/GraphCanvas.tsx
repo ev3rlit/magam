@@ -11,8 +11,10 @@ import { useGraphStore } from '@/store/graph';
 import StickyNode from './nodes/StickyNode';
 import ShapeNode from './nodes/ShapeNode';
 import TextNode from './nodes/TextNode';
-import MarkdownNode from './nodes/MarkdownNode'; // Import MarkdownNode
+import MarkdownNode from './nodes/MarkdownNode';
+import FloatingEdge from './edges/FloatingEdge';
 import { useElkLayout } from '../hooks/useElkLayout';
+import { useAnchorLayout } from '../hooks/useAnchorLayout';
 import { Loader2 } from 'lucide-react';
 
 function GraphCanvasContent() {
@@ -21,15 +23,24 @@ function GraphCanvasContent() {
       sticky: StickyNode,
       shape: ShapeNode,
       text: TextNode,
-      markdown: MarkdownNode, // Register markdown type
+      markdown: MarkdownNode,
     }),
     [],
   );
 
-  const { nodes, edges, onNodesChange, onEdgesChange, setSelectedNodes, graphId } =
+  const edgeTypes = useMemo(
+    () => ({
+      floating: FloatingEdge,
+      default: FloatingEdge, // Use floating edge as default
+    }),
+    [],
+  );
+
+  const { nodes, edges, onNodesChange, onEdgesChange, setSelectedNodes, graphId, needsAutoLayout } =
     useGraphStore();
 
   const { calculateLayout, isLayouting } = useElkLayout();
+  const { resolveLayout, isResolving } = useAnchorLayout();
   const nodesInitialized = useNodesInitialized();
   const hasLayouted = useRef(false);
   const lastLayoutedGraphId = useRef<string | null>(null);
@@ -49,15 +60,27 @@ function GraphCanvasContent() {
   useEffect(() => {
     // Check if we have nodes, they are fully initialized (width/height measured), and we haven't run layout yet.
     if (nodes.length > 0 && nodesInitialized && !hasLayouted.current) {
-      console.log('[Layout] Nodes initialized, triggering ELK layout...');
-      // Wait for layout to finish before showing the graph
-      calculateLayout({ direction: 'RIGHT' }).then(() => {
-        console.log('[Layout] Layout calculation finished.');
+      const runLayout = async () => {
+        // 1. First, resolve anchor-based positions
+        console.log('[Layout] Step 1: Resolving anchor positions...');
+        await resolveLayout();
+
+        // 2. Then, if MindMap mode, apply ELK layout
+        if (needsAutoLayout) {
+          console.log('[Layout] Step 2: Triggering ELK layout (MindMap mode)...');
+          await calculateLayout({ direction: 'RIGHT' });
+        } else {
+          console.log('[Layout] Step 2: Canvas mode, skipping ELK layout.');
+        }
+
+        console.log('[Layout] Layout pipeline finished.');
         hasLayouted.current = true;
         setIsGraphVisible(true);
-      });
+      };
+
+      runLayout();
     }
-  }, [nodes.length, nodesInitialized, calculateLayout, graphId]);
+  }, [nodes.length, nodesInitialized, calculateLayout, resolveLayout, graphId, needsAutoLayout]);
 
   const onSelectionChange = useCallback(
     ({ nodes: selectedNodes }: OnSelectionChangeParams) => {
@@ -134,6 +157,7 @@ function GraphCanvasContent() {
           onEdgesChange={onEdgesChange}
           onSelectionChange={onSelectionChange}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           nodesDraggable={false}
           nodesConnectable={false}
           zoomOnScroll={true}
@@ -142,7 +166,7 @@ function GraphCanvasContent() {
           maxZoom={2}
           fitView
           defaultEdgeOptions={{
-            type: 'smoothstep',
+            type: 'floating',
             animated: false,
             style: { stroke: '#94a3b8', strokeWidth: 2 },
           }}
