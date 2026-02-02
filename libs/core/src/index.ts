@@ -11,6 +11,7 @@ export * from './components/Code';
 export * from './components/Table';
 export * from './components/Markdown';
 export * from './components/EdgePort';
+export * from './components/Link';
 export * from './errors';
 export * from './renderer';
 export * from './result';
