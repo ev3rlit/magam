@@ -15,6 +15,7 @@ import MarkdownNode from './nodes/MarkdownNode';
 import FloatingEdge from './edges/FloatingEdge';
 import { useElkLayout } from '../hooks/useElkLayout';
 import { useAnchorLayout } from '../hooks/useAnchorLayout';
+import { NavigationProvider } from '@/contexts/NavigationContext';
 import { Loader2 } from 'lucide-react';
 
 function GraphCanvasContent() {
@@ -61,26 +62,27 @@ function GraphCanvasContent() {
     // Check if we have nodes, they are fully initialized (width/height measured), and we haven't run layout yet.
     if (nodes.length > 0 && nodesInitialized && !hasLayouted.current) {
       const runLayout = async () => {
-        // 1. First, resolve anchor-based positions
-        console.log('[Layout] Step 1: Resolving anchor positions...');
-        await resolveLayout();
-
-        // 2. Then, if MindMap mode, apply ELK layout
+        // 1. First, if MindMap mode, apply ELK layout to position nodes within groups
         if (needsAutoLayout) {
-          console.log(`[Layout] Step 2: Triggering ELK layout (${layoutType} mode, ${mindMapGroups.length} group(s))...`);
+          console.log(`[Layout] Step 1: Triggering ELK layout (${layoutType} mode, ${mindMapGroups.length} group(s))...`);
           await calculateLayout({
             direction: 'RIGHT',
             bidirectional: layoutType === 'bidirectional',
             mindMapGroups,
           });
         } else {
-          console.log('[Layout] Step 2: Canvas mode, skipping ELK layout.');
+          console.log('[Layout] Step 1: Canvas mode, skipping ELK layout.');
         }
+
+        // 2. Then, resolve anchor-based positions between MindMap groups
+        console.log('[Layout] Step 2: Resolving anchor positions between groups...');
+        await resolveLayout();
 
         console.log('[Layout] Layout pipeline finished.');
         hasLayouted.current = true;
         setIsGraphVisible(true);
       };
+
 
       runLayout();
     }
@@ -188,8 +190,11 @@ export function GraphCanvas() {
   return (
     <div className="w-full h-full min-h-[500px] flex-1 relative">
       <ReactFlowProvider>
-        <GraphCanvasContent />
+        <NavigationProvider>
+          <GraphCanvasContent />
+        </NavigationProvider>
       </ReactFlowProvider>
     </div>
   );
 }
+
