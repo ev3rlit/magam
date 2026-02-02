@@ -36,7 +36,7 @@ function GraphCanvasContent() {
     [],
   );
 
-  const { nodes, edges, onNodesChange, onEdgesChange, setSelectedNodes, graphId, needsAutoLayout, layoutType } =
+  const { nodes, edges, onNodesChange, onEdgesChange, setSelectedNodes, graphId, needsAutoLayout, layoutType, mindMapGroups } =
     useGraphStore();
 
   const { calculateLayout, isLayouting } = useElkLayout();
@@ -67,10 +67,11 @@ function GraphCanvasContent() {
 
         // 2. Then, if MindMap mode, apply ELK layout
         if (needsAutoLayout) {
-          console.log(`[Layout] Step 2: Triggering ELK layout (${layoutType} mode)...`);
+          console.log(`[Layout] Step 2: Triggering ELK layout (${layoutType} mode, ${mindMapGroups.length} group(s))...`);
           await calculateLayout({
             direction: 'RIGHT',
             bidirectional: layoutType === 'bidirectional',
+            mindMapGroups,
           });
         } else {
           console.log('[Layout] Step 2: Canvas mode, skipping ELK layout.');

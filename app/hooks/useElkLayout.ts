@@ -3,19 +3,21 @@ import { useReactFlow, Node, Edge } from 'reactflow';
 // @ts-ignore
 import ELK from 'elkjs/lib/elk.bundled';
 import { ElkNode, ElkExtendedEdge } from 'elkjs/lib/elk-api';
+import type { MindMapGroup } from '@/store/graph';
 
 // Default options for ELK layout
 const DEFAULT_LAYOUT_OPTIONS = {
     'elk.algorithm': 'layered',
     'elk.direction': 'RIGHT',
-    'elk.spacing.nodeNode': '60',
-    'elk.layered.spacing.nodeNodeBetweenLayers': '120',
+    'elk.spacing.nodeNode': '20',
+    'elk.layered.spacing.nodeNodeBetweenLayers': '40',
 };
 
 interface UseElkLayoutOptions {
     direction?: 'RIGHT' | 'DOWN' | 'LEFT' | 'UP';
     spacing?: number;
     bidirectional?: boolean;
+    mindMapGroups?: MindMapGroup[];
 }
 
 /**
@@ -126,7 +128,104 @@ export function useElkLayout() {
             setIsLayouting(true);
 
             try {
-                // Bidirectional layout
+                // Multi-MindMap group layout
+                const groups = options.mindMapGroups || [];
+                if (groups.length > 1) {
+                    console.log(`[ELK Multi-Group] Processing ${groups.length} MindMap groups...`);
+
+                    const finalPositions = new Map<string, { x: number; y: number }>();
+
+                    for (const group of groups) {
+                        // Filter nodes and edges for this group
+                        const groupNodes = nodes.filter(n => n.data?.groupId === group.id);
+                        const groupNodeIds = new Set(groupNodes.map(n => n.id));
+                        const groupEdges = edges.filter(e => groupNodeIds.has(e.source) && groupNodeIds.has(e.target));
+
+                        if (groupNodes.length === 0) continue;
+
+                        console.log(`[ELK Multi-Group] Group "${group.id}": ${groupNodes.length} nodes, layout: ${group.layoutType}`);
+
+                        // Run layout for this group
+                        let positions: Map<string, { x: number; y: number }>;
+
+                        if (group.layoutType === 'bidirectional') {
+                            // Bidirectional layout for this group
+                            const rootNode = findRootNode(groupNodes, groupEdges);
+                            if (rootNode) {
+                                const rootChildren = groupEdges.filter(e => e.source === rootNode.id).map(e => e.target);
+                                const midpoint = Math.ceil(rootChildren.length / 2);
+                                const leftChildIds = rootChildren.slice(0, midpoint);
+                                const rightChildIds = rootChildren.slice(midpoint);
+
+                                const leftNodeIds = collectDescendants(leftChildIds, groupEdges);
+                                const rightNodeIds = collectDescendants(rightChildIds, groupEdges);
+                                leftNodeIds.add(rootNode.id);
+                                rightNodeIds.add(rootNode.id);
+
+                                const leftNodes = groupNodes.filter(n => leftNodeIds.has(n.id));
+                                const rightNodes = groupNodes.filter(n => rightNodeIds.has(n.id));
+                                const leftEdges = groupEdges.filter(e => leftNodeIds.has(e.source) && leftNodeIds.has(e.target));
+                                const rightEdges = groupEdges.filter(e => rightNodeIds.has(e.source) && rightNodeIds.has(e.target));
+
+                                const spacing = group.spacing || 60;
+                                const [leftPos, rightPos] = await Promise.all([
+                                    runElkLayout(leftNodes, leftEdges, 'LEFT', spacing),
+                                    runElkLayout(rightNodes, rightEdges, 'RIGHT', spacing),
+                                ]);
+
+                                // Merge with Y-center alignment
+                                positions = new Map();
+                                positions.set(rootNode.id, { x: 0, y: 0 });
+
+                                const getYBounds = (pos: Map<string, { x: number; y: number }>, excludeId: string) => {
+                                    let minY = Infinity, maxY = -Infinity;
+                                    pos.forEach((p, id) => { if (id !== excludeId) { minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); } });
+                                    return { center: (minY + maxY) / 2 };
+                                };
+
+                                const leftRootPos = leftPos.get(rootNode.id);
+                                const rightRootPos = rightPos.get(rootNode.id);
+                                const leftYOffset = -getYBounds(leftPos, rootNode.id).center;
+                                const rightYOffset = -getYBounds(rightPos, rootNode.id).center;
+
+                                leftPos.forEach((p, id) => { if (id !== rootNode.id) positions.set(id, { x: p.x - (leftRootPos?.x || 0), y: p.y + leftYOffset }); });
+                                rightPos.forEach((p, id) => { if (id !== rootNode.id) positions.set(id, { x: p.x - (rightRootPos?.x || 0), y: p.y + rightYOffset }); });
+                            } else {
+                                positions = await runElkLayout(groupNodes, groupEdges, 'RIGHT', group.spacing || 60);
+                            }
+                        } else {
+                            // Standard tree layout for this group
+                            positions = await runElkLayout(groupNodes, groupEdges, 'RIGHT', group.spacing || 60);
+                        }
+
+                        // Apply basePosition offset
+                        const baseX = group.basePosition.x;
+                        const baseY = group.basePosition.y;
+
+                        positions.forEach((pos, nodeId) => {
+                            finalPositions.set(nodeId, {
+                                x: pos.x + baseX,
+                                y: pos.y + baseY,
+                            });
+                        });
+                    }
+
+                    // Apply final positions
+                    const newNodes = nodes.map(node => {
+                        const pos = finalPositions.get(node.id);
+                        if (pos) {
+                            return { ...node, position: { x: pos.x, y: pos.y }, style: { ...node.style, opacity: 1 } };
+                        }
+                        return { ...node, style: { ...node.style, opacity: 1 } };
+                    });
+
+                    setNodes(newNodes);
+                    window.requestAnimationFrame(() => fitView({ padding: 0.1, duration: 200 }));
+                    console.log('[ELK Multi-Group] Layout complete.');
+                    return;
+                }
+
+                // Single MindMap: Bidirectional layout
                 if (options.bidirectional) {
                     console.log('[ELK Bidirectional] Starting bidirectional layout...');
 
