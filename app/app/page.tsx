@@ -51,6 +51,8 @@ interface RenderNode {
     // MindMap container specific
     layout?: 'tree' | 'bidirectional' | 'radial';
     spacing?: number;
+    // Semantic zoom
+    bubble?: boolean;
     children?: any; // Keep children loosely typed for now as it can be strings/numbers/arrays
   };
   children?: RenderNode[];
@@ -282,6 +284,9 @@ export default function Home() {
                 const contentChildren: any[] = [];
                 const rendererChildren = child.children || [];
 
+                // Track bubble from children (Markdown may have bubble prop)
+                let childBubble = false;
+
                 rendererChildren.forEach((grandChild: RenderNode) => {
                   if (grandChild.type === 'text') {
                     contentChildren.push(grandChild.props.text);
@@ -297,6 +302,10 @@ export default function Home() {
                     // Handle graph-markdown children - extract content prop
                     if (grandChild.props.content) {
                       contentChildren.push(grandChild.props.content);
+                    }
+                    // Extract bubble from Markdown child
+                    if (grandChild.props.bubble) {
+                      childBubble = true;
                     }
                   }
                 });
@@ -320,6 +329,9 @@ export default function Home() {
                 // Check if any child is graph-markdown to switch node type
                 const hasMarkdown = rendererChildren.some((c: RenderNode) => c.type === 'graph-markdown');
 
+                // Bubble comes from: 1) Node's bubble prop OR 2) child Markdown's bubble prop
+                const nodeBubble = child.props.bubble || childBubble;
+
                 nodes.push({
                   id: nodeId,
                   // Use 'markdown' type if markdown content is present, otherwise 'shape'
@@ -340,6 +352,8 @@ export default function Home() {
                     labelBold: child.props.labelBold || child.props.bold,
                     fill: child.props.fill,
                     stroke: child.props.stroke,
+                    // Semantic zoom bubble (from Node or child Markdown)
+                    bubble: nodeBubble,
                   }
                 });
               } else {
@@ -469,6 +483,8 @@ export default function Home() {
                     // Size hints for anchor calculations
                     width: child.props.width,
                     height: child.props.height,
+                    // Semantic zoom bubble
+                    bubble: child.props.bubble,
                   }
                 });
               }

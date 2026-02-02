@@ -15,7 +15,9 @@ import MarkdownNode from './nodes/MarkdownNode';
 import FloatingEdge from './edges/FloatingEdge';
 import { useElkLayout } from '../hooks/useElkLayout';
 import { NavigationProvider } from '@/contexts/NavigationContext';
+import { ZoomProvider } from '@/contexts/ZoomContext';
 import { Loader2 } from 'lucide-react';
+
 
 function GraphCanvasContent() {
   const nodeTypes = useMemo(
@@ -186,7 +188,9 @@ export function GraphCanvas() {
     <div className="w-full h-full min-h-[500px] flex-1 relative">
       <ReactFlowProvider>
         <NavigationProvider>
-          <GraphCanvasContent />
+          <ZoomProvider>
+            <GraphCanvasContent />
+          </ZoomProvider>
         </NavigationProvider>
       </ReactFlowProvider>
     </div>
