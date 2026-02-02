@@ -1,31 +1,33 @@
 import { useCallback, useState } from 'react';
 import { useReactFlow } from 'reactflow';
-import { resolveAnchors } from '@/utils/anchorResolver';
+import { resolveGroupAnchors } from '@/utils/anchorResolver';
+import { useGraphStore } from '@/store/graph';
 
 /**
- * Hook to resolve anchor-based positioning
- * Similar pattern to useElkLayout but for anchor-relative positioning
+ * Hook to resolve anchor-based positioning for MindMap groups
+ * This should be called AFTER ELK layout has finished positioning nodes within groups
  */
 export function useAnchorLayout() {
     const { getNodes, setNodes, fitView } = useReactFlow();
+    const mindMapGroups = useGraphStore((state) => state.mindMapGroups);
     const [isResolving, setIsResolving] = useState(false);
 
     const resolveLayout = useCallback(async () => {
         const nodes = getNodes();
 
-        // Check if there are any anchored nodes
-        const hasAnchoredNodes = nodes.some((n) => n.data?.anchor);
-        if (!hasAnchoredNodes) {
-            console.log('[AnchorLayout] No anchored nodes found, skipping resolution');
+        // Check if there are any anchored groups
+        const hasAnchoredGroups = mindMapGroups.some((g) => g.anchor);
+        if (!hasAnchoredGroups) {
+            console.log('[AnchorLayout] No anchored groups found, skipping resolution');
             return false; // Nothing to resolve
         }
 
         setIsResolving(true);
-        console.log('[AnchorLayout] Resolving anchor positions...');
+        console.log('[AnchorLayout] Resolving group anchor positions...');
 
         try {
-            // Resolve all anchor-based positions
-            const resolvedNodes = resolveAnchors(nodes);
+            // Resolve group-level anchor positions
+            const resolvedNodes = resolveGroupAnchors(nodes, mindMapGroups);
 
             // Check if any positions actually changed
             const hasChanges = resolvedNodes.some((resolved, i) => {
@@ -37,7 +39,7 @@ export function useAnchorLayout() {
             });
 
             if (hasChanges) {
-                console.log('[AnchorLayout] Positions updated for anchored nodes');
+                console.log('[AnchorLayout] Positions updated for anchored groups');
                 setNodes(resolvedNodes);
 
                 // Fit view after layout
@@ -53,7 +55,7 @@ export function useAnchorLayout() {
         } finally {
             setIsResolving(false);
         }
-    }, [getNodes, setNodes, fitView]);
+    }, [getNodes, setNodes, fitView, mindMapGroups]);
 
     return { resolveLayout, isResolving };
 }

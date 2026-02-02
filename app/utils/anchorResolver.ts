@@ -1,4 +1,5 @@
 import { Node } from 'reactflow';
+import { MindMapGroup } from '@/store/graph';
 
 export type AnchorPosition =
     | 'top' | 'bottom' | 'left' | 'right'
@@ -16,6 +17,37 @@ interface NodeRect {
     y: number;
     width: number;
     height: number;
+}
+
+/**
+ * Calculate the bounding box for a group of nodes
+ */
+export function calculateGroupBoundingBox(nodes: Node[]): NodeRect {
+    if (nodes.length === 0) {
+        return { x: 0, y: 0, width: 0, height: 0 };
+    }
+
+    let minX = Infinity, minY = Infinity;
+    let maxX = -Infinity, maxY = -Infinity;
+
+    nodes.forEach(node => {
+        // @ts-ignore - measured is added by React Flow after rendering
+        const w = node.measured?.width ?? node.width ?? node.data?.width ?? 150;
+        // @ts-ignore
+        const h = node.measured?.height ?? node.height ?? node.data?.height ?? 50;
+
+        minX = Math.min(minX, node.position.x);
+        minY = Math.min(minY, node.position.y);
+        maxX = Math.max(maxX, node.position.x + w);
+        maxY = Math.max(maxY, node.position.y + h);
+    });
+
+    return {
+        x: minX,
+        y: minY,
+        width: maxX - minX,
+        height: maxY - minY
+    };
 }
 
 /**
@@ -99,6 +131,181 @@ export function calculateAnchoredPosition(
 }
 
 /**
+ * Topological sort of MindMap groups based on anchor dependencies
+ */
+function topologicalSortGroups(groups: MindMapGroup[]): MindMapGroup[] {
+    const groupMap = new Map<string, MindMapGroup>();
+    const dependsOn = new Map<string, string>();
+    const inDegree = new Map<string, number>();
+
+    groups.forEach((group) => {
+        groupMap.set(group.id, group);
+        inDegree.set(group.id, 0);
+
+        if (group.anchor) {
+            dependsOn.set(group.id, group.anchor);
+        }
+    });
+
+    dependsOn.forEach((anchorId, groupId) => {
+        if (groupMap.has(anchorId)) {
+            inDegree.set(groupId, (inDegree.get(groupId) ?? 0) + 1);
+        }
+    });
+
+    const queue: MindMapGroup[] = [];
+    const result: MindMapGroup[] = [];
+
+    inDegree.forEach((degree, groupId) => {
+        if (degree === 0) {
+            const group = groupMap.get(groupId);
+            if (group) queue.push(group);
+        }
+    });
+
+    while (queue.length > 0) {
+        const current = queue.shift()!;
+        result.push(current);
+
+        dependsOn.forEach((anchorId, groupId) => {
+            if (anchorId === current.id) {
+                const newDegree = (inDegree.get(groupId) ?? 1) - 1;
+                inDegree.set(groupId, newDegree);
+
+                if (newDegree === 0) {
+                    const group = groupMap.get(groupId);
+                    if (group) queue.push(group);
+                }
+            }
+        });
+    }
+
+    if (result.length !== groups.length) {
+        const unprocessed = groups.filter((g) => !result.includes(g));
+        console.error('[AnchorResolver] Circular reference detected in groups:', unprocessed.map((g) => g.id));
+        return [...result, ...unprocessed];
+    }
+
+    return result;
+}
+
+/**
+ * Resolve group-level anchors for MindMap groups
+ * This should be called AFTER ELK layout has positioned nodes within each group
+ */
+export function resolveGroupAnchors(
+    nodes: Node[],
+    mindMapGroups: MindMapGroup[]
+): Node[] {
+    if (mindMapGroups.length === 0) {
+        return nodes;
+    }
+
+    // Check if any group has anchor
+    const hasAnchoredGroups = mindMapGroups.some(g => g.anchor);
+    if (!hasAnchoredGroups) {
+        console.log('[AnchorResolver] No anchored groups found, skipping group anchor resolution');
+        return nodes;
+    }
+
+    console.log('[AnchorResolver] Resolving group anchors...');
+
+    // Sort groups by dependency order
+    const sortedGroups = topologicalSortGroups(mindMapGroups);
+
+    // Build map: groupId -> nodes in that group
+    const groupNodesMap = new Map<string, Node[]>();
+    nodes.forEach(node => {
+        const groupId = node.data?.groupId as string | undefined;
+        if (groupId) {
+            const existing = groupNodesMap.get(groupId) ?? [];
+            existing.push(node);
+            groupNodesMap.set(groupId, existing);
+        }
+    });
+
+    // Map to store resolved group bounding boxes
+    const groupBoundingBoxes = new Map<string, NodeRect>();
+
+    // Track offsets to apply to each group
+    const groupOffsets = new Map<string, { dx: number; dy: number }>();
+
+    // Process groups in dependency order
+    sortedGroups.forEach(group => {
+        const groupNodes = groupNodesMap.get(group.id) ?? [];
+        if (groupNodes.length === 0) return;
+
+        // Calculate current bounding box of this group
+        const currentBBox = calculateGroupBoundingBox(groupNodes);
+
+        if (group.anchor && group.anchorPosition) {
+            // This group has an anchor
+            const anchorBBox = groupBoundingBoxes.get(group.anchor);
+
+            if (anchorBBox) {
+                const config: AnchorConfig = {
+                    anchor: group.anchor,
+                    position: group.anchorPosition as AnchorPosition,
+                    gap: group.anchorGap ?? 100,
+                };
+
+                // Calculate where this group should be positioned
+                const targetPos = calculateAnchoredPosition(
+                    config,
+                    anchorBBox,
+                    { width: currentBBox.width, height: currentBBox.height }
+                );
+
+                // Calculate offset from current position
+                const dx = targetPos.x - currentBBox.x;
+                const dy = targetPos.y - currentBBox.y;
+
+                groupOffsets.set(group.id, { dx, dy });
+
+                // Store the new bounding box position
+                groupBoundingBoxes.set(group.id, {
+                    x: targetPos.x,
+                    y: targetPos.y,
+                    width: currentBBox.width,
+                    height: currentBBox.height
+                });
+
+                console.log(`[AnchorResolver] Group "${group.id}" anchored to "${group.anchor}", offset: (${dx.toFixed(0)}, ${dy.toFixed(0)})`);
+            } else {
+                console.warn(`[AnchorResolver] Anchor group "${group.anchor}" not found for group "${group.id}"`);
+                // Store current position as-is
+                groupBoundingBoxes.set(group.id, currentBBox);
+            }
+        } else {
+            // No anchor - store current bounding box
+            groupBoundingBoxes.set(group.id, currentBBox);
+        }
+    });
+
+    // Apply offsets to all nodes
+    if (groupOffsets.size === 0) {
+        return nodes;
+    }
+
+    return nodes.map(node => {
+        const groupId = node.data?.groupId as string | undefined;
+        if (groupId) {
+            const offset = groupOffsets.get(groupId);
+            if (offset) {
+                return {
+                    ...node,
+                    position: {
+                        x: node.position.x + offset.dx,
+                        y: node.position.y + offset.dy
+                    }
+                };
+            }
+        }
+        return node;
+    });
+}
+
+/**
  * Topological sort of nodes based on anchor dependencies
  * Returns nodes in order that respects dependencies
  * Throws error if circular reference detected
@@ -171,6 +378,7 @@ export function topologicalSort(nodes: Node[]): Node[] {
 /**
  * Resolve all anchor-based positions in the node array
  * Returns a new array with updated positions
+ * @deprecated Use resolveGroupAnchors for MindMap groups
  */
 export function resolveAnchors(nodes: Node[]): Node[] {
     // First, topologically sort the nodes
