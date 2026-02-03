@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "build:core": "cd libs/core && bun run build",
-    "dev": "bun run build:core && bun --watch run cli.ts dev",
+    "dev": "bun run build:core && bun --watch run cli.ts dev ./examples",
     "ws:dev": "bun run app/ws/server.ts",
     "build": "bun run --filter '*' build",
     "test": "bun test"

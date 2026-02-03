@@ -7,7 +7,7 @@ import { createServer } from 'node:net';
 const args = process.argv.slice(2);
 const command = args[0];
 
-let targetDir = './examples';
+let targetDir: string | undefined;
 let port: string | undefined;
 let debug = false;
 
@@ -56,11 +56,16 @@ for (let i = 1; i < args.length; i++) {
     i++;
   } else if (args[i] === '--debug') {
     debug = true;
-  } else if (!args[i].startsWith('-') && targetDir === './examples') {
-    // Only set targetDir if it hasn't been set yet (other than default)
-    // This maintains behavior of taking the first positional argument
+  } else if (!args[i].startsWith('-') && !targetDir) {
     targetDir = args[i];
   }
+}
+
+if (!targetDir) {
+  console.error(
+    'Error: You must specify a directory to run (e.g. "." or "./examples")'
+  );
+  process.exit(1);
 }
 
 if (command === 'dev') {
