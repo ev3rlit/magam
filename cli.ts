@@ -71,10 +71,21 @@ if (!targetDir) {
 if (command === 'dev') {
   const absoluteTargetDir = resolve(process.cwd(), targetDir);
 
-  // Find available ports for both servers
-  const httpPort = await getAvailablePort(3002);
   const initialPort = port ? parseInt(port, 10) : 3000;
   const nextPort = await getAvailablePort(initialPort);
+
+  // Find available ports for both servers
+  // Ensure httpPort is different from nextPort
+  let httpPort = await getAvailablePort(3002);
+  while (httpPort === nextPort) {
+    httpPort = await getAvailablePort(httpPort + 1);
+  }
+
+  // Find available port for WebSocket server
+  let wsPort = await getAvailablePort(3001);
+  while (wsPort === nextPort || wsPort === httpPort) {
+    wsPort = await getAvailablePort(wsPort + 1);
+  }
 
   console.log(`🚀 Starting GraphWrite dev server...`);
   console.log(`📁 Target directory: ${absoluteTargetDir}`);
@@ -130,14 +141,28 @@ if (command === 'dev') {
       ...process.env,
       GRAPHWRITE_TARGET_DIR: absoluteTargetDir,
       GRAPHWRITE_HTTP_PORT: httpPort.toString(),
+      NEXT_PUBLIC_GRAPHWRITE_WS_PORT: wsPort.toString(),
     },
     stdio: ['inherit', 'inherit', 'inherit'],
   });
+
+  // Start WebSocket server
+  const wsServerProc = spawn({
+    cmd: ['bun', 'run', join(process.cwd(), 'app/ws/server.ts')],
+    env: {
+      ...process.env,
+      GRAPHWRITE_WS_PORT: wsPort.toString(),
+      GRAPHWRITE_TARGET_DIR: absoluteTargetDir,
+    },
+    stdio: ['inherit', 'inherit', 'inherit'],
+  });
+  console.log(`✅ WebSocket server starting on port ${wsPort}...`);
 
   // Handle shutdown
   const shutdown = () => {
     console.log('\n🛑 Shutting down...');
     renderServerProc.kill();
+    wsServerProc.kill();
     nextProc.kill();
     process.exit(0);
   };
