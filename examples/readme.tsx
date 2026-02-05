@@ -39,6 +39,46 @@ Not Mobile-First.
                     </Markdown>
                 </Node>
 
+                {/* AI Co-Pilot Workflow */}
+                <Node id="ai-edit" from="concept">
+                    <Markdown>{`
+**How to edit:**
+1. Select Node
+2. Cmd+C (Copy mindmap.mindmap-0.ai-table-demo)
+3. Paste & Prompt`}</Markdown>
+                </Node>
+
+                <Node id="ai-code-demo" from="ai-edit">
+                    <Markdown>{`### Code-Based
+\`\`\`tsx
+<Node id="ai-table-demo"> 
+  <Markdown>{\`
+| ID | Name |
+|----|------|
+| 01 | User |
+  \`}</Markdown>
+</Node>
+\`\`\``}</Markdown>
+
+
+                </Node>
+
+                <Node id="ai-prompt-demo" from="ai-edit">
+                    <Markdown>{`### Sample Prompt
+"Add a new user 'Alice'
+to the table in node
+\`mindmap.mindmap-0.ai-table-demo\`"`}</Markdown>
+                </Node>
+
+                <Node id="ai-table-demo" from="ai-edit">
+                    <Markdown>{`
+| ID | Name |
+|----|------|
+| 01 | User |`}</Markdown>
+                </Node>
+
+
+
                 {/* Code Example */}
                 <Node id="example" from="root">
                     <Markdown>
@@ -56,6 +96,8 @@ Every diagram is real **React code**.
                 </Node>
 
             </MindMap>
+
+
         </Canvas>
     );
 }
