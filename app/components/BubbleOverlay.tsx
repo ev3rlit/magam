@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useViewport } from 'reactflow';
-import { useBubbles } from '@/contexts/BubbleContext';
+import { useBubbleState } from '@/contexts/BubbleContext';
 import { useZoom, BUBBLE_THRESHOLD } from '@/contexts/ZoomContext';
 
 /**
@@ -10,7 +10,7 @@ import { useZoom, BUBBLE_THRESHOLD } from '@/contexts/ZoomContext';
  * This ensures bubbles are never covered by other nodes.
  */
 export function BubbleOverlay() {
-    const { bubbles } = useBubbles();
+    const bubbles = useBubbleState();
     const { zoom, isBubbleMode } = useZoom();
     const viewport = useViewport();
 

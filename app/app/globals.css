@@ -35,3 +35,12 @@
         transform 0.2s ease-out,
         opacity 0.2s ease;
 }
+
+/* ========================================
+   React Flow Overrides
+   ======================================== */
+
+/* Hide the bounding box around selected nodes (multi-selection) */
+.react-flow__nodesselection-rect {
+    display: none !important;
+}

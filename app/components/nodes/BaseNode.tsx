@@ -1,8 +1,8 @@
-import React, { ReactNode, useMemo, useEffect } from 'react';
+import React, { ReactNode, useMemo, useEffect, useCallback, memo } from 'react';
 import { Handle, Position, useNodeId } from 'reactflow';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { useBubbles } from '@/contexts/BubbleContext';
+import { useBubbleActions } from '@/contexts/BubbleContext';
 import { useGraphStore } from '@/store/graph';
 
 /** Maximum length for bubble text before truncation */
@@ -44,7 +44,7 @@ interface BaseNodeProps {
     label?: string;
 }
 
-export const BaseNode = ({
+export const BaseNodeComponent = ({
     children,
     className,
     handleColor,
@@ -54,9 +54,13 @@ export const BaseNode = ({
     bubble = false,
     label,
 }: BaseNodeProps) => {
-    const { registerBubble, unregisterBubble } = useBubbles();
+    const { registerBubble, unregisterBubble } = useBubbleActions();
     const nodeId = useNodeId();
-    const nodes = useGraphStore(state => state.nodes);
+    // Optimization: Only subscribe to this specific node's data
+    // This prevents re-renders when other nodes are updated (e.g. selection drag)
+    const node = useGraphStore(
+        useCallback((state) => state.nodes.find((n) => n.id === nodeId), [nodeId])
+    );
 
     const handleClasses = clsx(
         '!w-3 !h-3 !border-0 transition-opacity duration-200',
@@ -78,8 +82,7 @@ export const BaseNode = ({
     useEffect(() => {
         if (!bubble || !nodeId || !bubbleText) return;
 
-        // Find node position from store
-        const node = nodes.find(n => n.id === nodeId);
+        // Node is already verified by selector, but check existence
         if (!node) return;
 
         // Get center position of node
@@ -96,7 +99,7 @@ export const BaseNode = ({
         return () => {
             unregisterBubble(nodeId);
         };
-    }, [bubble, nodeId, bubbleText, nodes, registerBubble, unregisterBubble]);
+    }, [bubble, nodeId, bubbleText, node, registerBubble, unregisterBubble]);
 
     // Bubble is now rendered in BubbleOverlay, not here
 
@@ -130,3 +133,5 @@ export const BaseNode = ({
         </div>
     );
 };
+
+export const BaseNode = memo(BaseNodeComponent);

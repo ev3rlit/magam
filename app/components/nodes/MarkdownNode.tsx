@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 import { NodeProps } from 'reactflow';
 import ReactMarkdown from 'react-markdown';
 import { twMerge } from 'tailwind-merge';
@@ -30,6 +30,60 @@ const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
         }
     }, [navigateToNode]);
 
+    const components = useMemo(() => ({
+        pre: ({ children }: any) => <>{children}</>,
+        a: ({ node, href, children, ...props }: any) => {
+            const actualHref = href || (node as any)?.properties?.href || '';
+            const isNodeLink = actualHref?.startsWith('node:');
+            return (
+                <a
+                    href={actualHref}
+                    className={twMerge(
+                        "cursor-pointer pointer-events-auto",
+                        isNodeLink
+                            ? "text-indigo-600 hover:text-indigo-800 font-medium underline decoration-indigo-300 hover:decoration-indigo-500"
+                            : "text-blue-500 hover:underline"
+                    )}
+                    onClick={(e) => handleLinkClick(e, actualHref)}
+                    {...props}
+                >
+                    {isNodeLink && <span className="mr-1">→</span>}
+                    {children}
+                </a>
+            );
+        },
+        code: ({ node, className, children, ...props }: any) => {
+            // @ts-ignore
+            const match = /language-(\w+)/.exec(className || '');
+            // @ts-ignore
+            const { inline } = props;
+
+            return !inline && match ? (
+                <CodeBlock
+                    language={match[1]}
+                    value={String(children).replace(/\n$/, '')}
+                    className="not-prose"
+                />
+            ) : (
+                <code className="bg-slate-100 rounded px-1.5 py-0.5 text-[0.9em] font-mono text-pink-600 border border-slate-200" {...props}>
+                    {children}
+                </code>
+            );
+        }
+    }), [handleLinkClick]);
+
+    const markdownContent = useMemo(() => (
+        <div className="prose prose-sm prose-slate max-w-none pointer-events-none select-none">
+            <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                urlTransform={(url) => url}
+                components={components}
+            >
+                {data.label}
+            </ReactMarkdown>
+        </div>
+    ), [data.label, components]);
+
     return (
         <BaseNode
             className={twMerge(
@@ -43,55 +97,7 @@ const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
             bubble={data.bubble}
             label={data.label}
         >
-            <div className="prose prose-sm prose-slate max-w-none pointer-events-none select-none">
-                <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    urlTransform={(url) => url}
-                    components={{
-                        pre: ({ children }) => <>{children}</>,
-                        a: ({ node, href, children, ...props }) => {
-                            const actualHref = href || (node as any)?.properties?.href || '';
-                            const isNodeLink = actualHref?.startsWith('node:');
-                            return (
-                                <a
-                                    href={actualHref}
-                                    className={twMerge(
-                                        "cursor-pointer pointer-events-auto",
-                                        isNodeLink
-                                            ? "text-indigo-600 hover:text-indigo-800 font-medium underline decoration-indigo-300 hover:decoration-indigo-500"
-                                            : "text-blue-500 hover:underline"
-                                    )}
-                                    onClick={(e) => handleLinkClick(e, actualHref)}
-                                    {...props}
-                                >
-                                    {isNodeLink && <span className="mr-1">→</span>}
-                                    {children}
-                                </a>
-                            );
-                        },
-                        code: ({ node, className, children, ...props }) => {
-                            // @ts-ignore
-                            const match = /language-(\w+)/.exec(className || '');
-                            // @ts-ignore
-                            const { inline } = props;
-
-                            return !inline && match ? (
-                                <CodeBlock
-                                    language={match[1]}
-                                    value={String(children).replace(/\n$/, '')}
-                                    className="not-prose"
-                                />
-                            ) : (
-                                <code className="bg-slate-100 rounded px-1.5 py-0.5 text-[0.9em] font-mono text-pink-600 border border-slate-200" {...props}>
-                                    {children}
-                                </code>
-                            );
-                        }
-                    }}
-                >
-                    {data.label}
-                </ReactMarkdown>
-            </div>
+            {markdownContent}
         </BaseNode>
     );
 };

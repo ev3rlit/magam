@@ -79,8 +79,10 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
         }
     }, [getNode, setCenter, getNodes]);
 
+    const value = React.useMemo(() => ({ navigateToNode }), [navigateToNode]);
+
     return (
-        <NavigationContext.Provider value={{ navigateToNode }}>
+        <NavigationContext.Provider value={value}>
             {children}
         </NavigationContext.Provider>
     );

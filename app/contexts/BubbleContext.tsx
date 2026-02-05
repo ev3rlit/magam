@@ -10,22 +10,19 @@ interface BubbleData {
     y: number;
 }
 
-interface BubbleContextValue {
-    bubbles: Map<string, BubbleData>;
+// Split contexts to prevent re-renders
+const BubbleStateContext = createContext<Map<string, BubbleData> | null>(null);
+
+interface BubbleActionContextValue {
     registerBubble: (data: BubbleData) => void;
     unregisterBubble: (nodeId: string) => void;
 }
 
-const BubbleContext = createContext<BubbleContextValue>({
-    bubbles: new Map(),
+const BubbleActionContext = createContext<BubbleActionContextValue>({
     registerBubble: () => { },
     unregisterBubble: () => { },
 });
 
-/**
- * Provides bubble registry for all nodes.
- * Bubbles are collected here and rendered in a separate overlay layer.
- */
 export function BubbleProvider({ children }: { children: React.ReactNode }) {
     const [bubbles, setBubbles] = useState<Map<string, BubbleData>>(new Map());
 
@@ -45,17 +42,27 @@ export function BubbleProvider({ children }: { children: React.ReactNode }) {
         });
     }, []);
 
-    const value = useMemo(() => ({
-        bubbles,
+    // Stable actions object
+    const actions = useMemo(() => ({
         registerBubble,
-        unregisterBubble,
-    }), [bubbles, registerBubble, unregisterBubble]);
+        unregisterBubble
+    }), [registerBubble, unregisterBubble]);
 
     return (
-        <BubbleContext.Provider value={value}>
-            {children}
-        </BubbleContext.Provider>
+        <BubbleActionContext.Provider value={actions}>
+            <BubbleStateContext.Provider value={bubbles}>
+                {children}
+            </BubbleStateContext.Provider>
+        </BubbleActionContext.Provider>
     );
 }
 
-export const useBubbles = () => useContext(BubbleContext);
+export const useBubbleState = () => {
+    const context = useContext(BubbleStateContext);
+    if (!context) throw new Error('useBubbleState must be used within BubbleProvider');
+    return context;
+};
+
+export const useBubbleActions = () => {
+    return useContext(BubbleActionContext);
+};
