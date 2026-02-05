@@ -144,10 +144,16 @@ async function handleFiles(req: http.IncomingMessage, res: http.ServerResponse, 
   }
 }
 
+
+interface FileEntry {
+  path: string;
+  type: 'file' | 'directory';
+}
+
 /**
- * Build a tree structure from a flat list of file paths
+ * Build a tree structure from a flat list of file entries
  */
-function buildFileTree(files: string[], rootName: string = 'root'): FileTreeNode {
+function buildFileTree(entries: FileEntry[], rootName: string = 'root'): FileTreeNode {
   const root: FileTreeNode = {
     name: rootName,
     path: '',
@@ -155,29 +161,30 @@ function buildFileTree(files: string[], rootName: string = 'root'): FileTreeNode
     children: []
   };
 
-  for (const filePath of files) {
-    const parts = filePath.split('/');
+  for (const entry of entries) {
+    const parts = entry.path.split('/');
     let current = root;
 
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
-      const isFile = i === parts.length - 1;
+      const isLast = i === parts.length - 1;
       const currentPath = parts.slice(0, i + 1).join('/');
 
       // Find existing child or create new one
       let child = current.children?.find(c => c.name === part);
 
       if (!child) {
+        const type = isLast ? entry.type : 'directory';
         child = {
           name: part,
           path: currentPath,
-          type: isFile ? 'file' : 'directory',
-          children: isFile ? undefined : []
+          type: type,
+          children: type === 'directory' ? [] : undefined
         };
         current.children?.push(child);
       }
 
-      if (!isFile) {
+      if (child.type === 'directory') {
         current = child;
       }
     }
@@ -202,8 +209,22 @@ function buildFileTree(files: string[], rootName: string = 'root'): FileTreeNode
 
 async function handleFileTree(req: http.IncomingMessage, res: http.ServerResponse, targetDir: string) {
   try {
-    const files = await glob('**/*.tsx', { cwd: targetDir });
-    const tree = buildFileTree(files, path.basename(targetDir));
+    const rawPaths = await glob(['**/*.tsx', '**/'], {
+      cwd: targetDir,
+      onlyFiles: false,
+      markDirectories: true,
+      ignore: ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**']
+    });
+
+    const entries: FileEntry[] = rawPaths.map((p: string) => {
+      const isDirectory = p.endsWith('/');
+      return {
+        path: isDirectory ? p.slice(0, -1) : p,
+        type: isDirectory ? 'directory' : 'file'
+      };
+    });
+
+    const tree = buildFileTree(entries, path.basename(targetDir));
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ tree }));
   } catch (error: any) {
