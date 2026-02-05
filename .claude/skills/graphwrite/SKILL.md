@@ -18,6 +18,45 @@ GraphWrite is a React-based library for creating visual diagrams through code. I
 - Generating visual documentation from text descriptions
 - Any task requiring code-based diagram generation
 
+## Editing Nodes with Copy Node ID
+
+GraphWrite supports a node ID copy feature that enables targeted editing of specific nodes. Users can select a node in the canvas and copy its fully-qualified ID, then paste it into a prompt for the AI to locate and edit.
+
+### How It Works
+
+1. **Select** a node by clicking it on the canvas
+2. **Copy** with `Cmd+C` (Mac) / `Ctrl+C` (Windows/Linux)
+3. The fully-qualified node ID is copied to clipboard (e.g., `mindmap.mindmap-0.ai-table-demo`)
+4. **Paste** the ID into a prompt to tell the AI which node to edit
+
+### Node ID Format
+
+Node IDs follow the pattern: `{mindmapId}.{nodeId}`
+
+- If the MindMap has an explicit `id` prop (e.g., `<MindMap id="main">`), the prefix is that ID (e.g., `main.intro`)
+- If no explicit `id`, an auto-generated ID like `mindmap-0` is used (e.g., `mindmap-0.root`)
+- Top-level canvas elements (Shape, Sticky, Text) outside a MindMap use their own `id` directly
+
+### AI Workflow for Targeted Edits
+
+When a user provides a copied node ID, the AI should:
+
+1. **Find the node** in the TSX source by matching the `id` prop value (the last segment of the path)
+2. **Identify the MindMap** it belongs to by matching the MindMap `id` prop (the first segment)
+3. **Edit the node's content** as requested
+
+**Example prompt from user:**
+> "Add a row for 'Alice' to the table in `mindmap.mindmap-0.ai-table-demo`"
+
+**AI interpretation:**
+- MindMap: auto-generated `mindmap-0` (the first/default MindMap in the file)
+- Node: `ai-table-demo`
+- Action: Find `<Node id="ai-table-demo">` and add a table row
+
+### Multi-Select
+
+Multiple nodes can be selected and copied at once. Each ID is separated by a newline in the clipboard. The AI should handle each node independently when editing.
+
 ## Core Components
 
 All components are imported from `@graphwrite/core`:
@@ -117,7 +156,6 @@ MindMap node element. Must be used inside a MindMap.
 
 **Content Options:**
 - Plain text: `<Node id="x">Plain text</Node>`
-- With emoji: `<Node id="x">🎯 With emoji</Node>`
 - Text component: `<Node id="x"><Text>Styled</Text></Node>`
 - Multiple Text: `<Node id="x"><Text>Line 1</Text><Text>Line 2</Text></Node>`
 - Markdown: `<Node id="x"><Markdown>content</Markdown></Node>`
@@ -158,10 +196,10 @@ Content here...
 
 | Level | Recommendation | Reason |
 |-------|----------------|--------|
-| Root node | ✅ Always use | Main topic visibility at any zoom |
-| Level 1-2 (children of root) | ✅ Recommended | Section titles remain readable when zoomed out |
-| Level 3 | ⚠️ Selective | Only for key concepts that need visibility |
-| Level 4+ | ❌ Usually skip | Too many bubbles cause visual clutter |
+| Root node | Always use | Main topic visibility at any zoom |
+| Level 1-2 (children of root) | Recommended | Section titles remain readable when zoomed out |
+| Level 3 | Selective | Only for key concepts that need visibility |
+| Level 4+ | Usually skip | Too many bubbles cause visual clutter |
 
 - **Use for navigation nodes**: Nodes with Table of Contents or section headers benefit from bubbles
 - **Use for key landmarks**: Important concepts users need to locate quickly
@@ -330,21 +368,21 @@ All components support `className` prop for Tailwind CSS styling.
   <Text id="title" x={200} y={30}>System Architecture</Text>
 
   <Shape id="users" x={50} y={100}>
-    <Text>👥 Users</Text>
+    <Text>Users</Text>
   </Shape>
 
   <Shape id="api" anchor="users" position="right" gap={120}>
-    <Text>🖥️ API Server</Text>
+    <Text>API Server</Text>
     <Edge to="users" />
   </Shape>
 
   <Shape id="db" anchor="api" position="right" gap={120}>
-    <Text>🗄️ Database</Text>
+    <Text>Database</Text>
     <Edge to="api" />
   </Shape>
 
   <Shape id="auth" anchor="api" position="bottom" gap={80}>
-    <Text>🔐 Auth Service</Text>
+    <Text>Auth Service</Text>
     <Edge to="api" />
   </Shape>
 </Canvas>
@@ -435,7 +473,7 @@ Place multiple independent MindMaps on a single Canvas. Each MindMap has its own
 2. **Use semantic IDs** that describe the element's purpose
 3. **Prefer relative positioning** with `anchor`/`position`/`gap` for maintainable layouts
 4. **Use Markdown** for rich content in mind map nodes
-5. **Add emojis** to visually distinguish different types of elements
+5. **Do not add emojis** unless the user explicitly requests them
 6. **Group related content** using comments in JSX
 7. **Use consistent styling** with Tailwind utility classes
 8. **Keep node content concise** - use child nodes for detailed breakdowns
