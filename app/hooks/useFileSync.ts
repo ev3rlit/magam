@@ -4,7 +4,8 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 
-const WS_URL = 'ws://localhost:3001';
+const PORT = process.env.NEXT_PUBLIC_GRAPHWRITE_WS_PORT || '3001';
+const WS_URL = `ws://localhost:${PORT}`;
 const REQUEST_TIMEOUT = 5000;
 
 interface JsonRpcRequest {
@@ -142,6 +143,7 @@ export function useFileSync(
 
         ws.onerror = (error) => {
             console.error('[FileSync] WebSocket error:', error);
+            console.error('[FileSync] Connection failed to:', WS_URL);
         };
 
         ws.onclose = () => {

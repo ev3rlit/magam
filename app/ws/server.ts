@@ -16,8 +16,8 @@ import {
 } from './rpc';
 import { methods, type RpcContext } from './methods';
 
-const PORT = 3001;
-const WATCH_DIR = './examples';
+const PORT = parseInt(process.env.GRAPHWRITE_WS_PORT || '3001', 10);
+const WATCH_DIR = process.env.GRAPHWRITE_TARGET_DIR || './examples';
 
 // Client connections with their subscriptions
 const clients = new Map<unknown, Set<string>>();
