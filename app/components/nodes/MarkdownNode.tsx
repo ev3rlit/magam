@@ -58,9 +58,9 @@ const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
             // @ts-ignore
             const { inline } = props;
 
-            return !inline && match ? (
+            return !inline ? (
                 <CodeBlock
-                    language={match[1]}
+                    language={match?.[1] ?? ''}
                     value={String(children).replace(/\n$/, '')}
                     className="not-prose"
                 />
