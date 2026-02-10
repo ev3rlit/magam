@@ -15,6 +15,7 @@ import TextNode from './nodes/TextNode';
 import MarkdownNode from './nodes/MarkdownNode';
 import FloatingEdge from './edges/FloatingEdge';
 import { useElkLayout } from '../hooks/useElkLayout';
+import { resolveAnchors } from '@/utils/anchorResolver';
 import { NavigationProvider } from '@/contexts/NavigationContext';
 import { ZoomProvider } from '@/contexts/ZoomContext';
 import { BubbleProvider } from '@/contexts/BubbleContext';
@@ -48,7 +49,7 @@ function GraphCanvasContent() {
 
   const { calculateLayout, isLayouting } = useElkLayout();
   const nodesInitialized = useNodesInitialized();
-  const { zoomIn, zoomOut, fitView, getZoom } = useReactFlow();
+  const { zoomIn, zoomOut, fitView, getZoom, setNodes } = useReactFlow();
   const hasLayouted = useRef(false);
   const lastLayoutedGraphId = useRef<string | null>(null);
   const [isGraphVisible, setIsGraphVisible] = useState(false);
@@ -128,7 +129,16 @@ function GraphCanvasContent() {
             mindMapGroups,
           });
         } else {
-          console.log('[Layout] Canvas mode, skipping ELK layout.');
+          // Canvas mode: check if any nodes use anchor-based positioning
+          const hasAnchors = currentNodes.some(n => n.data?.anchor);
+          if (hasAnchors) {
+            console.log('[Layout] Canvas mode with anchors, resolving anchor positions...');
+            const resolved = resolveAnchors(currentNodes);
+            setNodes(resolved);
+            setTimeout(() => fitView({ duration: 300 }), 50);
+          } else {
+            console.log('[Layout] Canvas mode, no anchors, skipping layout.');
+          }
         }
 
         console.log('[Layout] Layout pipeline finished.');

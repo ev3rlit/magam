@@ -8,12 +8,19 @@ import {
     getNodeDimensions,
     runElkLayout,
     getYBounds,
+    calculateGroupBoundingBox,
 } from '@/utils/layoutUtils';
 import {
     buildGroupMetaNodes,
     calculateGlobalGroupLayout,
     applyGlobalOffsets,
 } from '@/utils/globalLayoutResolver';
+import {
+    resolveAnchors,
+    calculateAnchoredPosition,
+    AnchorConfig,
+    AnchorPosition as AnchorPos,
+} from '@/utils/anchorResolver';
 
 interface UseElkLayoutOptions {
     direction?: 'RIGHT' | 'DOWN' | 'LEFT' | 'UP';
@@ -153,6 +160,17 @@ export function useElkLayout() {
                         return node;
                     });
 
+                    // Phase 1.5: Resolve Canvas-level anchors for non-group nodes
+                    const nonGroupNodes = nodesWithInternalLayout.filter(n => !n.data?.groupId);
+                    if (nonGroupNodes.some(n => n.data?.anchor)) {
+                        console.log('[ELK Layout] Phase 1.5: Resolving Canvas-level anchors...');
+                        const resolvedNonGroup = resolveAnchors(nonGroupNodes);
+                        const resolvedMap = new Map(resolvedNonGroup.map(n => [n.id, n]));
+                        nodesWithInternalLayout = nodesWithInternalLayout.map(n =>
+                            resolvedMap.get(n.id) ?? n
+                        );
+                    }
+
                     // Phase 2: Calculate global group positions
                     console.log('[ELK Layout] Phase 2: Global group positioning...');
 
@@ -175,6 +193,57 @@ export function useElkLayout() {
                         );
                     } else {
                         console.log('[ELK Layout] Single group without anchors, skipping global layout.');
+                    }
+
+                    // Phase 4: Position groups anchored to Canvas nodes
+                    const groupIdSet = new Set(groups.map(g => g.id));
+                    const canvasAnchoredGroups = groups.filter(g => g.anchor && !groupIdSet.has(g.anchor));
+                    if (canvasAnchoredGroups.length > 0) {
+                        console.log('[ELK Layout] Phase 4: Positioning groups anchored to Canvas nodes...');
+                        for (const group of canvasAnchoredGroups) {
+                            const anchorNode = nodesWithInternalLayout.find(n => n.id === group.anchor);
+                            if (!anchorNode) {
+                                console.warn(`[ELK Layout] Canvas anchor "${group.anchor}" not found for group "${group.id}"`);
+                                continue;
+                            }
+
+                            const groupNodes = nodesWithInternalLayout.filter(n => n.data?.groupId === group.id);
+                            const bbox = calculateGroupBoundingBox(groupNodes);
+
+                            const anchorWidth = anchorNode.width ?? (anchorNode.data?.width as number) ?? 150;
+                            const anchorHeight = anchorNode.height ?? (anchorNode.data?.height as number) ?? 50;
+
+                            const config: AnchorConfig = {
+                                anchor: group.anchor!,
+                                position: (group.anchorPosition as AnchorPos) ?? 'right',
+                                gap: group.anchorGap ?? 100,
+                            };
+
+                            const targetPos = calculateAnchoredPosition(config, {
+                                x: anchorNode.position.x,
+                                y: anchorNode.position.y,
+                                width: anchorWidth,
+                                height: anchorHeight,
+                            }, { width: bbox.width, height: bbox.height });
+
+                            const dx = targetPos.x - bbox.x;
+                            const dy = targetPos.y - bbox.y;
+
+                            nodesWithInternalLayout = nodesWithInternalLayout.map(n => {
+                                if (n.data?.groupId === group.id) {
+                                    return {
+                                        ...n,
+                                        position: {
+                                            x: n.position.x + dx,
+                                            y: n.position.y + dy,
+                                        }
+                                    };
+                                }
+                                return n;
+                            });
+
+                            console.log(`[ELK Layout] Group "${group.id}" anchored to Canvas node "${group.anchor}", offset: (${dx.toFixed(0)}, ${dy.toFixed(0)})`);
+                        }
                     }
 
                     // Make nodes visible and update

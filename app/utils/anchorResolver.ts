@@ -378,7 +378,7 @@ export function topologicalSort(nodes: Node[]): Node[] {
 /**
  * Resolve all anchor-based positions in the node array
  * Returns a new array with updated positions
- * @deprecated Use resolveGroupAnchors for MindMap groups
+ * Used for Canvas-mode nodes with anchor/position props
  */
 export function resolveAnchors(nodes: Node[]): Node[] {
     // First, topologically sort the nodes
@@ -398,18 +398,26 @@ export function resolveAnchors(nodes: Node[]): Node[] {
         // @ts-ignore
         const height = node.measured?.height ?? node.height ?? node.data?.height ?? 50;
 
-        // If this node has coordinates already (no anchor), store its position
-        if (!anchor || node.position.x !== 0 || node.position.y !== 0) {
-            // Node has explicit coordinates or already positioned
-            if (node.position.x !== 0 || node.position.y !== 0) {
-                resolvedPositions.set(node.id, {
-                    x: node.position.x,
-                    y: node.position.y,
-                    width,
-                    height,
-                });
-                return node;
-            }
+        // Case 1: No anchor - store position as-is (even if 0,0)
+        if (!anchor) {
+            resolvedPositions.set(node.id, {
+                x: node.position.x,
+                y: node.position.y,
+                width,
+                height,
+            });
+            return node;
+        }
+
+        // Case 2: Has anchor but also has explicit non-zero coordinates - keep them
+        if (node.position.x !== 0 || node.position.y !== 0) {
+            resolvedPositions.set(node.id, {
+                x: node.position.x,
+                y: node.position.y,
+                width,
+                height,
+            });
+            return node;
         }
 
         // If anchor is specified, calculate position
