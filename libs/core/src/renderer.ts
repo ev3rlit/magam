@@ -3,6 +3,7 @@ import * as React from 'react';
 import * as HostConfig from './reconciler/hostConfig';
 import { Container } from './reconciler/hostConfig';
 import { applyLayout } from './layout/elk';
+import { resolveTreeAnchors } from './reconciler/resolveTreeAnchors';
 
 const Reconciler = (ReactReconciler as any).default || ReactReconciler;
 
@@ -71,6 +72,6 @@ export function renderToGraph(element: React.ReactNode): ResultAsync<Container, 
     if (status === 'ERROR' || capturedError) {
       return err(new RenderError('Reconciliation failed', capturedError));
     }
-    return ok(container);
+    return ok(resolveTreeAnchors(container));
   }).andThen(applyLayout);
 }
