@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNodeId } from '../hooks/useNodeId';
 
 export interface EdgeProps {
   id?: string;
@@ -13,5 +14,7 @@ export interface EdgeProps {
 }
 
 export const Edge: React.FC<EdgeProps> = (props) => {
-  return React.createElement('graph-edge', props);
+  const scopedFrom = useNodeId(props.from);
+  const scopedTo = useNodeId(props.to);
+  return React.createElement('graph-edge', { ...props, from: scopedFrom, to: scopedTo });
 };

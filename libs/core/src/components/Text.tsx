@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { GraphwriteError } from '../errors';
+import { useNodeId } from '../hooks/useNodeId';
 
 export interface TextProps {
   id?: string;
@@ -27,8 +28,7 @@ export interface TextProps {
 }
 
 export const Text: React.FC<TextProps> = (props) => {
-  // Validation removed to allow nested usage without x/y/id
-  // if (!props.id) ...
+  const scopedId = useNodeId(props.id);
 
-  return React.createElement('graph-text', props, props.children);
+  return React.createElement('graph-text', { ...props, id: scopedId }, props.children);
 };

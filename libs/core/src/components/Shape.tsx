@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { GraphwriteError } from '../errors';
+import { useNodeId } from '../hooks/useNodeId';
 
 export type AnchorPosition =
   | 'top' | 'bottom' | 'left' | 'right'
@@ -34,7 +35,9 @@ export interface ShapeProps {
 }
 
 export const Shape: React.FC<ShapeProps> = (props) => {
-  if (!props.id) {
+  const scopedId = useNodeId(props.id);
+
+  if (!scopedId) {
     throw new GraphwriteError("Missing required prop 'id'", 'props');
   }
 
@@ -46,5 +49,5 @@ export const Shape: React.FC<ShapeProps> = (props) => {
     throw new GraphwriteError("Shape requires either 'x' and 'y' coordinates or 'anchor' positioning", 'props');
   }
 
-  return React.createElement('graph-shape', props, props.children);
+  return React.createElement('graph-shape', { ...props, id: scopedId }, props.children);
 };

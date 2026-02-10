@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNodeId } from '../hooks/useNodeId';
 
 export interface MindMapProps {
   /** MindMap 식별자 (다중 MindMap 시 필수) */
@@ -35,8 +36,9 @@ export const MindMap: React.FC<MindMapProps> = ({
   spacing = 50,
   ...rest
 }) => {
+  const scopedId = useNodeId(id);
   return React.createElement('graph-mindmap', {
-    id,
+    id: scopedId,
     x,
     y,
     anchor,

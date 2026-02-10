@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNodeId } from '../hooks/useNodeId';
 
 export interface GroupProps {
   id?: string;
@@ -10,5 +11,6 @@ export interface GroupProps {
 }
 
 export const Group: React.FC<GroupProps> = (props) => {
-  return React.createElement('graph-group', props);
+  const scopedId = useNodeId(props.id);
+  return React.createElement('graph-group', { ...props, id: scopedId });
 };

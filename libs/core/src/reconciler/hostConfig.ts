@@ -221,6 +221,10 @@ export function resolveEventTimeStamp() {
   return -1;
 }
 
+export function getPublicInstance(instance: Instance | TextInstance): PublicInstance {
+  return instance;
+}
+
 export const isPrimaryRenderer = true;
 export const warnsIfNotActing = true;
 

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { GraphwriteError } from '../errors';
+import { useNodeId } from '../hooks/useNodeId';
 
 export interface StickyProps {
   id?: string;
@@ -15,7 +16,9 @@ export interface StickyProps {
 }
 
 export const Sticky: React.FC<StickyProps> = (props) => {
-  if (!props.id) {
+  const scopedId = useNodeId(props.id);
+
+  if (!scopedId) {
     throw new GraphwriteError("Missing required prop 'id'", 'props');
   }
   if (props.x === undefined) {
@@ -25,5 +28,5 @@ export const Sticky: React.FC<StickyProps> = (props) => {
     throw new GraphwriteError("Missing required prop 'y'", 'props');
   }
 
-  return React.createElement('graph-sticky', props, props.children);
+  return React.createElement('graph-sticky', { ...props, id: scopedId }, props.children);
 };
