@@ -183,4 +183,78 @@ describe('EmbedScope', () => {
     expect(children[0].props.id).toBe('left.box');
     expect(children[1].props.id).toBe('right.box');
   });
+
+  it('should resolve anchor prop to scoped ID within same scope', async () => {
+    const element = (
+      <canvas>
+        <Shape id="gateway" x={0} y={0} width={100} height={50} />
+        <EmbedScope id="auth">
+          <Shape id="lb" anchor="gateway" position="bottom" gap={80} width={100} height={50} />
+          <Shape id="app" anchor="lb" position="bottom" gap={60} width={100} height={50} />
+        </EmbedScope>
+      </canvas>
+    );
+    const result = await render(element);
+    const children = result.children[0].children;
+    const lb = children.find((c: any) => c.props.id === 'auth.lb');
+    const app = children.find((c: any) => c.props.id === 'auth.app');
+    // "lb" inside auth scope → "auth.lb" exists → resolved
+    expect(app.props.anchor).toBe('auth.lb');
+    // "gateway" is not in auth scope (no "auth.gateway") → kept as-is
+    expect(lb.props.anchor).toBe('gateway');
+  });
+
+  it('should resolve anchor in nested EmbedScope', async () => {
+    const element = (
+      <canvas>
+        <EmbedScope id="infra">
+          <Shape id="root" x={0} y={0} width={100} height={50} />
+          <EmbedScope id="aws">
+            <Shape id="vpc" anchor="root" position="bottom" gap={60} width={100} height={50} />
+            <Shape id="ec2" anchor="vpc" position="bottom" gap={60} width={100} height={50} />
+          </EmbedScope>
+        </EmbedScope>
+      </canvas>
+    );
+    const result = await render(element);
+    const children = result.children[0].children;
+    const ec2 = children.find((c: any) => c.props.id === 'infra.aws.ec2');
+    // "vpc" in infra.aws scope → "infra.aws.vpc" exists → resolved
+    expect(ec2.props.anchor).toBe('infra.aws.vpc');
+  });
+
+  it('should resolve MindMap anchor prop to scoped ID', async () => {
+    const element = (
+      <canvas>
+        <Shape id="gateway" x={0} y={0} width={100} height={50} />
+        <EmbedScope id="infra">
+          <Shape id="ref" anchor="gateway" position="right" gap={80} width={100} height={50} />
+          <MindMap id="map" anchor="ref" position="bottom" gap={60}>
+            <Node id="root" text="Root" />
+          </MindMap>
+        </EmbedScope>
+      </canvas>
+    );
+    const result = await render(element);
+    const children = result.children[0].children;
+    const mindmap = children.find((c: any) => c.props.id === 'infra.map');
+    // "ref" in infra scope → "infra.ref" exists → resolved
+    expect(mindmap.props.anchor).toBe('infra.ref');
+  });
+
+  it('should not resolve anchor when scoped candidate does not exist', async () => {
+    const element = (
+      <canvas>
+        <Shape id="external" x={0} y={0} width={100} height={50} />
+        <EmbedScope id="auth">
+          <Shape id="lb" anchor="external" position="bottom" gap={80} width={100} height={50} />
+        </EmbedScope>
+      </canvas>
+    );
+    const result = await render(element);
+    const children = result.children[0].children;
+    const lb = children.find((c: any) => c.props.id === 'auth.lb');
+    // "external" → "auth.external" does NOT exist → kept as-is
+    expect(lb.props.anchor).toBe('external');
+  });
 });
