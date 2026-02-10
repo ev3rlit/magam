@@ -4,12 +4,6 @@
     "include": [],
     "references": [
         {
-            "path": "./apps/client"
-        },
-        {
-            "path": "./apps/api"
-        },
-        {
             "path": "./libs/core"
         },
         {
