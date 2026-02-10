@@ -328,6 +328,27 @@ export default function TODORoadmap() {
 </Group>
 \`\`\``}</Markdown>
                 </Node>
+
+                <Node id="import-component" from="title">
+                    <Markdown>{`### 🧩 캔버스 컴포넌트화
+
+**설명**
+다른 파일의 캔버스/마인드맵을
+컴포넌트로 분리하여 import/export 지원.
+거대해지는 파일을 모듈 단위로 관리.
+
+**사용 예시**
+\`\`\`tsx
+import { NetworkMap } from './Network';
+
+<Canvas>
+  <MindMap id="main">...</MindMap>
+  <NetworkMap /> {/* 외부 컴포넌트 로드 */}
+</Canvas>
+\`\`\`
+
+**우선순위**: 🔴 높음 (유지보수성 핵심)`}</Markdown>
+                </Node>
             </MindMap>
 
             {/* ========== 다이어그램 플러그인 (오른쪽 상단) ========== */}

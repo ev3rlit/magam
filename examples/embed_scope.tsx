@@ -47,10 +47,10 @@ function InfraMap({ anchorId }: { anchorId: string }) {
 export default function EmbedScopeExample() {
     return (
         <Canvas>
-            <Text id="title" x={300} y={20}>Microservices with EmbedScope</Text>
+            <Text id="title" x={0} y={-200}>Microservices with EmbedScope</Text>
 
             {/* Gateway - only element with hardcoded position */}
-            <Shape id="gateway" x={300} y={100} width={140} height={50}>
+            <Shape id="gateway" x={0} y={0} width={140} height={50}>
                 API Gateway
                 <Edge to="auth.lb" label="auth" />
                 <Edge to="billing.lb" label="billing" />
