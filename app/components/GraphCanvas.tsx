@@ -13,6 +13,7 @@ import StickyNode from './nodes/StickyNode';
 import ShapeNode from './nodes/ShapeNode';
 import TextNode from './nodes/TextNode';
 import MarkdownNode from './nodes/MarkdownNode';
+import SequenceDiagramNode from './nodes/SequenceDiagramNode';
 import FloatingEdge from './edges/FloatingEdge';
 import { useElkLayout } from '../hooks/useElkLayout';
 import { resolveAnchors } from '@/utils/anchorResolver';
@@ -31,6 +32,7 @@ function GraphCanvasContent() {
       shape: ShapeNode,
       text: TextNode,
       markdown: MarkdownNode,
+      'sequence-diagram': SequenceDiagramNode,
     }),
     [],
   );

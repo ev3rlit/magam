@@ -53,6 +53,9 @@ interface RenderNode {
     spacing?: number;
     // Semantic zoom
     bubble?: boolean;
+    // Sequence diagram specific
+    participantSpacing?: number;
+    messageSpacing?: number;
     children?: any; // Keep children loosely typed for now as it can be strings/numbers/arrays
   };
   children?: RenderNode[];
@@ -169,9 +172,11 @@ export default function Home() {
           let nodeIdCounter = 0;
           let edgeIdCounter = 0;
           let mindmapIdCounter = 0;
+          let sequenceIdCounter = 0;
 
           // Track MindMap groups for layout
           const mindMapGroups: { id: string; layoutType: 'tree' | 'bidirectional' | 'radial'; basePosition: { x: number; y: number }; spacing?: number; anchor?: string; anchorPosition?: string; anchorGap?: number }[] = [];
+
 
           // Helper to resolve node ID with mindmap scope
           // - If ID contains '.', it's already fully qualified (e.g., "map1.node1")
@@ -256,6 +261,46 @@ export default function Home() {
                 if (child.children && child.children.length > 0) {
                   processChildren(child.children, mmId);
                 }
+              } else if (child.type === 'graph-sequence') {
+                // Sequence diagram: single ReactFlow node containing the entire diagram
+                const seqId = child.props.id || `sequence-${sequenceIdCounter++}`;
+                const participants: { id: string; label: string; className?: string }[] = [];
+                const messages: { from: string; to: string; label?: string; type: string }[] = [];
+
+                (child.children || []).forEach((seqChild: RenderNode) => {
+                  if (seqChild.type === 'graph-participant') {
+                    participants.push({
+                      id: seqChild.props.id || '',
+                      label: seqChild.props.label || seqChild.props.id || '',
+                      className: seqChild.props.className,
+                    });
+                  } else if (seqChild.type === 'graph-message') {
+                    const msgFrom = seqChild.props.from || '';
+                    const msgTo = seqChild.props.to || '';
+                    messages.push({
+                      from: msgFrom,
+                      to: msgTo,
+                      label: seqChild.props.label,
+                      type: msgFrom === msgTo ? 'self' : (seqChild.props.type || 'sync'),
+                    });
+                  }
+                });
+
+                nodes.push({
+                  id: seqId,
+                  type: 'sequence-diagram',
+                  position: { x: child.props.x || 0, y: child.props.y || 0 },
+                  data: {
+                    participants,
+                    messages,
+                    participantSpacing: child.props.participantSpacing ?? 200,
+                    messageSpacing: child.props.messageSpacing ?? 60,
+                    className: child.props.className,
+                    anchor: child.props.anchor,
+                    position: child.props.position,
+                    gap: child.props.gap,
+                  },
+                });
               } else if (child.type === 'graph-node') {
                 // MindMap Node: process as a regular node and create edge from 'from' prop
                 const rawNodeId = child.props.id || `node-${nodeIdCounter++}`;
@@ -434,7 +479,7 @@ export default function Home() {
                   .join('') || child.props.label || child.props.title || child.props.text || '';
 
                 // Create Node Object
-                let nodeType = child.type === 'graph-sticky' ? 'sticky'
+                const nodeType = child.type === 'graph-sticky' ? 'sticky'
                   : child.type === 'graph-text' ? 'text'
                     : 'shape';
 
@@ -495,7 +540,6 @@ export default function Home() {
           processChildren(children);
 
           // Detect if any mindmap nodes exist (they need auto layout)
-          // Use mindMapGroups collected during processing
           const hasMindMap = mindMapGroups.length > 0;
           // For backward compatibility, use first MindMap's layoutType as default
           const layoutType = mindMapGroups[0]?.layoutType || 'tree';
