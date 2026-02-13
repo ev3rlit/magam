@@ -544,7 +544,10 @@ export default function Home() {
           // For backward compatibility, use first MindMap's layoutType as default
           const layoutType = mindMapGroups[0]?.layoutType || 'tree';
 
-          setGraph({ nodes, edges, needsAutoLayout: hasMindMap, layoutType, mindMapGroups });
+          // Extract canvas-level metadata (e.g. background style from code)
+          const canvasBackground = data.graph.meta?.background;
+
+          setGraph({ nodes, edges, needsAutoLayout: hasMindMap, layoutType, mindMapGroups, canvasBackground });
         }
       } catch (error) {
         console.error('Failed to render file:', error);

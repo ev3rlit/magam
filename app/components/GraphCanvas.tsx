@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   Background,
-  Controls,
+  BackgroundVariant,
   OnSelectionChangeParams,
+  Node as FlowNode,
   useNodesInitialized,
   ReactFlowProvider,
   useReactFlow,
@@ -23,7 +24,10 @@ import { BubbleProvider } from '@/contexts/BubbleContext';
 import { BubbleOverlay } from './BubbleOverlay';
 import { Loader2, Check } from 'lucide-react';
 import { FloatingToolbar, InteractionMode } from './FloatingToolbar';
-
+import { useExportImage } from '@/hooks/useExportImage';
+import { ContextMenu } from './ContextMenu';
+import { useContextMenu } from '@/hooks/useContextMenu';
+import { ExportDialog } from './ExportDialog';
 
 function GraphCanvasContent() {
   const nodeTypes = useMemo(
@@ -45,18 +49,37 @@ function GraphCanvasContent() {
     [],
   );
 
-  const { nodes, edges, onNodesChange, onEdgesChange, setSelectedNodes, graphId, needsAutoLayout, layoutType, mindMapGroups } =
-    useGraphStore();
-
+  const {
+    nodes,
+    edges,
+    onNodesChange,
+    onEdgesChange,
+    setSelectedNodes,
+    graphId,
+    needsAutoLayout,
+    layoutType,
+    mindMapGroups,
+    canvasBackground,
+  } = useGraphStore();
 
   const { calculateLayout, isLayouting } = useElkLayout();
   const nodesInitialized = useNodesInitialized();
   const { zoomIn, zoomOut, fitView, getZoom, setNodes } = useReactFlow();
-  const hasLayouted = useRef(false);
-  const lastLayoutedGraphId = useRef<string | null>(null);
+  const { isOpen: isContextMenuOpen, context: contextMenuContext, items: contextMenuItems, openMenu, closeMenu } = useContextMenu();
+  const { copyImageToClipboard } = useExportImage();
+  const [exportDialog, setExportDialog] = useState<{
+    isOpen: boolean;
+    defaultArea: 'selection' | 'full';
+    selectedNodeIds?: string[];
+  }>({
+    isOpen: false,
+    defaultArea: 'full',
+  });
   const [isGraphVisible, setIsGraphVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [interactionMode, setInteractionMode] = useState<InteractionMode>('pointer');
+  const hasLayouted = useRef(false);
+  const lastLayoutedGraphId = useRef<string | null>(null);
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -83,6 +106,75 @@ function GraphCanvasContent() {
       showToast('Fit to view');
     }, 350);
   };
+
+  const selectMindMapGroupByNodeId = useCallback((nodeId: string) => {
+    const node = useGraphStore.getState().nodes.find((item) => item.id === nodeId);
+    const groupId = node?.data?.groupId as string | undefined;
+
+    if (!groupId) {
+      showToast('그룹 정보가 없는 노드입니다.');
+      return;
+    }
+
+    const groupNodeIds = useGraphStore.getState().nodes
+      .filter((item) => item.data?.groupId === groupId)
+      .map((item) => item.id);
+    setSelectedNodes(groupNodeIds);
+    showToast('그룹 노드가 선택되었습니다.');
+  }, [setSelectedNodes, showToast]);
+
+  const contextMenuActions = useMemo(() => ({
+    fitView: () => {
+      handleFitView();
+    },
+    copyImageToClipboard: (ids?: string[]) => {
+      return copyImageToClipboard(ids);
+    },
+    openExportDialog: (scope: 'selection' | 'full', selectedNodeIds?: string[]) => {
+      setExportDialog({
+        isOpen: true,
+        defaultArea: scope === 'selection' ? 'selection' : 'full',
+        selectedNodeIds: scope === 'selection' ? selectedNodeIds : undefined,
+      });
+    },
+    selectMindMapGroupByNodeId,
+  }), [copyImageToClipboard, handleFitView, selectMindMapGroupByNodeId]);
+
+  const onNodeContextMenu = useCallback(
+    (event: React.MouseEvent, node: FlowNode) => {
+      event.preventDefault();
+      const currentSelectedIds = useGraphStore.getState().selectedNodeIds;
+      const nextSelectedIds = currentSelectedIds.includes(node.id)
+        ? currentSelectedIds
+        : [node.id];
+      openMenu({
+        type: 'node',
+        position: { x: event.clientX, y: event.clientY },
+        nodeId: node.id,
+        selectedNodeIds: nextSelectedIds,
+        actions: contextMenuActions,
+      });
+    },
+    [openMenu, contextMenuActions],
+  );
+
+  const onPaneContextMenu = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+      openMenu({
+        type: 'pane',
+        position: { x: event.clientX, y: event.clientY },
+        selectedNodeIds: [],
+        actions: contextMenuActions,
+      });
+    },
+    [contextMenuActions, openMenu],
+  );
+
+  const onCloseContextMenu = useCallback(() => {
+    closeMenu();
+  }, [closeMenu]);
+
 
   // Reset layout state when new graph is loaded
   useEffect(() => {
@@ -227,7 +319,7 @@ function GraphCanvasContent() {
          We wait until isGraphVisible is true.
       */}
       <div
-        className="w-full h-full min-h-[500px] flex-1 bg-background transition-opacity duration-300"
+        className="w-full h-full min-h-[500px] flex-1 bg-white transition-opacity duration-300"
         style={{ opacity: isGraphVisible ? 1 : 0 }}
       >
         <ReactFlow
@@ -235,6 +327,8 @@ function GraphCanvasContent() {
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
+          onNodeContextMenu={onNodeContextMenu}
+          onPaneContextMenu={onPaneContextMenu}
           onSelectionChange={onSelectionChange}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
@@ -255,7 +349,14 @@ function GraphCanvasContent() {
           }}
           proOptions={{ hideAttribution: true }}
         >
-          <Background gap={24} size={1} color="#cbd5e1" />
+          {canvasBackground !== 'solid' && (
+            <Background
+              variant={canvasBackground === 'lines' ? BackgroundVariant.Lines : BackgroundVariant.Dots}
+              gap={24}
+              size={1}
+              color="#cbd5e1"
+            />
+          )}
 
           <FloatingToolbar
             interactionMode={interactionMode}
@@ -265,6 +366,24 @@ function GraphCanvasContent() {
             onFitView={handleFitView}
           />
         </ReactFlow>
+
+        {isContextMenuOpen && contextMenuContext && contextMenuItems.length > 0 && (
+          <ContextMenu
+            isOpen={isContextMenuOpen}
+            position={contextMenuContext.position}
+            items={contextMenuItems}
+            context={contextMenuContext}
+            onClose={onCloseContextMenu}
+          />
+        )}
+
+        <ExportDialog
+          isOpen={exportDialog.isOpen}
+          defaultArea={exportDialog.defaultArea}
+          selectedNodeIds={exportDialog.selectedNodeIds}
+          onClose={() => setExportDialog({ isOpen: false, defaultArea: 'full' })}
+        />
+
         {/* Bubble overlay - renders all bubbles above nodes */}
         <BubbleOverlay />
 
@@ -297,4 +416,3 @@ export function GraphCanvas() {
     </div>
   );
 }
-

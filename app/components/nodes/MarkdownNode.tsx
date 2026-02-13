@@ -53,9 +53,9 @@ const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
             );
         },
         code: ({ node, className, children, ...props }: any) => {
-            // @ts-ignore
+            // @ts-expect-error className shape comes from react-markdown internals
             const match = /language-(\w+)/.exec(className || '');
-            // @ts-ignore
+            // @ts-expect-error inline prop comes from react-markdown internals
             const { inline } = props;
 
             return !inline ? (

@@ -9,6 +9,8 @@ import {
   applyEdgeChanges,
 } from 'reactflow';
 
+export type CanvasBackgroundStyle = 'dots' | 'lines' | 'solid';
+
 export interface AppError {
   message: string;
   type?: string;
@@ -55,7 +57,7 @@ export interface GraphState {
   needsAutoLayout: boolean; // true for MindMap, false for Canvas with explicit positions
   layoutType: 'tree' | 'bidirectional' | 'radial'; // Layout algorithm type (legacy, for single MindMap)
   mindMapGroups: MindMapGroup[]; // Multiple MindMap support
-  setGraph: (graph: { nodes: Node[]; edges: Edge[]; needsAutoLayout?: boolean; layoutType?: 'tree' | 'bidirectional' | 'radial'; mindMapGroups?: MindMapGroup[] }) => void;
+  setGraph: (graph: { nodes: Node[]; edges: Edge[]; needsAutoLayout?: boolean; layoutType?: 'tree' | 'bidirectional' | 'radial'; mindMapGroups?: MindMapGroup[]; canvasBackground?: CanvasBackgroundStyle }) => void;
   setFiles: (files: string[]) => void;
   setFileTree: (tree: FileTreeNode | null) => void;
   toggleFolder: (path: string) => void;
@@ -63,6 +65,8 @@ export interface GraphState {
   setStatus: (status: GraphState['status']) => void;
   setError: (error: AppError | null) => void;
   setSelectedNodes: (selectedNodeIds: string[]) => void;
+  canvasBackground: CanvasBackgroundStyle;
+  setCanvasBackground: (style: CanvasBackgroundStyle) => void;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
 }
@@ -80,8 +84,9 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   selectedNodeIds: [],
   needsAutoLayout: false,
   layoutType: 'tree',
+  canvasBackground: 'dots',
   mindMapGroups: [],
-  setGraph: ({ nodes, edges, needsAutoLayout = false, layoutType = 'tree', mindMapGroups = [] }) => set({ nodes, edges, needsAutoLayout, layoutType, mindMapGroups, graphId: uuidv4() }),
+  setGraph: ({ nodes, edges, needsAutoLayout = false, layoutType = 'tree', mindMapGroups = [], canvasBackground }) => set({ nodes, edges, needsAutoLayout, layoutType, mindMapGroups, graphId: uuidv4(), ...(canvasBackground ? { canvasBackground } : {}) }),
   setFiles: (files) => set({ files }),
   setFileTree: (fileTree) => set({ fileTree }),
   toggleFolder: (path) => set((state) => {
@@ -96,6 +101,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   setCurrentFile: (currentFile) => set({ currentFile }),
   setStatus: (status) => set({ status }),
   setError: (error) => set({ error }),
+  setCanvasBackground: (canvasBackground) => set({ canvasBackground }),
   setSelectedNodes: (selectedNodeIds) => set({ selectedNodeIds }),
   onNodesChange: (changes) => {
     set({
