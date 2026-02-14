@@ -2,7 +2,7 @@
 
 ## Problem Description
 
-When using GraphWrite within a Next.js application (via `/api/render` route), we encounter a conflict between Next.js's server-side React and the client-side React required by `react-reconciler`.
+When using Magam within a Next.js application (via `/api/render` route), we encounter a conflict between Next.js's server-side React and the client-side React required by `react-reconciler`.
 
 ### The Core Issue
 
@@ -13,7 +13,7 @@ Next.js Route Handlers run in a "React Server Components" environment by default
 
 ### Why This Matters
 
-GraphWrite uses `react-reconciler` to create a custom renderer that converts React elements to graph structures. The reconciler absolutely requires access to React internals that only exist in the "client" version of React.
+Magam uses `react-reconciler` to create a custom renderer that converts React elements to graph structures. The reconciler absolutely requires access to React internals that only exist in the "client" version of React.
 
 ## Current Workaround
 
@@ -62,7 +62,7 @@ const internals = ReactClient.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED
 
 ### Option 1: Separate Worker Process
 
-Run GraphWrite rendering in a completely separate Node.js process:
+Run Magam rendering in a completely separate Node.js process:
 
 ```typescript
 // Spawn isolated worker
@@ -79,7 +79,7 @@ Compile core rendering to WebAssembly:
 
 ```typescript
 export const runtime = 'edge';
-const { renderToGraph } = await import('./graphwrite.wasm');
+const { renderToGraph } = await import('./magam.wasm');
 ```
 
 **Pros**: Consistent environment, fast cold starts
@@ -116,7 +116,7 @@ const graphs = await Promise.all(files.map(renderToGraph));
 
 For production stability, we recommend **Option 3: Dedicated Render Server**:
 
-1. Create a minimal Fastify server with GraphWrite
+1. Create a minimal Fastify server with Magam
 2. Run alongside Next.js app
 3. Proxy requests from Next.js API route to render server
 4. Use WebSocket for real-time updates

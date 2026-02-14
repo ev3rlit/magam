@@ -3,7 +3,7 @@ import { stat, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { NextResponse } from 'next/server';
 
-const WORKSPACE_ROOT = path.resolve(process.env.GRAPHWRITE_TARGET_DIR || process.cwd());
+const WORKSPACE_ROOT = path.resolve(process.env.MAGAM_TARGET_DIR || process.cwd());
 
 const ALLOWED_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg']);
 

@@ -28,12 +28,12 @@ describe('initProject', () => {
     await initProject(cwd);
 
     expect(mkdir).toHaveBeenCalledWith(
-      join(cwd, '.graphwrite', 'node_modules', 'graphwrite'),
+      join(cwd, '.magam', 'node_modules', 'magam'),
       { recursive: true },
     );
 
     expect(writeFile).toHaveBeenCalledWith(
-      join(cwd, '.graphwrite', 'node_modules', 'graphwrite', 'index.d.ts'),
+      join(cwd, '.magam', 'node_modules', 'magam', 'index.d.ts'),
       expect.stringContaining('export declare const Canvas'),
     );
 

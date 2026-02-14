@@ -1,6 +1,6 @@
 import { parentPort, workerData } from 'worker_threads';
 import { existsSync } from 'fs';
-import { setupWorkerModuleResolution } from '@graphwrite/shared';
+import { setupWorkerModuleResolution } from '@magam/shared';
 
 async function run() {
   const { filePath, modulesPath, localDistPath } = workerData;
@@ -16,11 +16,11 @@ async function run() {
     // This allows the shim to intercept it if needed, or module.paths to find it
     let renderToGraph;
     try {
-      const core = require('@graphwrite/core');
+      const core = require('@magam/core');
       renderToGraph = core.renderToGraph;
     } catch (e) {
       throw new Error(
-        `Could not load @graphwrite/core: ${(e as Error).message}`,
+        `Could not load @magam/core: ${(e as Error).message}`,
       );
     }
 

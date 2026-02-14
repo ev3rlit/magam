@@ -1,4 +1,4 @@
-# GraphWrite Tabs 기능 구현 계획서
+# Magam Tabs 기능 구현 계획서
 
 ## 1. 문서 목적 및 범위
 - 본 문서는 `docs/features/tabs/README.md`(PRD)를 구현 가능한 엔지니어링 계획으로 구체화한다.

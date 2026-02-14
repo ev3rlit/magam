@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
-  const httpPort = process.env.GRAPHWRITE_HTTP_PORT || '3002';
+  const httpPort = process.env.MAGAM_HTTP_PORT || '3002';
 
   try {
     const body = await request.json();

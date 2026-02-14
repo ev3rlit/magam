@@ -1,5 +1,5 @@
 {
-  "name": "@graphwrite/shared",
+  "name": "@magam/shared",
   "version": "0.0.1",
   "type": "commonjs",
   "main": "./dist/index.js",

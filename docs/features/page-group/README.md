@@ -31,7 +31,7 @@ Whiteboard (프로젝트)
 
 ```
 my-project/
-├── graphwrite.config.ts      # 프로젝트 설정, 페이지 목록
+├── magam.config.ts      # 프로젝트 설정, 페이지 목록
 ├── pages/
 │   ├── overview.tsx          # 페이지 1
 │   ├── architecture.tsx      # 페이지 2
@@ -41,7 +41,7 @@ my-project/
     └── database-layer.tsx    # 재사용 그룹
 ```
 
-### graphwrite.config.ts
+### magam.config.ts
 
 ```ts
 export default {
@@ -57,7 +57,7 @@ export default {
 ### pages/architecture.tsx
 
 ```tsx
-import { Canvas, Sticky, Edge } from 'graphwrite'
+import { Canvas, Sticky, Edge } from 'magam'
 import { ApiLayer } from '../components/api-layer'
 import { DatabaseLayer } from '../components/database-layer'
 
@@ -75,7 +75,7 @@ export default function Architecture() {
 ### components/api-layer.tsx
 
 ```tsx
-import { Group, Shape, Text } from 'graphwrite'
+import { Group, Shape, Text } from 'magam'
 
 export function ApiLayer({ x, y }: { x: number, y: number }) {
   return (

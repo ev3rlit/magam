@@ -48,10 +48,10 @@ export const TabBar: React.FC<TabBarProps> = ({
                 role="presentation"
               >
                 <button
-                  id={`graphwrite-tab-${tab.tabId}`}
+                  id={`magam-tab-${tab.tabId}`}
                   role="tab"
                   aria-selected={isActive}
-                  aria-controls={`graphwrite-tabpanel-${tab.tabId}`}
+                  aria-controls={`magam-tabpanel-${tab.tabId}`}
                   onClick={() => onActivate(tab.tabId)}
                   className="min-w-0 flex-1 text-left"
                   type="button"

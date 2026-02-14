@@ -2,7 +2,7 @@
 
 ## 1. 배경
 
-현재 GraphWrite는 양방향 편집(UI에서 직접 캔버스 조작 후 코드 반영) 기능이 없습니다.  
+현재 Magam는 양방향 편집(UI에서 직접 캔버스 조작 후 코드 반영) 기능이 없습니다.  
 따라서 사용자는 캔버스 UI에서 이미지를 추가/수정할 수 없고, 결과적으로 **React 코드 작성 경로**가 유일한 생산 경로입니다.
 
 이미지 기능도 동일하게 코드 우선으로 설계해야 하며, 사용자가 이미지 파일을 로드한 뒤 컴포넌트 형태로 TSX에 안전하게 삽입할 수 있어야 합니다.
@@ -208,7 +208,7 @@ input(source, mode, target)
 ### 8.3 인터페이스 제안 (예시)
 
 ```bash
-graphwrite image insert \
+magam image insert \
   --file examples/TODO.tsx \
   --source ./tmp/logo.png \
   --mode shape \

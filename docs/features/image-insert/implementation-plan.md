@@ -1,4 +1,4 @@
-# Image Insert 구현 계획 (GraphWrite)
+# Image Insert 구현 계획 (Magam)
 
 ## 1. 문서 목적과 범위
 
@@ -244,7 +244,7 @@
     - `--width`, `--height`, `--x`, `--y` 숫자 파싱 실패
     - `--fit` 허용값 검사(`cover|contain|fill|none|scale-down`)
   - `resolveWorkspaceRoot`
-    - `GRAPHWRITE_TARGET_DIR` 사용
+    - `MAGAM_TARGET_DIR` 사용
     - 미설정 시 `process.cwd()` 기반 계산
   - `resolveFileInWorkspace`
     - 상대 경로 파일이 루트 내부로 변환되는지
@@ -275,7 +275,7 @@
     - `patchMarkdown`: `<Markdown>` 태그 존재, Node 하위 Markdown fallback, target 미스매치 실패
     - `patchShapeImage`: `Shape` self-closing + opening/closing 양식에서 `imageSrc`, `imageFit` 설정
   - `ensureImageImport`
-    - 기존 `@graphwrite/core` import 존재/미존재 케이스
+    - 기존 `@magam/core` import 존재/미존재 케이스
     - `Image` specifier 중복 없이 추가
 
 - API 라우트 단위 테스트(함수 분리 시 적용)

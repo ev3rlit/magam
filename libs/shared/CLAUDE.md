@@ -1,16 +1,16 @@
 # CLAUDE.md
 
-Module resolution utilities shared between CLI, runtime, and user code. Solves the problem of making `require('@graphwrite/core')` and `require('react')` work inside dynamically-generated temp files.
+Module resolution utilities shared between CLI, runtime, and user code. Solves the problem of making `require('@magam/core')` and `require('react')` work inside dynamically-generated temp files.
 
 ## Core Problem
 
-When the executor writes transpiled user code to a temp file in `os.tmpdir()`, Node's `require()` can't find `@graphwrite/core` or `react` because the temp file isn't inside the project's `node_modules` tree. This package provides two strategies to fix that.
+When the executor writes transpiled user code to a temp file in `os.tmpdir()`, Node's `require()` can't find `@magam/core` or `react` because the temp file isn't inside the project's `node_modules` tree. This package provides two strategies to fix that.
 
 ## Key Functions
 
 ### resolveModulePaths(baseDir: string): ResolvedPaths
 
-Determines where `@graphwrite/core` and `react` live on disk.
+Determines where `@magam/core` and `react` live on disk.
 
 ```typescript
 interface ResolvedPaths {
@@ -22,7 +22,7 @@ interface ResolvedPaths {
 ```
 
 Resolution strategy:
-1. Try `require.resolve('@graphwrite/core')` — if path contains `node_modules`, use installed mode
+1. Try `require.resolve('@magam/core')` — if path contains `node_modules`, use installed mode
 2. Otherwise try fallback dist paths: `${baseDir}/dist/libs/core/index.js` or `${baseDir}/../../dist/libs/core/index.js`
 
 ### generateRequireShim(paths: ResolvedPaths): string
@@ -37,7 +37,7 @@ module.paths.push('${modulesPath}');
 **Monorepo mode** — Monkey-patches require to intercept known modules:
 ```javascript
 require = function(id) {
-  if (id === '@graphwrite/core') return _localCore;
+  if (id === '@magam/core') return _localCore;
   if (id === 'react') return _react;
   if (id === 'react/jsx-runtime') return _reactJsx;
   return _originalRequire.apply(this, arguments);
@@ -48,11 +48,11 @@ Also injects `global.React` and local `const React` for JSX.
 
 ### createModuleInterceptor(moduleName, resolvePath): void
 
-Monkey-patches `Module._load` to intercept imports of a specific module. Used at CLI startup to make `require('@graphwrite/core')` work everywhere in the process.
+Monkey-patches `Module._load` to intercept imports of a specific module. Used at CLI startup to make `require('@magam/core')` work everywhere in the process.
 
 ### createCoreInterceptor(dirname, relativePath): void
 
-Convenience wrapper for `createModuleInterceptor` specifically for `@graphwrite/core`.
+Convenience wrapper for `createModuleInterceptor` specifically for `@magam/core`.
 
 ### setupWorkerModuleResolution(): void
 

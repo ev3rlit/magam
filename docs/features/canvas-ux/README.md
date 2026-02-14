@@ -1,8 +1,8 @@
-# graphwrite Canvas UX & Design Guidelines
+# magam Canvas UX & Design Guidelines
 
 ## Overview
 
-본 문서는 graphwrite 캔버스의 시각적 디자인과 사용자 경험을 정의합니다. FigJam을 레퍼런스로 하되, 깔끔한 벡터 그래픽 스타일로 친근하면서도 전문적인 느낌을 지향합니다.
+본 문서는 magam 캔버스의 시각적 디자인과 사용자 경험을 정의합니다. FigJam을 레퍼런스로 하되, 깔끔한 벡터 그래픽 스타일로 친근하면서도 전문적인 느낌을 지향합니다.
 
 ## Design Principles
 

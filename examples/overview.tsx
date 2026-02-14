@@ -1,4 +1,4 @@
-import { Canvas, Sticky, Shape, Edge, Text } from '@graphwrite/core';
+import { Canvas, Sticky, Shape, Edge, Text } from '@magam/core';
 
 /**
  * Overview Example

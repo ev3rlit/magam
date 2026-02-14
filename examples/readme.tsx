@@ -1,6 +1,6 @@
-import { Canvas, MindMap, Node, Markdown } from '@graphwrite/core';
+import { Canvas, MindMap, Node, Markdown } from '@magam/core';
 
-export default function GraphWriteIntro() {
+export default function MagamIntro() {
     return (
         <Canvas>
             <MindMap layout="tree" spacing={80}>
@@ -8,7 +8,7 @@ export default function GraphWriteIntro() {
                 {/* Root: Philosophy */}
                 <Node id="root">
                     <Markdown>
-                        {`# GraphWrite
+                        {`# Magam
 > **"The future of knowledge work is not 'drawing' but 'describing'."**
 
 Stop drawing by hand.
@@ -19,7 +19,7 @@ Stop drawing by hand.
                 {/* Motivation: Why? */}
                 <Node id="why" from="root">
                     <Markdown>
-                        {`### Why GraphWrite?
+                        {`### Why Magam?
 - **Speed**: Faster than hand-drawing
 - **Clarity**: Clear intent preserved in code
 - **Archiving**: Permanent text-based storage`}
@@ -35,7 +35,7 @@ Not Mobile-First.
 
 1. User: "Describe intent in natural language"
 2. AI: "Convert to React code"
-3. GraphWrite: "Render on screen"`}
+3. Magam: "Render on screen"`}
                     </Markdown>
                 </Node>
 

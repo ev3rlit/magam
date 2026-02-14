@@ -87,7 +87,7 @@ if (command === 'dev') {
     wsPort = await getAvailablePort(wsPort + 1);
   }
 
-  console.log(`🚀 Starting GraphWrite dev server...`);
+  console.log(`🚀 Starting Magam dev server...`);
   console.log(`📁 Target directory: ${absoluteTargetDir}`);
   console.log(`🔧 HTTP render server: ${httpPort}`);
 
@@ -115,7 +115,7 @@ if (command === 'dev') {
     ],
     env: {
       ...process.env,
-      GRAPHWRITE_HTTP_PORT: httpPort.toString(),
+      MAGAM_HTTP_PORT: httpPort.toString(),
     },
     stdio: ['inherit', 'inherit', 'inherit'],
   });
@@ -139,9 +139,9 @@ if (command === 'dev') {
     cwd: './app',
     env: {
       ...process.env,
-      GRAPHWRITE_TARGET_DIR: absoluteTargetDir,
-      GRAPHWRITE_HTTP_PORT: httpPort.toString(),
-      NEXT_PUBLIC_GRAPHWRITE_WS_PORT: wsPort.toString(),
+      MAGAM_TARGET_DIR: absoluteTargetDir,
+      MAGAM_HTTP_PORT: httpPort.toString(),
+      NEXT_PUBLIC_MAGAM_WS_PORT: wsPort.toString(),
     },
     stdio: ['inherit', 'inherit', 'inherit'],
   });
@@ -151,8 +151,8 @@ if (command === 'dev') {
     cmd: ['bun', 'run', join(process.cwd(), 'app/ws/server.ts')],
     env: {
       ...process.env,
-      GRAPHWRITE_WS_PORT: wsPort.toString(),
-      GRAPHWRITE_TARGET_DIR: absoluteTargetDir,
+      MAGAM_WS_PORT: wsPort.toString(),
+      MAGAM_TARGET_DIR: absoluteTargetDir,
     },
     stdio: ['inherit', 'inherit', 'inherit'],
   });

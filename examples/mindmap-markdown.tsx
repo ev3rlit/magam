@@ -1,19 +1,19 @@
-import { Canvas, MindMap, Node, Markdown } from '@graphwrite/core';
+import { Canvas, MindMap, Node, Markdown } from '@magam/core';
 
 /**
  * Markdown Showcase Example
  * 
- * Demonstrates all Markdown features available in GraphWrite
+ * Demonstrates all Markdown features available in Magam
  */
 export default function MarkdownShowcaseExample() {
     return (
         <Canvas>
             <MindMap layout="tree" spacing={100}>
 
-                {/* Root: GraphWrite */}
+                {/* Root: Magam */}
                 <Node id="root">
                     <Markdown>
-                        {`# 📝 GraphWrite
+                        {`# 📝 Magam
 
 > **Describe, Don't Draw.**
 

@@ -1,4 +1,4 @@
-import { Canvas, Shape, Edge, Text, EmbedScope, MindMap, Node } from '@graphwrite/core';
+import { Canvas, Shape, Edge, Text, EmbedScope, MindMap, Node } from '@magam/core';
 
 /**
  * EmbedScope Example

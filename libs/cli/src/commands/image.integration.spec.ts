@@ -12,7 +12,7 @@ const PNG_BYTES = Buffer.from([
 let workspaceRoot: string;
 
 async function writeTempWorkspace() {
-  workspaceRoot = await mkdtemp(path.join(tmpdir(), 'graphwrite-image-integration-'));
+  workspaceRoot = await mkdtemp(path.join(tmpdir(), 'magam-image-integration-'));
   await mkdir(path.join(workspaceRoot, 'assets', 'images'), { recursive: true });
 }
 
@@ -22,7 +22,7 @@ async function readWorkspaceFiles(): Promise<string[]> {
 
 function toCode(filePath: string): string {
   return `
-import { Canvas, Node, Markdown, Shape, Image } from '@graphwrite/core';
+import { Canvas, Node, Markdown, Shape, Image } from '@magam/core';
 
 <Canvas>
   ${filePath}
@@ -32,8 +32,8 @@ import { Canvas, Node, Markdown, Shape, Image } from '@graphwrite/core';
 
 describe('image insert integration', () => {
   beforeEach(async () => {
-    process.env.GRAPHWRITE_TARGET_DIR = '';
-    vi.spyOn(process, 'cwd').mockReturnValue(workspaceRoot = await mkdtemp(path.join(tmpdir(), 'graphwrite-image-integration-')));
+    process.env.MAGAM_TARGET_DIR = '';
+    vi.spyOn(process, 'cwd').mockReturnValue(workspaceRoot = await mkdtemp(path.join(tmpdir(), 'magam-image-integration-')));
     await mkdir(path.join(workspaceRoot, 'assets', 'images'), { recursive: true });
   });
 

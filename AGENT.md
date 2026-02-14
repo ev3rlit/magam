@@ -5,7 +5,7 @@ It is based on current source code, not only high-level docs.
 
 ## 1) Project Snapshot
 
-GraphWrite is an AI-native programmatic whiteboard:
+Magam is an AI-native programmatic whiteboard:
 - Users write diagram code in `.tsx` files.
 - The backend transpiles + executes those files.
 - A custom React reconciler converts React elements to graph AST.
@@ -34,14 +34,14 @@ bun run build:core && bun --watch run cli.ts dev ./notes
 ```
 
 `cli.ts dev` starts 3 processes and auto-picks available ports:
-- HTTP render server (`libs/cli/src/bin.ts serve`) on `GRAPHWRITE_HTTP_PORT` (default 3002)
+- HTTP render server (`libs/cli/src/bin.ts serve`) on `MAGAM_HTTP_PORT` (default 3002)
 - Next.js app (`app/`) on selected `-p` (default tries 3000)
-- WebSocket file-sync server (`app/ws/server.ts`) on `NEXT_PUBLIC_GRAPHWRITE_WS_PORT`/`GRAPHWRITE_WS_PORT` (default 3001)
+- WebSocket file-sync server (`app/ws/server.ts`) on `NEXT_PUBLIC_MAGAM_WS_PORT`/`MAGAM_WS_PORT` (default 3001)
 
 Important env flow:
-- `GRAPHWRITE_TARGET_DIR`: directory containing user `.tsx` files
-- `GRAPHWRITE_HTTP_PORT`: used by Next API proxies
-- `NEXT_PUBLIC_GRAPHWRITE_WS_PORT`: consumed by browser `useFileSync`
+- `MAGAM_TARGET_DIR`: directory containing user `.tsx` files
+- `MAGAM_HTTP_PORT`: used by Next API proxies
+- `NEXT_PUBLIC_MAGAM_WS_PORT`: consumed by browser `useFileSync`
 
 ## 3) End-to-End Render Pipeline
 
@@ -52,7 +52,7 @@ Important env flow:
    - resolves file path against `targetDir`
    - transpiles TSX with esbuild (`libs/cli/src/core/transpiler.ts`)
    - executes transpiled module (`libs/cli/src/core/executor.ts`)
-5. Executor calls `renderToGraph` from `@graphwrite/core`.
+5. Executor calls `renderToGraph` from `@magam/core`.
 6. Frontend parses graph AST into React Flow nodes/edges (`app/app/page.tsx`).
 7. Client layout runs in `useElkLayout` (`app/hooks/useElkLayout.ts`).
 8. Canvas renders in `GraphCanvas` (`app/components/GraphCanvas.tsx`).
@@ -87,8 +87,8 @@ Main frontend files:
   - `GET /files`
   - `GET /file-tree`
   - `GET /health`
-- Transpile config bundles user code and keeps `react`/`@graphwrite/core` external
-- Executor injects require shim from `@graphwrite/shared` to load modules from temp files
+- Transpile config bundles user code and keeps `react`/`@magam/core` external
+- Executor injects require shim from `@magam/shared` to load modules from temp files
 
 ## 5) Commands You Will Actually Use
 

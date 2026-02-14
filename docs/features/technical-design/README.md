@@ -1,8 +1,8 @@
-# graphwrite Technical Design Document
+# magam Technical Design Document
 
 ## Overview
 
-graphwrite는 코드로 다이어그램을 작성하는 도구입니다. "Remotion for Diagrams"를 컨셉으로, 사용자는 React 컴포넌트 기반의 `.tsx` 파일을 작성하고, AI 에이전트와 MCP를 통해 협업하며, 웹 뷰어에서 실시간으로 결과를 확인합니다.
+magam는 코드로 다이어그램을 작성하는 도구입니다. "Remotion for Diagrams"를 컨셉으로, 사용자는 React 컴포넌트 기반의 `.tsx` 파일을 작성하고, AI 에이전트와 MCP를 통해 협업하며, 웹 뷰어에서 실시간으로 결과를 확인합니다.
 
 ## Design Principles
 
@@ -21,10 +21,10 @@ graphwrite는 코드로 다이어그램을 작성하는 도구입니다. "Remoti
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    @graphwrite/cli                          │
+│                    @magam/cli                          │
 │                                                             │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
-│  │   MCP       │  │  Transpiler │  │   @graphwrite/core  │ │
+│  │   MCP       │  │  Transpiler │  │   @magam/core  │ │
 │  │   Server    │  │  (esbuild)  │  │   (내장)            │ │
 │  └──────┬──────┘  └──────┬──────┘  └─────────────────────┘ │
 │         │                │                                  │
@@ -50,7 +50,7 @@ graphwrite는 코드로 다이어그램을 작성하는 도구입니다. "Remoti
 1. 사용자가 .tsx 파일 저장
 2. File Watcher가 변경 감지
 3. Transpiler가 .tsx → JavaScript 변환
-4. import 'graphwrite' → 내장 core 모듈로 resolve
+4. import 'magam' → 내장 core 모듈로 resolve
 5. Canvas Engine이 React 트리 → 그래프 데이터 변환
 6. WebSocket으로 브라우저에 전송
 7. React Flow가 렌더링
@@ -63,7 +63,7 @@ graphwrite는 코드로 다이어그램을 작성하는 도구입니다. "Remoti
 2. AI: canvas.getState() 호출 → 현재 상태 파악
 3. AI: code.read() 호출 → 현재 코드 확인
 4. AI: 코드 수정 후 code.write() 호출
-5. graphwrite: 파일 변경 감지 → 리렌더링
+5. magam: 파일 변경 감지 → 리렌더링
 ```
 
 ---
@@ -73,9 +73,9 @@ graphwrite는 코드로 다이어그램을 작성하는 도구입니다. "Remoti
 ### Monorepo 구성
 
 ```
-graphwrite/
+magam/
 ├── packages/
-│   ├── core/                      # @graphwrite/core
+│   ├── core/                      # @magam/core
 │   │   ├── src/
 │   │   │   ├── components/
 │   │   │   │   ├── Canvas.tsx
@@ -99,7 +99,7 @@ graphwrite/
 │   │   ├── tsconfig.json
 │   │   └── tsup.config.ts
 │   │
-│   └── cli/                       # @graphwrite/cli
+│   └── cli/                       # @magam/cli
 │       ├── src/
 │       │   ├── cli.ts             # CLI 진입점
 │       │   │
@@ -142,15 +142,15 @@ graphwrite/
 
 | 패키지 | npm 공개 | 역할 |
 |--------|---------|------|
-| @graphwrite/core | O | React 컴포넌트 라이브러리 |
-| @graphwrite/cli | O | 서버 + MCP + 트랜스파일러 + 뷰어 |
+| @magam/core | O | React 컴포넌트 라이브러리 |
+| @magam/cli | O | 서버 + MCP + 트랜스파일러 + 뷰어 |
 
 ### 의존성 관계
 
 ```
-@graphwrite/cli
+@magam/cli
     │
-    ├── @graphwrite/core (내장)
+    ├── @magam/core (내장)
     ├── @nestjs/core
     ├── @modelcontextprotocol/sdk
     ├── esbuild
@@ -169,10 +169,10 @@ graphwrite/
 cd ~/my-diagrams
 
 # 2. 바로 실행
-npx @graphwrite/cli dev
+npx @magam/cli dev
 
 # 3. 출력
-🚀 graphwrite running at http://localhost:3000
+🚀 magam running at http://localhost:3000
 📁 Watching: ~/my-diagrams
 ```
 
@@ -196,7 +196,7 @@ npx @graphwrite/cli dev
 
 ```tsx
 // overview.tsx
-import { Canvas, Sticky, Shape, Edge } from 'graphwrite'
+import { Canvas, Sticky, Shape, Edge } from 'magam'
 
 export default function Overview() {
   return (
@@ -217,7 +217,7 @@ export default function Overview() {
 
 | 제약 | 이유 |
 |------|------|
-| `graphwrite`만 import 가능 | CLI가 resolve할 수 있는 것만 |
+| `magam`만 import 가능 | CLI가 resolve할 수 있는 것만 |
 | 외부 npm 패키지 불가 | node_modules 없음 |
 | 상대 경로 import 허용 | `./components/xxx` |
 
@@ -225,13 +225,13 @@ export default function Overview() {
 
 ```bash
 # 현재 폴더에서 실행
-npx @graphwrite/cli dev
+npx @magam/cli dev
 
 # 특정 폴더 지정
-npx @graphwrite/cli dev ./my-diagrams
+npx @magam/cli dev ./my-diagrams
 
 # 포트 지정
-npx @graphwrite/cli dev --port 4000
+npx @magam/cli dev --port 4000
 ```
 
 ---
@@ -557,7 +557,7 @@ Edge는 두 가지 방식으로 사용할 수 있습니다. **자식 방식을 �
 // 응답
 {
   filepath: "/Users/me/diagrams/architecture.tsx",
-  content: "import { Canvas, Sticky } from 'graphwrite'\n\nexport default..."
+  content: "import { Canvas, Sticky } from 'magam'\n\nexport default..."
 }
 ```
 
@@ -568,7 +568,7 @@ Edge는 두 가지 방식으로 사용할 수 있습니다. **자식 방식을 �
 ```typescript
 // 요청
 {
-  content: "import { Canvas, Sticky } from 'graphwrite'...",
+  content: "import { Canvas, Sticky } from 'magam'...",
   pageId: "architecture"
 }
 
@@ -662,7 +662,7 @@ Edge는 두 가지 방식으로 사용할 수 있습니다. **자식 방식을 �
 
 ```tsx
 // overview.tsx
-import { Canvas, Sticky, Shape, Text, Edge } from 'graphwrite'
+import { Canvas, Sticky, Shape, Text, Edge } from 'magam'
 
 export default function Overview() {
   return (
@@ -693,7 +693,7 @@ export default function Overview() {
 
 ```tsx
 // components/api-layer.tsx
-import { Group, Shape, Text, Edge } from 'graphwrite'
+import { Group, Shape, Text, Edge } from 'magam'
 
 export function ApiLayer({ x, y }: { x: number, y: number }) {
   return (
@@ -719,7 +719,7 @@ export function ApiLayer({ x, y }: { x: number, y: number }) {
 
 ```tsx
 // architecture.tsx
-import { Canvas } from 'graphwrite'
+import { Canvas } from 'magam'
 import { ApiLayer } from './components/api-layer'
 import { DatabaseLayer } from './components/database-layer'
 
@@ -740,7 +740,7 @@ export default function Architecture() {
 
 ```tsx
 // learning.tsx
-import { Canvas, MindMap, Node } from 'graphwrite'
+import { Canvas, MindMap, Node } from 'magam'
 
 export default function Learning() {
   return (

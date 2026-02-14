@@ -515,7 +515,7 @@ export function useExportImage(): ExportReturn {
       ? filename.endsWith(`.${ext}`)
         ? filename
         : `${filename}.${ext}`
-      : `graphwrite-export-${Date.now()}.${ext}`;
+      : `magam-export-${Date.now()}.${ext}`;
 
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

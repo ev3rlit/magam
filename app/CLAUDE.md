@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Next.js 15 App Router frontend for GraphWrite. Renders graph AST from the HTTP render server onto a ReactFlow canvas.
+Next.js 15 App Router frontend for Magam. Renders graph AST from the HTTP render server onto a ReactFlow canvas.
 
 ## Architecture
 
@@ -117,4 +117,4 @@ All extend `BaseNode` which handles handles (source/target) and bubble registrat
 ## Path Aliases
 
 - `@/*` — App root (e.g., `@/store/graph`, `@/hooks/useElkLayout`)
-- `@graphwrite/core` — Resolves to `../libs/core/src`
+- `@magam/core` — Resolves to `../libs/core/src`

@@ -77,7 +77,7 @@ export function registerTools(server: McpServer, targetDir: string) {
       "TSX 코드를 파일로 저장하고 렌더링 결과를 반환합니다. 파일 시스템 접근이 없는 환경용.",
     inputSchema: {
       filePath: z.string().describe("저장할 파일 경로"),
-      code: z.string().describe("GraphWrite TSX 코드"),
+      code: z.string().describe("Magam TSX 코드"),
     },
   }, async ({ filePath, code }) => {
     try {

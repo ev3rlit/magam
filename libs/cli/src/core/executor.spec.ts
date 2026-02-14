@@ -1,6 +1,6 @@
 import { vi, describe, it, expect, afterEach } from 'vitest';
 import { execute } from './executor';
-import { renderToGraph } from '@graphwrite/core';
+import { renderToGraph } from '@magam/core';
 import * as fs from 'fs/promises';
 import { resolve } from 'path';
 import { tmpdir } from 'os';
@@ -14,8 +14,8 @@ vi.mock('fs/promises', async (importOriginal) => {
   };
 });
 
-// Mock @graphwrite/core
-vi.mock('@graphwrite/core', () => ({
+// Mock @magam/core
+vi.mock('@magam/core', () => ({
   renderToGraph: vi.fn().mockResolvedValue({ type: 'root', children: [] }),
 }));
 

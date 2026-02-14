@@ -2,12 +2,12 @@ import { writeFile, unlink } from 'fs/promises';
 import { resolve } from 'path';
 import { tmpdir } from 'os';
 import { randomUUID } from 'crypto';
-import { renderToGraph } from '@graphwrite/core';
-import { resolveModulePaths, generateRequireShim } from '@graphwrite/shared';
+import { renderToGraph } from '@magam/core';
+import { resolveModulePaths, generateRequireShim } from '@magam/shared';
 
 export async function execute(jsCode: string): Promise<any> {
   const id = randomUUID();
-  const tempFilePath = resolve(tmpdir(), `graphwrite-exec-${id}.js`);
+  const tempFilePath = resolve(tmpdir(), `magam-exec-${id}.js`);
 
   try {
     // Resolve module paths for dependencies
@@ -28,7 +28,7 @@ export async function execute(jsCode: string): Promise<any> {
     }
 
     // 3. Require the temp file
-    // The injected module.paths ensures it can find 'react' and '@graphwrite/core'
+    // The injected module.paths ensures it can find 'react' and '@magam/core'
     const userModule = require(tempFilePath);
 
     // 4. Get default export

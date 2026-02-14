@@ -5,7 +5,7 @@
 We will use **Nx** to manage the monorepo. It provides excellent tooling for NestJS and React integration.
 
 ```text
-graphwrite/
+magam/
 ├── apps/
 │   ├── api/          # NestJS Server (WebSocket + MCP + Static Serve)
 │   └── client/       # React + Vite + Tailwind + React Flow

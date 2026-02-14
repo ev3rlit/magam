@@ -2,17 +2,17 @@
 
 ## 개요
 
-GraphWrite CLI에 `render`와 `validate` 서브커맨드를 추가한다. AI 에이전트가 다이어그램 TSX 코드를 작성한 후 결과를 검증하는 데 사용한다.
+Magam CLI에 `render`와 `validate` 서브커맨드를 추가한다. AI 에이전트가 다이어그램 TSX 코드를 작성한 후 결과를 검증하는 데 사용한다.
 
 ```bash
-graphwrite dev ./notes              # 기존: dev 서버 시작
-graphwrite render ./notes/arch.tsx  # NEW: Graph AST JSON 출력
-graphwrite validate ./notes/arch.tsx # NEW: 문법/실행 검증
+magam dev ./notes              # 기존: dev 서버 시작
+magam render ./notes/arch.tsx  # NEW: Graph AST JSON 출력
+magam validate ./notes/arch.tsx # NEW: 문법/실행 검증
 ```
 
 ### 배경
 
-GraphWrite의 AI 통합은 세 계층으로 구성된다:
+Magam의 AI 통합은 세 계층으로 구성된다:
 
 ```
 Agent Skill (SKILL.md)     → "무엇을 어떻게 쓰는지" (컴포넌트 문서, 패턴)
@@ -22,14 +22,14 @@ MCP Server (별도 문서)      → CLI를 셸 없는 환경에 노출 (선택�
 
 Skill 파일이 AI에게 컴포넌트 사용법을 가르치고, CLI 명령어가 작성된 코드의 정합성을 검증한다. **이 두 가지만으로 Claude Code / Cursor에서 완전한 AI 워크플로우가 동작한다.**
 
-## `graphwrite render`
+## `magam render`
 
 TSX 파일을 렌더링하여 Graph AST를 stdout에 JSON으로 출력한다.
 
 ### 사용법
 
 ```bash
-$ npx graphwrite render <file>
+$ npx magam render <file>
 ```
 
 ### 출력 형식
@@ -60,7 +60,7 @@ $ npx graphwrite render <file>
 ### 동작 흐름
 
 ```
-graphwrite render ./notes/arch.tsx
+magam render ./notes/arch.tsx
   → path.resolve(filePath)
   → transpile(fullPath)       ← 기존 esbuild 트랜스파일러
   → execute(code, fullPath)   ← 기존 Node.js executor
@@ -69,14 +69,14 @@ graphwrite render ./notes/arch.tsx
 
 기존 `libs/cli/src/core/` 의 transpiler/executor를 직접 호출한다. 새로운 렌더링 로직 없음.
 
-## `graphwrite validate`
+## `magam validate`
 
 TSX 파일의 문법과 실행 가능성을 검증한다. render와 동일한 파이프라인을 실행하되, Graph AST 대신 성공/실패만 출력한다.
 
 ### 사용법
 
 ```bash
-$ npx graphwrite validate <file>
+$ npx magam validate <file>
 ```
 
 ### 출력 형식
@@ -90,7 +90,7 @@ $ npx graphwrite validate <file>
 **실패 시** (exit code 1):
 
 ```
-✗ 트랜스파일 에러: Cannot find module '@graphwrite/core'
+✗ 트랜스파일 에러: Cannot find module '@magam/core'
 ```
 
 ```
@@ -182,21 +182,21 @@ switch (command) {
     break;
   case "render":
     if (!target) {
-      console.error("사용법: graphwrite render <file>");
+      console.error("사용법: magam render <file>");
       process.exit(1);
     }
     await renderCommand(target);
     break;
   case "validate":
     if (!target) {
-      console.error("사용법: graphwrite validate <file>");
+      console.error("사용법: magam validate <file>");
       process.exit(1);
     }
     await validateCommand(target);
     break;
   default:
     console.error(`알 수 없는 명령어: ${command}`);
-    console.error("사용법: graphwrite <dev|render|validate> [options]");
+    console.error("사용법: magam <dev|render|validate> [options]");
     process.exit(1);
 }
 ```
@@ -217,7 +217,7 @@ switch (command) {
 AI 동작:
 1. [Skill 참조] 컴포넌트 문서로 올바른 TSX 구조 파악
 2. [Write] ./notes/auth.tsx ← TSX 코드 작성
-3. [Bash] npx graphwrite render ./notes/auth.tsx ← 렌더링 검증
+3. [Bash] npx magam render ./notes/auth.tsx ← 렌더링 검증
 4. (에러 시) [Read + Edit] 코드 수정 → 3번 재실행
 5. (성공) 브라우저에서 확인 가능
 ```
@@ -230,7 +230,7 @@ AI 동작:
 AI 동작:
 1. [Read] ./notes/arch.tsx ← 현재 코드 읽기
 2. [Edit] <Shape id="db" label="MySQL"> → <Shape id="db" label="PostgreSQL">
-3. [Bash] npx graphwrite render ./notes/arch.tsx ← 변경 검증
+3. [Bash] npx magam render ./notes/arch.tsx ← 변경 검증
 ```
 
 ### Edge 연결 변경 시나리오
@@ -241,23 +241,23 @@ AI 동작:
 AI 동작:
 1. [Read] ./notes/arch.tsx
 2. [Edit] Edge 삭제/추가 (AI가 코드를 이해하고 직접 수정)
-3. [Bash] npx graphwrite render ./notes/arch.tsx ← 검증
+3. [Bash] npx magam render ./notes/arch.tsx ← 검증
 ```
 
 ## 테스트
 
 ```bash
 # 기존 예제 파일로 테스트
-npx graphwrite render ./examples/mindmap.tsx | jq .
-npx graphwrite render ./examples/tinyurl_architecture.tsx | jq .nodes
-npx graphwrite validate ./examples/overview.tsx
+npx magam render ./examples/mindmap.tsx | jq .
+npx magam render ./examples/tinyurl_architecture.tsx | jq .nodes
+npx magam validate ./examples/overview.tsx
 
 # 에러 케이스
 echo 'invalid code' > /tmp/broken.tsx
-npx graphwrite validate /tmp/broken.tsx  # exit code 1 확인
+npx magam validate /tmp/broken.tsx  # exit code 1 확인
 ```
 
 ## 후속 작업
 
-- `graphwrite mcp` 서브커맨드 → [MCP Server PRD](../mcp/README.md)
-- `graphwrite dev --mcp` 통합 → MCP PRD Phase 3
+- `magam mcp` 서브커맨드 → [MCP Server PRD](../mcp/README.md)
+- `magam dev --mcp` 통합 → MCP PRD Phase 3

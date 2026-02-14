@@ -1,9 +1,9 @@
-import { Canvas, Shape, MindMap, Node, Text, Markdown } from '@graphwrite/core';
+import { Canvas, Shape, MindMap, Node, Text, Markdown } from '@magam/core';
 
 /**
  * Text Usage Example
  * 
- * Demonstrates all the ways to add text content in GraphWrite
+ * Demonstrates all the ways to add text content in Magam
  */
 export default function TextUsageExample() {
     return (

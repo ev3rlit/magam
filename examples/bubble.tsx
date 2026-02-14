@@ -1,4 +1,4 @@
-import { Canvas, MindMap, Node, Shape, Markdown, Text } from '@graphwrite/core';
+import { Canvas, MindMap, Node, Shape, Markdown, Text } from '@magam/core';
 
 /**
  * Semantic Zoom: Bubble Label Example

@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import glob = require('fast-glob');
 import { transpile } from '../core/transpiler';
 import { execute } from '../core/executor';
-import { GraphwriteError } from '@graphwrite/core';
+import { MagamError } from '@magam/core';
 import { startServer, broadcast } from '../server/websocket';
 
 export async function startDevServer(cwd: string, entryFile?: string) {
@@ -47,7 +47,7 @@ export async function startDevServer(cwd: string, entryFile?: string) {
 
       broadcast({ type: 'graph-update', payload: result });
     } catch (error: any) {
-      if (error instanceof GraphwriteError) {
+      if (error instanceof MagamError) {
         console.error(
           `\x1b[31m[${error.type.toUpperCase()}] ${error.message}\x1b[0m`,
         );
@@ -65,7 +65,7 @@ export async function startDevServer(cwd: string, entryFile?: string) {
         type: 'error',
         payload: {
           message: error.message || 'Unknown error',
-          type: error instanceof GraphwriteError ? error.type : 'general',
+          type: error instanceof MagamError ? error.type : 'general',
         },
       });
     }

@@ -3,7 +3,7 @@ import { mkdir, writeFile, stat, unlink, rename } from 'node:fs/promises';
 import path from 'node:path';
 import { NextResponse } from 'next/server';
 
-const WORKSPACE_ROOT = path.resolve(process.env.GRAPHWRITE_TARGET_DIR || process.cwd());
+const WORKSPACE_ROOT = path.resolve(process.env.MAGAM_TARGET_DIR || process.cwd());
 const MAX_BYTES = 10 * 1024 * 1024;
 const ASSET_DIR = path.join(WORKSPACE_ROOT, 'assets', 'images');
 

@@ -1,10 +1,10 @@
 {
-  "name": "@graphwrite/cli",
+  "name": "@magam/cli",
   "version": "0.0.1",
   "type": "commonjs",
   "main": "./dist/index.js",
   "bin": {
-    "graphwrite": "./dist/bin.js"
+    "magam": "./dist/bin.js"
   },
   "files": [
     "dist"
@@ -16,8 +16,8 @@
     "build": "tsup"
   },
   "dependencies": {
-    "@graphwrite/core": "workspace:*",
-    "@graphwrite/shared": "workspace:*",
+    "@magam/core": "workspace:*",
+    "@magam/shared": "workspace:*",
     "chokidar": "^5.0.0",
     "esbuild": "^0.27.2",
     "fast-glob": "^3.3.3",

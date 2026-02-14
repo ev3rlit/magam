@@ -11,7 +11,7 @@
 ## Proposed Directory Structure
 
 ```
-graphwrite/
+magam/
 ├── package.json
 ├── pnpm-workspace.yaml
 ├── apps/
@@ -322,7 +322,7 @@ export class McpService implements OnModuleInit {
   private server: Server;
 
   onModuleInit() {
-    this.server = new Server({ name: 'graphwrite-server', version: '1.0.0' }, { capabilities: { tools: {} } });
+    this.server = new Server({ name: 'magam-server', version: '1.0.0' }, { capabilities: { tools: {} } });
     
     this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
       tools: [{ name: 'get_server_status', description: 'Check if server is running', inputSchema: { type: 'object' } }]

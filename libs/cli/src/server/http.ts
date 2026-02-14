@@ -28,7 +28,7 @@ export interface FileTreeNode {
 }
 
 export async function startHttpServer(config: HttpServerConfig): Promise<HttpServerResult> {
-  const port = config.port ?? (parseInt(process.env.GRAPHWRITE_HTTP_PORT || '') || DEFAULT_PORT);
+  const port = config.port ?? (parseInt(process.env.MAGAM_HTTP_PORT || '') || DEFAULT_PORT);
 
   const server = http.createServer(async (req, res) => {
     // CORS headers

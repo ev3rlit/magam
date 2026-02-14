@@ -109,7 +109,7 @@ function isHttpUrl(value: string): boolean {
 }
 
 function resolveWorkspaceRoot(): string {
-  const envRoot = process.env.GRAPHWRITE_TARGET_DIR;
+  const envRoot = process.env.MAGAM_TARGET_DIR;
   return path.resolve(envRoot || process.cwd());
 }
 
@@ -308,7 +308,7 @@ function replaceMarkdownContent(
 function ensureImageImport(ast: t.File) {
   const body = ast.program.body;
   const coreImportIndex = body.findIndex((item) => (
-    t.isImportDeclaration(item) && item.source.value === '@graphwrite/core'
+    t.isImportDeclaration(item) && item.source.value === '@magam/core'
   ));
 
   if (coreImportIndex < 0) {
@@ -330,7 +330,7 @@ function ensureImageImport(ast: t.File) {
     body.splice(insertIndex, 0,
       t.importDeclaration(
         [t.importSpecifier(t.identifier('Image'), t.identifier('Image'))],
-        t.stringLiteral('@graphwrite/core'),
+        t.stringLiteral('@magam/core'),
       ),
     );
     return;

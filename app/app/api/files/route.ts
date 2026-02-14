@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  const httpPort = process.env.GRAPHWRITE_HTTP_PORT || '3002';
+  const httpPort = process.env.MAGAM_HTTP_PORT || '3002';
 
   try {
     const res = await fetch(`http://localhost:${httpPort}/files`);

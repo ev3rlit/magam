@@ -1,4 +1,4 @@
-import { Canvas, MindMap, Node, Markdown } from '@graphwrite/core';
+import { Canvas, MindMap, Node, Markdown } from '@magam/core';
 
 /**
  * Node Links Example
@@ -25,7 +25,7 @@ Navigate sequentially through the mindmap
                     <Markdown>{`
 ## 1. Introduction
 
-Create interactive documents with GraphWrite.
+Create interactive documents with Magam.
 
 **Next Steps:**
 - [View Core Concepts](node:/main/concepts)

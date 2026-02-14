@@ -13,7 +13,7 @@ vi.mock('node:fs/promises', () => ({
   stat: vi.fn(),
 }));
 
-const WORKSPACE_ROOT = '/tmp/graphwrite-image-test';
+const WORKSPACE_ROOT = '/tmp/magam-image-test';
 const TARGET_FILE = path.join(WORKSPACE_ROOT, 'diagram.tsx');
 const SOURCE_FILE = path.join(WORKSPACE_ROOT, 'assets-source', 'logo.png');
 const PNG_BYTES = Buffer.from('89504e470d0a1a0a00000000', 'hex');
@@ -44,7 +44,7 @@ function getWrittenCode(): string {
 function countImageSpecifier(code: string): number {
   const ast = parse(code, { sourceType: 'module', plugins: ['typescript', 'jsx'] }) as any;
   const declaration = ast.program.body.find((node: any) => (
-    node.type === 'ImportDeclaration' && node.source.value === '@graphwrite/core'
+    node.type === 'ImportDeclaration' && node.source.value === '@magam/core'
   ));
   if (!declaration) return 0;
   return declaration.specifiers.filter((spec: any) => (
@@ -91,7 +91,7 @@ describe('insertImageCommand', () => {
 
   it('inserts Image node with auto Image import when target node exists', async () => {
     const inputCode = `
-      import { Canvas, Node } from '@graphwrite/core';
+      import { Canvas, Node } from '@magam/core';
 
       <Canvas>
         <Node id="target">hello</Node>
@@ -107,7 +107,7 @@ describe('insertImageCommand', () => {
     ]);
 
     const written = getWrittenCode();
-    expect(written).toContain(`import { Canvas, Node, Image } from '@graphwrite/core';`);
+    expect(written).toContain(`import { Canvas, Node, Image } from '@magam/core';`);
     expect(written).toContain(`src="${SAVED_SOURCE}"`);
     expect(written).toContain('<Node id="target">');
     expect(written).toContain('<Image');
@@ -116,7 +116,7 @@ describe('insertImageCommand', () => {
 
   it('inserts markdown image token into Markdown content', async () => {
     const inputCode = `
-      import { Canvas, Node, Markdown } from '@graphwrite/core';
+      import { Canvas, Node, Markdown } from '@magam/core';
 
       <Canvas>
         <Node id="md">
@@ -156,7 +156,7 @@ describe('insertImageCommand', () => {
 
   it('patches Shape with imageSrc and imageFit', async () => {
     const inputCode = `
-      import { Shape } from '@graphwrite/core';
+      import { Shape } from '@magam/core';
 
       <Shape id="shape-1" x={10} y={20} />
     `;
@@ -176,9 +176,9 @@ describe('insertImageCommand', () => {
     expect(written).toContain('imageFit="cover"');
   });
 
-  it('keeps existing @graphwrite/core import unique when Image already exists', async () => {
+  it('keeps existing @magam/core import unique when Image already exists', async () => {
     const inputCode = `
-      import { Node, Image } from '@graphwrite/core';
+      import { Node, Image } from '@magam/core';
 
       <Node id="target" />
     `;

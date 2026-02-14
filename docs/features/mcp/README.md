@@ -2,11 +2,11 @@
 
 ## 개요
 
-GraphWrite MCP 서버는 [CLI Commands](../cli-commands/README.md)를 셸 접근이 없는 AI 환경(Claude Desktop 등)에 노출하는 얇은 래퍼다. npm 패키지 배포 시 어떤 AI 도구든 MCP 연결만으로 GraphWrite 기능을 자동 발견할 수 있다.
+Magam MCP 서버는 [CLI Commands](../cli-commands/README.md)를 셸 접근이 없는 AI 환경(Claude Desktop 등)에 노출하는 얇은 래퍼다. npm 패키지 배포 시 어떤 AI 도구든 MCP 연결만으로 Magam 기능을 자동 발견할 수 있다.
 
 ```bash
 # 사용자가 AI 도구 설정에 추가
-npx graphwrite mcp ./my-notes
+npx magam mcp ./my-notes
 ```
 
 ### 선행 조건
@@ -27,10 +27,10 @@ npx graphwrite mcp ./my-notes
 
 | CLI만 | CLI + MCP |
 |-------|-----------|
-| AI가 `graphwrite render`를 **알아야** 함 | AI가 도구를 **자동 발견** |
+| AI가 `magam render`를 **알아야** 함 | AI가 도구를 **자동 발견** |
 | 셸 접근 필요 | 셸 없는 환경에서도 동작 |
 | 에러를 AI가 파싱해야 함 | **구조화된 응답** (isError 플래그) |
-| Skill 파일 설치 필요 | `graphwrite://skill`로 문서 자동 제공 |
+| Skill 파일 설치 필요 | `magam://skill`로 문서 자동 제공 |
 
 ## MCP Tools — 3개
 
@@ -38,7 +38,7 @@ CLI 명령어와 1:1 대응.
 
 ### `render`
 
-`graphwrite render`의 MCP 래핑.
+`magam render`의 MCP 래핑.
 
 ```typescript
 {
@@ -56,7 +56,7 @@ CLI 명령어와 1:1 대응.
 
 ### `validate`
 
-`graphwrite validate`의 MCP 래핑. 파일 경로 또는 코드 문자열을 받는다.
+`magam validate`의 MCP 래핑. 파일 경로 또는 코드 문자열을 받는다.
 
 ```typescript
 {
@@ -84,7 +84,7 @@ CLI 명령어와 1:1 대응.
     type: "object",
     properties: {
       filePath: { type: "string", description: "저장할 파일 경로" },
-      code: { type: "string", description: "GraphWrite TSX 코드" }
+      code: { type: "string", description: "Magam TSX 코드" }
     },
     required: ["filePath", "code"]
   }
@@ -93,15 +93,15 @@ CLI 명령어와 1:1 대응.
 
 ## MCP Resource — 1개
 
-### `graphwrite://skill`
+### `magam://skill`
 
 Agent Skill 파일(`SKILL.md`)을 그대로 반환. Skill이 설치되지 않은 환경에서 AI에게 컴포넌트 문서를 제공한다.
 
 ```typescript
 {
-  uri: "graphwrite://skill",
+  uri: "magam://skill",
   mimeType: "text/markdown",
-  text: fs.readFileSync(".agent/skills/graphwrite/SKILL.md", "utf-8")
+  text: fs.readFileSync(".agent/skills/magam/SKILL.md", "utf-8")
 }
 ```
 
@@ -118,11 +118,11 @@ libs/cli/src/
 │   └── validate.ts         # CLI (선행 구현 완료)
 ├── mcp/
 │   ├── index.ts            # MCP Server 인스턴스 생성
-│   ├── resources.ts        # graphwrite://skill 리소스
+│   ├── resources.ts        # magam://skill 리소스
 │   ├── tools.ts            # render, validate, write_and_render
 │   └── utils.ts            # 경로 검증, 에러 변환
 ├── server/
-│   └── mcp.ts              # CLI 엔트리포인트 (graphwrite mcp <dir>)
+│   └── mcp.ts              # CLI 엔트리포인트 (magam mcp <dir>)
 └── core/
     ├── transpiler.ts       # 기존 (변경 없음)
     └── executor.ts         # 기존 (변경 없음)
@@ -139,7 +139,7 @@ import { registerTools } from "./tools.js";
 
 export function createMcpServer(targetDir: string) {
   const server = new McpServer({
-    name: "graphwrite",
+    name: "magam",
     version: "0.1.0",
   });
 
@@ -251,9 +251,9 @@ export function resolvePath(targetDir: string, filePath: string): string {
 ```json
 {
   "mcpServers": {
-    "graphwrite": {
+    "magam": {
       "command": "npx",
-      "args": ["graphwrite", "mcp", "./my-notes"]
+      "args": ["magam", "mcp", "./my-notes"]
     }
   }
 }
@@ -263,9 +263,9 @@ export function resolvePath(targetDir: string, filePath: string): string {
 ```json
 {
   "mcpServers": {
-    "graphwrite": {
+    "magam": {
       "command": "npx",
-      "args": ["graphwrite", "mcp", "./my-notes"]
+      "args": ["magam", "mcp", "./my-notes"]
     }
   }
 }
@@ -273,10 +273,10 @@ export function resolvePath(targetDir: string, filePath: string): string {
 
 ## dev 통합 (Phase 3)
 
-`graphwrite dev`에 `--mcp` 플래그를 추가하여 MCP 서버를 함께 실행. AI가 `write_and_render` 실행 시 WebSocket을 통해 프론트엔드가 실시간 갱신된다.
+`magam dev`에 `--mcp` 플래그를 추가하여 MCP 서버를 함께 실행. AI가 `write_and_render` 실행 시 WebSocket을 통해 프론트엔드가 실시간 갱신된다.
 
 ```bash
-npx graphwrite dev ./notes --mcp
+npx magam dev ./notes --mcp
 ```
 
 ## 보안
@@ -291,7 +291,7 @@ npx graphwrite dev ./notes --mcp
 
 ```bash
 # MCP Inspector로 전체 테스트
-npx @modelcontextprotocol/inspector npx graphwrite mcp ./notes
+npx @modelcontextprotocol/inspector npx magam mcp ./notes
 ```
 
 | 테스트 | 설명 |
@@ -312,7 +312,7 @@ AI가 코드를 직접 수정하는 방식 채택. Babel AST 패칭 (9개 도구
 
 ### ADR-002: Skill을 Single Source of Truth로
 
-컴포넌트 문서는 `.agent/skills/graphwrite/SKILL.md` 한 곳에서 관리. MCP의 `graphwrite://skill`은 이 파일을 그대로 반환. 별도 JSON 스키마, Prompt 템플릿 불필요.
+컴포넌트 문서는 `.agent/skills/magam/SKILL.md` 한 곳에서 관리. MCP의 `magam://skill`은 이 파일을 그대로 반환. 별도 JSON 스키마, Prompt 템플릿 불필요.
 
 ### ADR-003: MCP에서 파일 I/O 최소화
 

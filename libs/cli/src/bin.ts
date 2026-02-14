@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { createCoreInterceptor } from '@graphwrite/shared';
+import { createCoreInterceptor } from '@magam/shared';
 
 // Set up module resolution for monorepo/local dev environment
 // From dist/libs/cli/src/bin.js -> dist/libs/core
@@ -15,7 +15,7 @@ interface Command {
 function requireArg(args: string[], _name: string, usage: string): string {
   const value = args[0];
   if (!value) {
-    console.error(`Usage: graphwrite ${usage}`);
+    console.error(`Usage: magam ${usage}`);
     process.exit(1);
   }
   return value;
@@ -92,11 +92,11 @@ const commands: Record<string, Command> = {
 
   image: {
     usage: 'image insert --file <file> --source <path|url> --mode <node|markdown|canvas|shape> [--target <id>]',
-    description: 'Insert an image into GraphWrite source by mode',
+    description: 'Insert an image into Magam source by mode',
     run: async (args) => {
       const sub = args[0];
       if (sub !== 'insert') {
-        console.error('Usage: graphwrite image insert ...');
+        console.error('Usage: magam image insert ...');
         process.exit(1);
       }
 
@@ -113,7 +113,7 @@ commands['help'] = {
 };
 
 function printHelp() {
-  console.log('Usage: graphwrite <command>\n');
+  console.log('Usage: magam <command>\n');
   console.log('Commands:');
   const maxUsageLen = Math.max(...Object.values(commands).map((c) => c.usage.length));
   for (const cmd of Object.values(commands)) {

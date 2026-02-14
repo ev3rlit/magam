@@ -5,5 +5,5 @@ export default defineConfig({
   format: ['cjs', 'esm'],
   dts: false,
   clean: true,
-  external: ['esbuild', '@graphwrite/core', '@graphwrite/shared'],
+  external: ['esbuild', '@magam/core', '@magam/shared'],
 });

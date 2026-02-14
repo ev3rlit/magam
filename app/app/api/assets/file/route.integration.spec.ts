@@ -12,13 +12,13 @@ async function loadRoute() {
 
 describe('assets/file integration', () => {
   beforeEach(async () => {
-    workspaceRoot = await mkdtemp(path.join(tmpdir(), 'graphwrite-file-route-'));
+    workspaceRoot = await mkdtemp(path.join(tmpdir(), 'magam-file-route-'));
     await mkdir(path.join(workspaceRoot, 'assets', 'images'), { recursive: true });
-    process.env.GRAPHWRITE_TARGET_DIR = workspaceRoot;
+    process.env.MAGAM_TARGET_DIR = workspaceRoot;
   });
 
   afterEach(async () => {
-    delete process.env.GRAPHWRITE_TARGET_DIR;
+    delete process.env.MAGAM_TARGET_DIR;
     await rm(workspaceRoot, { recursive: true, force: true });
   });
 

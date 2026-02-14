@@ -2,7 +2,7 @@ import { resolve, join } from 'path';
 import { existsSync } from 'fs';
 
 /**
- * Resolved module paths for GraphWrite dependencies
+ * Resolved module paths for Magam dependencies
  */
 export interface ResolvedPaths {
   /** Path to node_modules directory (when installed as package) */
@@ -21,7 +21,7 @@ export interface ResolvedPaths {
 export type ModuleMap = Record<string, unknown>;
 
 /**
- * Resolves module paths for @graphwrite/core and React dependencies.
+ * Resolves module paths for @magam/core and React dependencies.
  * Handles both installed package and monorepo development scenarios.
  *
  * @param baseDir - Base directory for resolution (usually process.cwd())
@@ -30,9 +30,9 @@ export type ModuleMap = Record<string, unknown>;
 export function resolveModulePaths(baseDir: string): ResolvedPaths {
   const result: ResolvedPaths = {};
 
-  // Try to resolve @graphwrite/core path
+  // Try to resolve @magam/core path
   try {
-    const corePath = require.resolve('@graphwrite/core');
+    const corePath = require.resolve('@magam/core');
     const splitPath = corePath.split('node_modules');
 
     if (splitPath.length > 1) {
@@ -61,7 +61,7 @@ export function resolveModulePaths(baseDir: string): ResolvedPaths {
 
     if (!result.localDistPath) {
       console.warn(
-        'Could not resolve @graphwrite/core path for execution context injection'
+        'Could not resolve @magam/core path for execution context injection'
       );
     }
   }
@@ -111,7 +111,7 @@ export function createModuleInterceptor(
 }
 
 /**
- * Creates a Module._load interceptor that resolves @graphwrite/core
+ * Creates a Module._load interceptor that resolves @magam/core
  * from a local dist path relative to the executing script.
  *
  * @param scriptDir - __dirname of the executing script
@@ -141,7 +141,7 @@ export function createCoreInterceptor(
     parent: unknown,
     isMain: boolean
   ): unknown {
-    if (request === '@graphwrite/core') {
+    if (request === '@magam/core') {
       return require(potentialLocalPath);
     }
     return originalLoad.call(this, request, parent, isMain);
@@ -154,7 +154,7 @@ export function createCoreInterceptor(
 
 /**
  * Generates a require shim code string for injection into executed code.
- * This is used when executing user code that needs access to GraphWrite dependencies.
+ * This is used when executing user code that needs access to Magam dependencies.
  *
  * @param paths - Resolved module paths
  * @returns JavaScript code string that sets up require shim
@@ -177,7 +177,7 @@ const _reactJsx = _originalRequire('${paths.reactJsxPath.replace(/\\/g, '/')}');
 global.React = _react;
 
 require = function(id) {
-  if (id === '@graphwrite/core') return _localCore;
+  if (id === '@magam/core') return _localCore;
   if (id === 'react') return _react;
   if (id === 'react/jsx-runtime') return _reactJsx;
   return _originalRequire.apply(this, arguments);
@@ -227,7 +227,7 @@ export function setupWorkerModuleResolution(
 
     // Create module interceptor
     return createModuleInterceptor({
-      '@graphwrite/core': _localCore,
+      '@magam/core': _localCore,
       react: _react,
       'react/jsx-runtime': _reactJsx,
     });

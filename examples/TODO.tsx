@@ -1,9 +1,9 @@
-import { Canvas, MindMap, Node, Markdown } from '@graphwrite/core';
+import { Canvas, MindMap, Node, Markdown } from '@magam/core';
 
 /**
- * GraphWrite 로드맵 & TODO
+ * Magam 로드맵 & TODO
  * 
- * 📋 이 파일 자체가 GraphWrite로 만든 TODO 목록입니다!
+ * 📋 이 파일 자체가 Magam로 만든 TODO 목록입니다!
  * "Eating our own dog food" - 우리가 만든 도구로 우리의 계획을 관리합니다.
  */
 export default function TODORoadmap() {
@@ -12,7 +12,7 @@ export default function TODORoadmap() {
             {/* 중앙 타이틀 */}
             <MindMap id="root" layout="bidirectional">
                 <Node id="title" bubble>
-                    <Markdown>{`# 🚀 GraphWrite 로드맵
+                    <Markdown>{`# 🚀 Magam 로드맵
 
 > **"코드로 시각화하고, 시각화로 생각한다"**
 
@@ -621,7 +621,7 @@ AI가 가이드하며 콘텐츠 채워넣기.
                     <Markdown>{`### 💎 Obsidian 플러그인 🔥
 
 **설명**
-옵시디언에서 GraphWrite 기능을
+옵시디언에서 Magam 기능을
 그대로 사용할 수 있는 플러그인.
 
 **구현 방식**
@@ -632,7 +632,7 @@ AI가 가이드하며 콘텐츠 채워넣기.
 \`\`\`markdown
 # 나의 노트
 
-\\\`\\\`\\\`graphwrite
+\\\`\\\`\\\`magam
 <MindMap layout="bidirectional">
   <Node id="main">중심 주제</Node>
   <Node from="main">하위 개념 1</Node>
@@ -642,8 +642,8 @@ AI가 가이드하며 콘텐츠 채워넣기.
 \`\`\`
 
 **양방향 동기화**
-- 옵시디언 → GraphWrite
-- GraphWrite → 옵시디언 노트
+- 옵시디언 → Magam
+- Magam → 옵시디언 노트
 
 **우선순위**: 🔴 높음 (주요 타겟 플랫폼)`}</Markdown>
                 </Node>
@@ -688,13 +688,13 @@ Model Context Protocol로 AI 직접 연결`}</Markdown>
                     <Markdown>{`### 🖥️ MCP 서버 🔥
 
 **설명**
-GraphWrite를 MCP 서버로 노출하여
+Magam를 MCP 서버로 노출하여
 Claude, GPT 등 AI가 직접 캔버스를 조작.
 
 **아키텍처**
 \`\`\`
 ┌─────────────┐     MCP      ┌────────────┐
-│   Claude    │ ◀──────────▶ │ GraphWrite │
+│   Claude    │ ◀──────────▶ │ Magam │
 │   Desktop   │   JSON-RPC   │ MCP Server │
 └─────────────┘              └────────────┘
 \`\`\`
@@ -837,9 +837,9 @@ AI가 제안하고 사용자가 선택.
 // claude_desktop_config.json
 {
   "mcpServers": {
-    "graphwrite": {
+    "magam": {
       "command": "npx",
-      "args": ["graphwrite-mcp"]
+      "args": ["magam-mcp"]
     }
   }
 }

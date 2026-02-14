@@ -12,12 +12,12 @@ async function loadRoute() {
 
 describe('assets/upload integration', () => {
   beforeEach(async () => {
-    workspaceRoot = await mkdtemp(path.join(tmpdir(), 'graphwrite-upload-route-'));
-    process.env.GRAPHWRITE_TARGET_DIR = workspaceRoot;
+    workspaceRoot = await mkdtemp(path.join(tmpdir(), 'magam-upload-route-'));
+    process.env.MAGAM_TARGET_DIR = workspaceRoot;
   });
 
   afterEach(async () => {
-    delete process.env.GRAPHWRITE_TARGET_DIR;
+    delete process.env.MAGAM_TARGET_DIR;
     await rm(workspaceRoot, { recursive: true, force: true });
   });
 

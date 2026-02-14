@@ -2,9 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## What is GraphWrite?
+## What is Magam?
 
-GraphWrite is an AI-Native Programmatic Whiteboard. Users describe diagrams in natural language, AI writes React/TSX code using GraphWrite components, and the system renders it on a canvas. Think "Remotion for diagrams" — code as the source of truth for visuals.
+Magam is an AI-Native Programmatic Whiteboard. Users describe diagrams in natural language, AI writes React/TSX code using Magam components, and the system renders it on a canvas. Think "Remotion for diagrams" — code as the source of truth for visuals.
 
 ## Development Commands
 
@@ -33,13 +33,13 @@ Bun workspaces with four libraries under `libs/` and one app:
 
 | Package | Path | Purpose |
 |---------|------|---------|
-| `@graphwrite/core` | `libs/core/` | React component library + custom reconciler (renderToGraph) |
-| `@graphwrite/cli` | `libs/cli/` | HTTP server, transpiler (esbuild), executor |
-| `@graphwrite/shared` | `libs/shared/` | Module resolution utilities, require shims |
-| `@graphwrite/runtime` | `libs/runtime/` | Worker-based runtime execution |
-| `graphwrite-app` | `app/` | Next.js 15 frontend (ReactFlow canvas) |
+| `@magam/core` | `libs/core/` | React component library + custom reconciler (renderToGraph) |
+| `@magam/cli` | `libs/cli/` | HTTP server, transpiler (esbuild), executor |
+| `@magam/shared` | `libs/shared/` | Module resolution utilities, require shims |
+| `@magam/runtime` | `libs/runtime/` | Worker-based runtime execution |
+| `magam-app` | `app/` | Next.js 15 frontend (ReactFlow canvas) |
 
-Path aliases are defined in `tsconfig.base.json` — use `@graphwrite/core`, `@graphwrite/shared`, etc.
+Path aliases are defined in `tsconfig.base.json` — use `@magam/core`, `@magam/shared`, etc.
 
 ## Rendering Pipeline
 
@@ -58,7 +58,7 @@ User .tsx file
 
 The HTTP server at `libs/cli/src/server/http.ts` orchestrates the server-side portion. The Next.js API routes at `app/app/api/` proxy requests to this HTTP server.
 
-## Core Component Library (`@graphwrite/core`)
+## Core Component Library (`@magam/core`)
 
 Components users write in .tsx files: `Canvas`, `MindMap`, `Node`, `Shape`, `Sticky`, `Text`, `Edge`, `EdgePort`, `Link`, `Group`, `Markdown`, `Code`, `Table`.
 
@@ -66,7 +66,7 @@ These are not DOM components — they're processed by a custom React Reconciler 
 
 ## Key Patterns
 
-- **Error handling**: Uses `neverthrow` (Result/ResultAsync monads) throughout `@graphwrite/core`. Functions return `Result<T, E>` instead of throwing.
+- **Error handling**: Uses `neverthrow` (Result/ResultAsync monads) throughout `@magam/core`. Functions return `Result<T, E>` instead of throwing.
 - **Build**: Each lib uses `tsup` for bundling (CJS + ESM + DTS). Config files are at each lib root.
 - **State management**: Zustand store at `app/store/graph.ts`.
 - **Layout**: ELK engine for auto-layout. MindMap supports `direction` prop (down/right/left/up/radial). Anchor-based positioning for relative placement.
@@ -89,11 +89,11 @@ Each major folder has its own CLAUDE.md with deeper architectural context:
 
 Example .tsx files (in `examples/` or user directories) must:
 1. Default-export a function returning a `<Canvas>` element
-2. Import components from `@graphwrite/core`
+2. Import components from `@magam/core`
 3. Use Tailwind class names for styling (processed as strings, not actual CSS)
 
 ```tsx
-import { Canvas, MindMap, Node } from "@graphwrite/core";
+import { Canvas, MindMap, Node } from "@magam/core";
 export default function MyDiagram() {
   return (
     <Canvas>

@@ -16,8 +16,8 @@ import {
 } from './rpc';
 import { methods, type RpcContext } from './methods';
 
-const PORT = parseInt(process.env.GRAPHWRITE_WS_PORT || '3001', 10);
-const WATCH_DIR = process.env.GRAPHWRITE_TARGET_DIR || './examples';
+const PORT = parseInt(process.env.MAGAM_WS_PORT || '3001', 10);
+const WATCH_DIR = process.env.MAGAM_TARGET_DIR || './examples';
 
 // Client connections with their subscriptions
 const clients = new Map<unknown, Set<string>>();
@@ -32,7 +32,7 @@ const server = Bun.serve({
         if (success) return undefined;
 
         // Non-WebSocket request
-        return new Response('GraphWrite File Sync Server (JSON-RPC 2.0)', {
+        return new Response('Magam File Sync Server (JSON-RPC 2.0)', {
             status: 200,
             headers: { 'Content-Type': 'text/plain' },
         });

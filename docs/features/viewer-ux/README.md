@@ -78,7 +78,7 @@
 
 ```json
 {
-  "type": "graphwrite-selection",
+  "type": "magam-selection",
   "page": "architecture",
   "nodes": [
     {

@@ -1,4 +1,4 @@
-import { Canvas, Shape, MindMap, Node, Edge, Text } from '@graphwrite/core';
+import { Canvas, Shape, MindMap, Node, Edge, Text } from '@magam/core';
 
 /**
  * Icons Example

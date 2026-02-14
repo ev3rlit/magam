@@ -1,10 +1,10 @@
-# GraphWrite
+# Magam
 
 > **"The future of knowledge work is not 'drawing' but 'describing'."**
 
-![GraphWrite Example](./assets/readme.png)
+![Magam Example](./assets/readme.png)
 
-GraphWrite is a **programmable whiteboard for AI agent collaboration**.
+Magam is a **programmable whiteboard for AI agent collaboration**.
 
 Diagrams defined in code are **faster than hand-drawing, clearer in intent, and easier to archive**.
 This app is designed **AI-First**, not Mobile-First.
@@ -12,7 +12,7 @@ This app is designed **AI-First**, not Mobile-First.
 ## Installation
 
 ```
-Install the skill from https://github.com/ev3rlit/graphwrite
+Install the skill from https://github.com/ev3rlit/magam
 ```
 
 ## Philosophy
@@ -31,11 +31,11 @@ Ask your AI agent to create diagrams:
 "Visualize this system design as a tree diagram"
 ```
 
-For detailed API and examples, ask the AI with `/graphwrite`:
+For detailed API and examples, ask the AI with `/magam`:
 
 ```
-/graphwrite show me the Node API
-/graphwrite create a simple mind map example
+/magam show me the Node API
+/magam create a simple mind map example
 ```
 
 ## Examples
@@ -50,4 +50,4 @@ For detailed API and examples, ask the AI with `/graphwrite`:
 | `multiple_mindmaps.tsx` | Multiple MindMaps on one canvas |
 | `bubble.tsx` | Semantic Zoom: Bubble Label Example |
 
-**Describe in words, archive in code. GraphWrite draws for you.**
+**Describe in words, archive in code. Magam draws for you.**

@@ -15,7 +15,7 @@ export const Header: React.FC = () => {
           <Command className="w-4 h-4" />
         </div>
         <h1 className="font-bold text-slate-800 dark:text-slate-100 tracking-tight">
-          GraphWrite
+          Magam
         </h1>
       </div>
 

@@ -4,7 +4,7 @@
 
 ### 문제: 단일 파일 비대화
 
-GraphWrite 프로젝트에서 하나의 `.tsx` 파일에 모든 마인드맵, 도형, 다이어그램을 작성하면 다음 문제가 발생합니다.
+Magam 프로젝트에서 하나의 `.tsx` 파일에 모든 마인드맵, 도형, 다이어그램을 작성하면 다음 문제가 발생합니다.
 
 | 문제 | 설명 |
 |------|------|
@@ -37,7 +37,7 @@ GraphWrite 프로젝트에서 하나의 `.tsx` 파일에 모든 마인드맵, �
 | Reconciler 변경 | 필요 (`appendInitialChild` 수정) | **불필요** |
 | Frontend 변경 | 필요 (`processChildren` 수정) | **불필요** |
 | 중첩 지원 | 별도 구현 필요 | **Context 체이닝으로 자연스럽게 동작** |
-| React 패턴 | GraphWrite 전용 개념 | **표준 React 패턴** (Context + Hook) |
+| React 패턴 | Magam 전용 개념 | **표준 React 패턴** (Context + Hook) |
 | 학습 비용 | 새로운 커스텀 엘리먼트 학습 | **useContext를 아는 사람이면 즉시 이해** |
 
 **선택: React Context 방식**
@@ -128,7 +128,7 @@ export function useNodeId(id: string | undefined): string | undefined {
 ### Import
 
 ```tsx
-import { Canvas, EmbedScope, Shape, Edge } from 'graphwrite';
+import { Canvas, EmbedScope, Shape, Edge } from 'magam';
 ```
 
 ### Props 명세
@@ -226,7 +226,7 @@ processChildren 출력 (React Flow):
 
 ```tsx
 // components/auth-mindmap.tsx
-import { MindMap, Node } from 'graphwrite';
+import { MindMap, Node } from 'magam';
 
 export function AuthMindMap() {
   return (
@@ -244,7 +244,7 @@ export function AuthMindMap() {
 
 ```tsx
 // components/data-layer.tsx
-import { Shape, Edge } from 'graphwrite';
+import { Shape, Edge } from 'magam';
 
 export function DataLayer() {
   return (
@@ -261,7 +261,7 @@ export function DataLayer() {
 
 ```tsx
 // overview.tsx
-import { Canvas, EmbedScope, Group, Edge } from 'graphwrite';
+import { Canvas, EmbedScope, Group, Edge } from 'magam';
 import { AuthMindMap } from './components/auth-mindmap';
 import { DataLayer } from './components/data-layer';
 import { ApiArchitecture } from './components/api-architecture';
@@ -299,7 +299,7 @@ ID가 컴포넌트 간에 겹치지 않으면 EmbedScope 없이 직접 사용해
 
 ```tsx
 // EmbedScope 없이 - 기존 React 방식 그대로
-import { Canvas, Edge } from 'graphwrite';
+import { Canvas, Edge } from 'magam';
 import { AuthMindMap } from './components/auth-mindmap';
 import { DataLayer } from './components/data-layer';
 

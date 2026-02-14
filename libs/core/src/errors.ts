@@ -1,4 +1,4 @@
-export type GraphwriteErrorType =
+export type MagamErrorType =
   | 'syntax'
   | 'props'
   | 'reference'
@@ -6,24 +6,24 @@ export type GraphwriteErrorType =
   | 'import'
   | 'unknown';
 
-export class GraphwriteError extends Error {
-  public readonly type: GraphwriteErrorType;
+export class MagamError extends Error {
+  public readonly type: MagamErrorType;
   public readonly code?: string;
   public readonly suggestion?: string;
 
   constructor(
     message: string,
-    type: GraphwriteErrorType = 'unknown',
+    type: MagamErrorType = 'unknown',
     code?: string,
     suggestion?: string,
   ) {
     super(message);
-    this.name = 'GraphwriteError';
+    this.name = 'MagamError';
     this.type = type;
     this.code = code;
     this.suggestion = suggestion;
 
     // Restore prototype chain for instance checks
-    Object.setPrototypeOf(this, GraphwriteError.prototype);
+    Object.setPrototypeOf(this, MagamError.prototype);
   }
 }

@@ -5,14 +5,14 @@
 
 ## Import
 
-모든 컴포넌트는 `graphwrite` 패키지에서 import합니다.
+모든 컴포넌트는 `magam` 패키지에서 import합니다.
 
 ```tsx
 // 기본 컴포넌트
-import { Canvas, MindMap, Node, Text, Edge, Sticky, Shape } from 'graphwrite';
+import { Canvas, MindMap, Node, Text, Edge, Sticky, Shape } from 'magam';
 
 // Rich Content 컴포넌트
-import { Code, Table } from 'graphwrite';
+import { Code, Table } from 'magam';
 
 // 아이콘 (외부 라이브러리)
 import { Database, Shield, Users } from 'lucide-react';

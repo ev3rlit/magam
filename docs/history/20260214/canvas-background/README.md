@@ -1,7 +1,7 @@
 # Canvas Custom Background — 함수형 패턴
 
 **날짜**: 2026-02-14
-**범위**: `@graphwrite/core`, `graphwrite-app`
+**범위**: `@magam/core`, `magam-app`
 
 ## 구현 배경 및 동기
 
@@ -81,7 +81,7 @@ CustomBackground.tsx
 
 ## 변경 파일 목록
 
-### Core Library (`@graphwrite/core`)
+### Core Library (`@magam/core`)
 | 파일 | 변경 |
 |------|------|
 | `libs/core/src/components/Canvas.tsx` | `resolveBackground()` 함수, `BackgroundProp` 타입 추가 |
@@ -89,7 +89,7 @@ CustomBackground.tsx
 | `libs/core/src/reconciler/extractCanvasMeta.ts` | **신규** — meta 추출 + graph-canvas 자식 승격 |
 | `libs/core/src/renderer.ts` | `extractCanvasMeta()` 파이프라인 통합 |
 
-### App (`graphwrite-app`)
+### App (`magam-app`)
 | 파일 | 변경 |
 |------|------|
 | `app/store/graph.ts` | `CustomBackgroundData` 타입, `canvasBackground` 유니온 확장 |

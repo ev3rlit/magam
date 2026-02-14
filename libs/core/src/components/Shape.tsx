@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { GraphwriteError } from '../errors';
+import { MagamError } from '../errors';
 import { useNodeId } from '../hooks/useNodeId';
 
 export type AnchorPosition =
@@ -38,7 +38,7 @@ export const Shape: React.FC<ShapeProps> = (props) => {
   const scopedId = useNodeId(props.id);
 
   if (!scopedId) {
-    throw new GraphwriteError("Missing required prop 'id'", 'props');
+    throw new MagamError("Missing required prop 'id'", 'props');
   }
 
   // Allow either x/y or anchor/position
@@ -46,7 +46,7 @@ export const Shape: React.FC<ShapeProps> = (props) => {
   const hasAnchor = props.anchor !== undefined;
 
   if (!hasCoordinates && !hasAnchor) {
-    throw new GraphwriteError("Shape requires either 'x' and 'y' coordinates or 'anchor' positioning", 'props');
+    throw new MagamError("Shape requires either 'x' and 'y' coordinates or 'anchor' positioning", 'props');
   }
 
   return React.createElement('graph-shape', { ...props, id: scopedId }, props.children);

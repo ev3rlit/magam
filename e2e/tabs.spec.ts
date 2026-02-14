@@ -115,12 +115,12 @@ const markActiveTabDirty = async (page) => {
   await page.evaluate(() => {
     const hooks = (
       window as Window & {
-        __graphwriteTest?: {
+        __magamTest?: {
           getActiveTabId: () => string | null;
           markTabDirty: (tabId: string, dirty: boolean) => void;
         };
       }
-    ).__graphwriteTest;
+    ).__magamTest;
     if (!hooks || !hooks.getActiveTabId) {
       throw new Error('Test hooks are not available');
     }

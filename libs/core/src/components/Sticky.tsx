@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { GraphwriteError } from '../errors';
+import { MagamError } from '../errors';
 import { useNodeId } from '../hooks/useNodeId';
 
 export interface StickyProps {
@@ -19,13 +19,13 @@ export const Sticky: React.FC<StickyProps> = (props) => {
   const scopedId = useNodeId(props.id);
 
   if (!scopedId) {
-    throw new GraphwriteError("Missing required prop 'id'", 'props');
+    throw new MagamError("Missing required prop 'id'", 'props');
   }
   if (props.x === undefined) {
-    throw new GraphwriteError("Missing required prop 'x'", 'props');
+    throw new MagamError("Missing required prop 'x'", 'props');
   }
   if (props.y === undefined) {
-    throw new GraphwriteError("Missing required prop 'y'", 'props');
+    throw new MagamError("Missing required prop 'y'", 'props');
   }
 
   return React.createElement('graph-sticky', { ...props, id: scopedId }, props.children);

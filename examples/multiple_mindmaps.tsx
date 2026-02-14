@@ -1,4 +1,4 @@
-import { Canvas, MindMap, Node, Markdown } from '@graphwrite/core';
+import { Canvas, MindMap, Node, Markdown } from '@magam/core';
 
 // Multiple MindMaps Feature Showcase
 // Demonstrates placing multiple independent MindMaps on a single Canvas

@@ -1,4 +1,4 @@
-import { Canvas, Shape, Edge, Text } from '@graphwrite/core';
+import { Canvas, Shape, Edge, Text } from '@magam/core';
 
 /**
  * Canvas Background Example

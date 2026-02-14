@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-React component library and custom reconciler for GraphWrite. Components are NOT DOM elements — they are processed by a custom React Reconciler that builds a graph AST (tree data structure).
+React component library and custom reconciler for Magam. Components are NOT DOM elements — they are processed by a custom React Reconciler that builds a graph AST (tree data structure).
 
 ## Custom React Reconciler
 
@@ -28,7 +28,7 @@ The reconciler automatically modifies props during tree construction:
 | Canvas | Fragment | — | Just a React Fragment wrapper, produces no instance |
 | Node | graph-node | id | `from` connects to parent in MindMap. Used only inside MindMap |
 | MindMap | graph-mindmap | — | Container for auto-layout. `layout`: tree/bidirectional/radial. `spacing` default 50 |
-| Sticky | graph-sticky | id, x, y | Throws GraphwriteError if any required prop missing |
+| Sticky | graph-sticky | id, x, y | Throws MagamError if any required prop missing |
 | Shape | graph-shape | id, (x,y OR anchor) | Supports `type`: rectangle/circle/triangle |
 | Text | graph-text | — | Optional id. Supports coordinate and anchor positioning |
 | Edge | graph-edge | to | `from` auto-injected when nested. Both from/to scoped by useNodeId |
@@ -72,7 +72,7 @@ This allows `anchor="app"` inside an EmbedScope to resolve to `auth.app` automat
 
 Two error systems:
 
-**GraphwriteError** (`errors.ts`) — Thrown synchronously during render for validation:
+**MagamError** (`errors.ts`) — Thrown synchronously during render for validation:
 - Types: `syntax`, `props`, `reference`, `structure`, `import`, `unknown`
 - Has optional `suggestion` field for user-friendly tips
 - Used by Shape, Sticky, Text, EdgePort for missing required props
@@ -92,7 +92,7 @@ The rendering pipeline still calls `applyLayout()` but it just returns the graph
 - 13 component functions (Canvas through EmbedScope)
 - `useEmbedScope`, `useNodeId` hooks
 - `renderToGraph` — the main reconciler entry point
-- `GraphwriteError`, `AppError` and neverthrow re-exports (`Result`, `ResultAsync`, `ok`, `err`)
+- `MagamError`, `AppError` and neverthrow re-exports (`Result`, `ResultAsync`, `ok`, `err`)
 - `Logger` singleton
 
 ## Build

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { GraphwriteError } from '../errors';
+import { MagamError } from '../errors';
 import { useNodeId } from '../hooks/useNodeId';
 
 export interface TextProps {

@@ -2,7 +2,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import * as net from 'net';
 
 const DEFAULT_PORT = 3001;
-const ENV_VAR_NAME = 'GRAPHWRITE_WS_PORT';
+const ENV_VAR_NAME = 'MAGAM_WS_PORT';
 const MAX_PORT_ATTEMPTS = 10;
 
 let wss: WebSocketServer | null = null;
@@ -66,7 +66,7 @@ export interface ServerResult {
 
 /**
  * Start the WebSocket server
- * @param port - Optional port override. If not specified, uses GRAPHWRITE_WS_PORT env var or default (3001)
+ * @param port - Optional port override. If not specified, uses MAGAM_WS_PORT env var or default (3001)
  * @param onMessage - Optional message handler
  * @returns The actual port the server is running on
  */

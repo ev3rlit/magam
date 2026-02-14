@@ -24,7 +24,7 @@ Alternative execution engine using Node.js worker threads for process isolation.
 ## Worker (`src/lib/worker.ts`)
 
 Runs inside the Worker thread:
-1. `setupWorkerModuleResolution()` from `@graphwrite/shared`
+1. `setupWorkerModuleResolution()` from `@magam/shared`
 2. `require()` the temp file
 3. Call default export function → React element
 4. `renderToGraph(element)` → graph AST
@@ -32,7 +32,7 @@ Runs inside the Worker thread:
 
 ## Transpiler (`src/lib/transpiler.ts`)
 
-Identical esbuild config to CLI: `bundle: true`, `platform: 'node'`, `format: 'cjs'`, external `react`/`@graphwrite/core`.
+Identical esbuild config to CLI: `bundle: true`, `platform: 'node'`, `format: 'cjs'`, external `react`/`@magam/core`.
 
 ## Build
 

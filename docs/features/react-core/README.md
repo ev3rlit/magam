@@ -281,7 +281,7 @@ Canvas (루트 컨테이너)
 이 API 설계로 사용자와 AI가 작성할 코드 형태가 명확해졌어요.
 
 ```tsx
-import { Canvas, Sticky, Shape, Text, Edge, MindMap, Node } from 'graphwrite'
+import { Canvas, Sticky, Shape, Text, Edge, MindMap, Node } from 'magam'
 
 export default function Diagram() {
   return (

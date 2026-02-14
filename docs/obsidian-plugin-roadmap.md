@@ -1,6 +1,6 @@
-# Graphwrite Obsidian Plugin Roadmap
+# Magam Obsidian Plugin Roadmap
 
-이 문서는 **"Code as Knowledge"** 철학을 실현하기 위한 Graphwrite 옵시디언 플러그인 개발 로드맵입니다.
+이 문서는 **"Code as Knowledge"** 철학을 실현하기 위한 Magam 옵시디언 플러그인 개발 로드맵입니다.
 작은 기능 단위(MVP)부터 시작하여 양방향 동기화(Bi-directional Sync)까지 단계별로 확장해 나가는 계획을 담고 있습니다.
 
 ## 🌟 전체 비전 (Vision)
@@ -30,7 +30,7 @@
 
 *   **0.2. 개발 환경 설정**
     *   [ ] 테스트용 옵시디언 Vault 생성 (실제 노트와 분리)
-    *   [ ] Vault 내 `.obsidian/plugins/graphwrite/` 폴더 생성
+    *   [ ] Vault 내 `.obsidian/plugins/magam/` 폴더 생성
     *   [ ] **Hot Reload 플러그인** 설치 (코드 수정 시 자동 새로고침)
     *   [ ] 옵시디언 설정 → Community Plugins → "Safe Mode" 끄기
 
@@ -46,7 +46,7 @@
     *   [ ] 에러 스택 트레이스 읽는 법 숙지
 
 > **✅ Definition of Done (Phase 0):**
-> 옵시디언에서 "Hello Graphwrite" 알림을 띄우는 최소한의 플러그인이 로드되고, 코드 수정 시 Hot Reload가 동작한다.
+> 옵시디언에서 "Hello Magam" 알림을 띄우는 최소한의 플러그인이 로드되고, 코드 수정 시 Hot Reload가 동작한다.
 
 ---
 
@@ -58,10 +58,10 @@ Markdown Map 플러그인처럼, 좌측에는 코드(문서)를 띄우고 우측
 *   **1.1. Plugin Scaffolding**
     *   [ ] `obsidian-plugin-template` 기반으로 새 프로젝트 생성 (`apps/plugin-obsidian`)
     *   [ ] `libs/core` 연동 및 빌드 설정 (`esbuild` 사용)
-    *   [ ] **Command:** "Open Graphwrite View" 명령어 추가
+    *   [ ] **Command:** "Open Magam View" 명령어 추가
 
 *   **1.2. ItemView Implementation (별도 뷰어)**
-    *   [ ] `ItemView`를 상속받는 `GraphwriteView` 클래스 생성
+    *   [ ] `ItemView`를 상속받는 `MagamView` 클래스 생성
     *   [ ] 옵시디언 Workspace에 뷰 등록 (`registerView`)
     *   [ ] 뷰 내부에 React Root(`createRoot`) 마운트
 
@@ -71,12 +71,12 @@ Markdown Map 플러그인처럼, 좌측에는 코드(문서)를 띄우고 우측
     *   [ ] **결과:** 사용자가 텍스트 파일을 수정하면, 옆에 띄워둔 그래프 뷰어가 실시간으로 반응함.
 
 *   **1.4. Code Extraction & Rendering**
-    *   [ ] 마크다운 파일 전체에서 ` ```graphwrite ` 블록만 추출하는 파서 구현
+    *   [ ] 마크다운 파일 전체에서 ` ```magam ` 블록만 추출하는 파서 구현
     *   [ ] **다중 블록 처리:** 블록이 여러 개인 경우, 뷰어 상단에 **탭(Tab) UI**로 전환 가능하게 구현
     *   [ ] 추출된 코드를 뷰어의 리액트 컴포넌트로 전달하여 렌더링
 
 > **✅ Definition of Done (Phase 1):**
-> 옵시디언에서 "Open Graphwrite View" 명령어를 실행하면 별도 패널이 열리고, 현재 문서의 ` ```graphwrite ` 블록 내용이 (하드코딩된) 그래프로 렌더링된다.
+> 옵시디언에서 "Open Magam View" 명령어를 실행하면 별도 패널이 열리고, 현재 문서의 ` ```magam ` 블록 내용이 (하드코딩된) 그래프로 렌더링된다.
 
 
 ---
@@ -92,8 +92,8 @@ Markdown Map 플러그인처럼, 좌측에는 코드(문서)를 띄우고 우측
 
 *   **2.2. Dynamic Component Injection**
     *   [ ] 변환된 코드를 `new Function` 또는 `eval`을 통해 실행형 객체로 생성
-    *   [ ] `Graphwrite`의 핵심 컴포넌트(`Node`, `Edge`, `Layout` 등)를 실행 컨텍스트(Scope)에 주입
-    *   [ ] **결과:** 사용자가 ` ```graphwrite ` 안에 `<Node id="a" />`를 쓰면 실제로 노드가 그려짐.
+    *   [ ] `Magam`의 핵심 컴포넌트(`Node`, `Edge`, `Layout` 등)를 실행 컨텍스트(Scope)에 주입
+    *   [ ] **결과:** 사용자가 ` ```magam ` 안에 `<Node id="a" />`를 쓰면 실제로 노드가 그려짐.
 
 *   **2.3. Security Considerations (보안 고려사항)**
     *   [ ] 사용자 코드 실행 시 `new Function`/`eval` 사용에 따른 **보안 경고** 검토
@@ -105,14 +105,14 @@ Markdown Map 플러그인처럼, 좌측에는 코드(문서)를 띄우고 우측
     *   [ ] 에러 발생 시, 다이어그램 영역에 "빨간 박스"로 에러 메시지와 줄 번호 표시
 
 > **✅ Definition of Done (Phase 2):**
-> 사용자가 ` ```graphwrite ` 블록 안에 임의의 JSX 코드를 작성하면, 실시간으로 파싱되어 그래프가 렌더링된다. 문법 오류 시 친절한 에러 메시지가 표시된다.
+> 사용자가 ` ```magam ` 블록 안에 임의의 JSX 코드를 작성하면, 실시간으로 파싱되어 그래프가 렌더링된다. 문법 오류 시 친절한 에러 메시지가 표시된다.
 
 ---
 
 ## 🔄 Phase 3: Bi-directional Sync (양방향 동기화)
 > **Goal:** "그림을 만지면 코드가 바뀐다. (The 'Wow' Factor)"
 
-Graphwrite의 핵심 가치입니다. 캔버스 상의 인터랙션을 감지하여 원본 마크다운 텍스트를 역으로 수정합니다.
+Magam의 핵심 가치입니다. 캔버스 상의 인터랙션을 감지하여 원본 마크다운 텍스트를 역으로 수정합니다.
 
 > **Note:** Canvas는 좌표 기반, MindMap은 ELK 기반 Auto-Layout을 사용합니다. 두 경우 모두 결국 **소스 코드 파일을 수정하는 방식**이므로 Drag Sync가 가능합니다.
 
@@ -164,8 +164,8 @@ Graphwrite의 핵심 가치입니다. 캔버스 상의 인터랙션을 감지하
     *   [ ] 설정값 저장 및 불러오기 (`loadData`, `saveData`)
 
 *   **4.5. Ribbon Icon & Hotkeys**
-    *   [ ] 좌측 사이드바에 **Graphwrite 아이콘** 추가 (`addRibbonIcon`)
-    *   [ ] 아이콘 클릭 시 Graphwrite View 열기
+    *   [ ] 좌측 사이드바에 **Magam 아이콘** 추가 (`addRibbonIcon`)
+    *   [ ] 아이콘 클릭 시 Magam View 열기
     *   [ ] 사용자 정의 단축키 등록 (`addCommand`에 `hotkeys` 옵션)
 
 *   **4.6. 모바일 지원 검토**

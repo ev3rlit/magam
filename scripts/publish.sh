@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Usage: ./scripts/publish.sh [--dry-run]
 #
-# Builds and publishes all @graphwrite/* packages in dependency order.
+# Builds and publishes all @magam/* packages in dependency order.
 # workspace:* references are replaced with actual versions before publish
 # and restored afterwards.
 
@@ -19,7 +19,7 @@ PACKAGES=("shared" "core" "runtime" "cli")
 # --- Build all packages in order ---
 echo "=== Building all packages ==="
 for pkg in "${PACKAGES[@]}"; do
-  echo "-> Building @graphwrite/$pkg"
+  echo "-> Building @magam/$pkg"
   (cd "$ROOT/libs/$pkg" && bun run build)
 done
 
@@ -32,18 +32,18 @@ for pkg in "${PACKAGES[@]}"; do
 
   # Replace workspace:* with actual versions before publish
   if grep -q '"workspace:\*"' "$PKG_JSON"; then
-    echo "-> Replacing workspace:* references in @graphwrite/$pkg"
+    echo "-> Replacing workspace:* references in @magam/$pkg"
     cp "$PKG_JSON" "$PKG_JSON.bak"
 
     # For each workspace dependency, resolve its version
     for dep in "${PACKAGES[@]}"; do
       DEP_VERSION=$(node -p "require('$ROOT/libs/$dep/package.json').version")
       # Replace "workspace:*" for this specific dep
-      sed -i '' "s|\"@graphwrite/$dep\": \"workspace:\\*\"|\"@graphwrite/$dep\": \"^$DEP_VERSION\"|g" "$PKG_JSON"
+      sed -i '' "s|\"@magam/$dep\": \"workspace:\\*\"|\"@magam/$dep\": \"^$DEP_VERSION\"|g" "$PKG_JSON"
     done
   fi
 
-  echo "-> Publishing @graphwrite/$pkg"
+  echo "-> Publishing @magam/$pkg"
   (cd "$PKG_DIR" && npm publish --access public $DRY_RUN) || true
 
   # Restore original package.json

@@ -4,7 +4,7 @@ import { registerTools } from "./tools";
 
 export function createMcpServer(targetDir: string): McpServer {
   const server = new McpServer({
-    name: "graphwrite",
+    name: "magam",
     version: "0.1.0",
   });
 

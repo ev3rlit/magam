@@ -1,8 +1,8 @@
-# graphwrite Error Handling & Project Setup
+# magam Error Handling & Project Setup
 
 ## Overview
 
-graphwrite는 코드 기반 시스템으로, 사용자와 AI가 작성한 `.tsx` 파일에서 다양한 에러가 발생할 수 있습니다. 본 문서는 **프로젝트 자동 세팅**과 **에러 처리 전략**을 정의합니다.
+magam는 코드 기반 시스템으로, 사용자와 AI가 작성한 `.tsx` 파일에서 다양한 에러가 발생할 수 있습니다. 본 문서는 **프로젝트 자동 세팅**과 **에러 처리 전략**을 정의합니다.
 
 CLI 실행 시 자동으로 TypeScript 설정과 타입 정의를 설치하여, 일반 사용자도 에디터에서 실시간 타입 체크와 자동완성을 사용할 수 있습니다.
 
@@ -26,17 +26,17 @@ CLI 실행 시 자동으로 TypeScript 설정과 타입 정의를 설치하여, 
 cd ~/my-diagrams
 
 # 2. 파일 만들고
-echo 'import { Canvas } from "graphwrite"
+echo 'import { Canvas } from "magam"
 export default function() { return <Canvas /> }' > overview.tsx
 
 # 3. CLI 실행
-npx @graphwrite/cli dev
+npx @magam/cli dev
 
 # 4. CLI가 자동으로 설정
-✓ Setting up graphwrite environment...
+✓ Setting up magam environment...
 ✓ tsconfig.json created
 ✓ Type definitions installed
-🚀 graphwrite running at http://localhost:3000
+🚀 magam running at http://localhost:3000
 📁 Watching: ~/my-diagrams
 ```
 
@@ -53,9 +53,9 @@ VS Code에서 바로 타입 체크 + 자동완성 동작.
 │
 ├── tsconfig.json          ← 자동 생성 (에디터 인식용)
 ├── .gitignore             ← 자동 생성/수정
-└── .graphwrite/           ← 자동 생성 (캐시 폴더)
+└── .magam/           ← 자동 생성 (캐시 폴더)
     ├── node_modules/
-    │   └── graphwrite/    ← 타입 정의 복사
+    │   └── magam/    ← 타입 정의 복사
     │       ├── index.d.ts
     │       └── package.json
     └── .gitignore
@@ -78,21 +78,21 @@ VS Code에서 바로 타입 체크 + 자동완성 동작.
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "graphwrite": ["./.graphwrite/node_modules/graphwrite"]
+      "magam": ["./.magam/node_modules/magam"]
     }
   },
   "include": ["**/*.tsx"],
-  "exclude": [".graphwrite", "node_modules"]
+  "exclude": [".magam", "node_modules"]
 }
 ```
 
-**.graphwrite/node_modules/graphwrite/index.d.ts**
+**.magam/node_modules/magam/index.d.ts**
 
-타입 정의 파일. CLI에 내장된 @graphwrite/core의 타입을 복사합니다.
+타입 정의 파일. CLI에 내장된 @magam/core의 타입을 복사합니다.
 
 ```typescript
 // 자동 생성됨 - 수정하지 마세요
-// @graphwrite/cli에서 복사됨
+// @magam/cli에서 복사됨
 
 import { ReactNode } from 'react';
 
@@ -121,18 +121,18 @@ export interface StickyProps {
 **.gitignore**
 
 ```
-.graphwrite/
+.magam/
 ```
 
 ### 세팅 흐름
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                 npx @graphwrite/cli dev                     │
+│                 npx @magam/cli dev                     │
 └─────────────────────────┬───────────────────────────────────┘
                           ▼
 ┌─────────────────────────────────────────────────────────────┐
-│               .graphwrite/ 폴더 확인                         │
+│               .magam/ 폴더 확인                         │
 └─────────────────────────┬───────────────────────────────────┘
                           │
             ┌─────────────┴─────────────┐
@@ -143,7 +143,7 @@ export interface StickyProps {
             │                           │
             ▼                           ▼
 ┌─────────────────────┐       ┌─────────────────────┐
-│  버전 확인          │       │  .graphwrite/ 생성   │
+│  버전 확인          │       │  .magam/ 생성   │
 │  (CLI 버전 != 캐시) │       │  타입 정의 복사      │
 └──────────┬──────────┘       │  tsconfig.json 생성  │
            │                  │  .gitignore 수정     │
@@ -173,15 +173,15 @@ export interface StickyProps {
 
 ### CLI 업데이트 시
 
-CLI 버전이 올라가면 `.graphwrite/` 폴더를 재생성합니다.
+CLI 버전이 올라가면 `.magam/` 폴더를 재생성합니다.
 
 ```bash
-npx @graphwrite/cli dev
+npx @magam/cli dev
 
 # CLI 버전 변경 감지
-✓ Updating graphwrite environment (v0.1.0 → v0.2.0)...
+✓ Updating magam environment (v0.1.0 → v0.2.0)...
 ✓ Type definitions updated
-🚀 graphwrite running at http://localhost:3000
+🚀 magam running at http://localhost:3000
 ```
 
 ---
@@ -274,15 +274,15 @@ Structure Error: Node must be inside MindMap
 
 | 예시 | 설명 |
 |------|------|
-| `import { Foo } from 'graphwrite'` | 없는 컴포넌트 |
+| `import { Foo } from 'magam'` | 없는 컴포넌트 |
 | `import { Canvas } from 'other-lib'` | 다른 라이브러리 |
 
 ```tsx
 // 에러 코드
-import { Canvas, Sticky, Button } from 'graphwrite'
+import { Canvas, Sticky, Button } from 'magam'
 
 // 에러 메시지
-Import Error: 'Button' is not exported from 'graphwrite'
+Import Error: 'Button' is not exported from 'magam'
 ```
 
 ---
@@ -333,12 +333,12 @@ Import Error: 'Button' is not exported from 'graphwrite'
 
 ```typescript
 interface ErrorStore {
-  errors: GraphwriteError[]
+  errors: MagamError[]
   lastSuccessState: CanvasState
   lastSuccessTime: string
 }
 
-interface GraphwriteError {
+interface MagamError {
   type: 'syntax' | 'props' | 'reference' | 'structure' | 'import'
   file: string
   line: number
@@ -438,13 +438,13 @@ AI: 수정 완료했습니다. Cache 노드가 db 노드에 연결되었습니�
 상세한 에러 정보를 표시합니다.
 
 ```
-[graphwrite] Watching ~/my-diagrams
+[magam] Watching ~/my-diagrams
 
-[graphwrite] ✓ overview.tsx loaded
-[graphwrite] ✓ architecture.tsx loaded
+[magam] ✓ overview.tsx loaded
+[magam] ✓ architecture.tsx loaded
 
-[graphwrite] File changed: architecture.tsx
-[graphwrite] ❌ Error in architecture.tsx
+[magam] File changed: architecture.tsx
+[magam] ❌ Error in architecture.tsx
 
   Props Error: Missing required prop 'id' on Sticky
 
@@ -456,7 +456,7 @@ AI: 수정 완료했습니다. Cache 노드가 db 노드에 연결되었습니�
   💡 Suggestion: Add id prop
      <Sticky id="unique-id" x={100} y={100}>
 
-[graphwrite] Keeping previous state
+[magam] Keeping previous state
 ```
 
 ### Web Viewer

@@ -1,9 +1,9 @@
-import { Canvas, MindMap, Node, Text, Markdown } from '@graphwrite/core';
+import { Canvas, MindMap, Node, Text, Markdown } from '@magam/core';
 
 /**
  * MindMap Features Example
  * 
- * Showcases the main features of GraphWrite MindMap
+ * Showcases the main features of Magam MindMap
  */
 export default function MindMapFeaturesExample() {
   return (

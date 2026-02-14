@@ -1,13 +1,13 @@
 ---
-name: graphwrite
-description: This skill should be used when creating visual diagrams, mind maps, flowcharts, architecture diagrams, or any code-based visual representation using the GraphWrite library. Triggers on tasks involving diagram creation, mind map generation, visual documentation, system architecture visualization, or when users mention "graphwrite", "mindmap", "diagram", "flowchart", or "canvas".
+name: magam
+description: This skill should be used when creating visual diagrams, mind maps, flowcharts, architecture diagrams, or any code-based visual representation using the Magam library. Triggers on tasks involving diagram creation, mind map generation, visual documentation, system architecture visualization, or when users mention "magam", "mindmap", "diagram", "flowchart", or "canvas".
 ---
 
-# GraphWrite
+# Magam
 
 ## Overview
 
-GraphWrite is a React-based library for creating visual diagrams through code. It enables AI-first diagram creation where users describe their intent in natural language, and the AI generates React/TSX code that renders as visual diagrams. The philosophy is "describing" rather than "drawing" - transforming thoughts into structured visual representations.
+Magam is a React-based library for creating visual diagrams through code. It enables AI-first diagram creation where users describe their intent in natural language, and the AI generates React/TSX code that renders as visual diagrams. The philosophy is "describing" rather than "drawing" - transforming thoughts into structured visual representations.
 
 ## When to Use This Skill
 
@@ -20,7 +20,7 @@ GraphWrite is a React-based library for creating visual diagrams through code. I
 
 ## Editing Nodes with Copy Node ID
 
-GraphWrite supports a node ID copy feature that enables targeted editing of specific nodes. Users can select a node in the canvas and copy its fully-qualified ID, then paste it into a prompt for the AI to locate and edit.
+Magam supports a node ID copy feature that enables targeted editing of specific nodes. Users can select a node in the canvas and copy its fully-qualified ID, then paste it into a prompt for the AI to locate and edit.
 
 ### How It Works
 
@@ -61,15 +61,15 @@ Multiple nodes can be selected and copied at once. Each ID is separated by a new
 
 ## Core Components
 
-All components are imported from `@graphwrite/core`:
+All components are imported from `@magam/core`:
 
 ```tsx
-import { Canvas, Shape, Sticky, MindMap, Node, Edge, Text, Markdown, EmbedScope } from '@graphwrite/core';
+import { Canvas, Shape, Sticky, MindMap, Node, Edge, Text, Markdown, EmbedScope } from '@magam/core';
 ```
 
 ### Canvas (Required Root)
 
-Every GraphWrite diagram must be wrapped in a Canvas component.
+Every Magam diagram must be wrapped in a Canvas component.
 
 ```tsx
 <Canvas>
@@ -605,10 +605,10 @@ export default function MultiDB() {
 
 ## File Structure
 
-GraphWrite files are TypeScript/TSX files that export a React component:
+Magam files are TypeScript/TSX files that export a React component:
 
 ```tsx
-import { Canvas, MindMap, Node, Text, Markdown } from '@graphwrite/core';
+import { Canvas, MindMap, Node, Text, Markdown } from '@magam/core';
 
 export default function MyDiagram() {
   return (

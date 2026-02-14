@@ -1,13 +1,13 @@
 # CLAUDE.md
 
-Example `.tsx` files that demonstrate GraphWrite components and patterns. These are user-facing reference implementations.
+Example `.tsx` files that demonstrate Magam components and patterns. These are user-facing reference implementations.
 
 ## File Format
 
 Every example follows this pattern:
 
 ```tsx
-import { Canvas, /* components */ } from '@graphwrite/core';
+import { Canvas, /* components */ } from '@magam/core';
 
 export default function ExampleName() {
   return (
@@ -20,7 +20,7 @@ export default function ExampleName() {
 
 Rules:
 - Must default-export a function returning a `<Canvas>` element
-- Import components from `@graphwrite/core`
+- Import components from `@magam/core`
 - Tailwind class names in `className` props are stored as strings (not compiled CSS)
 
 ## Example Files

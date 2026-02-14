@@ -1,5 +1,5 @@
 {
-  "name": "@graphwrite/runtime",
+  "name": "@magam/runtime",
   "version": "0.0.1",
   "type": "commonjs",
   "main": "./dist/index.js",
@@ -11,8 +11,8 @@
     "build": "tsup"
   },
   "dependencies": {
-    "@graphwrite/core": "workspace:*",
-    "@graphwrite/shared": "workspace:*",
+    "@magam/core": "workspace:*",
+    "@magam/shared": "workspace:*",
     "esbuild": "^0.27.2",
     "tslib": "^2.3.0"
   }

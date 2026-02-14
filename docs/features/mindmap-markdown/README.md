@@ -5,7 +5,7 @@
 ## Import
 
 ```tsx
-import { Canvas, MindMap, Node, Markdown } from 'graphwrite';
+import { Canvas, MindMap, Node, Markdown } from 'magam';
 ```
 
 ## 사용법

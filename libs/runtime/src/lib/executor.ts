@@ -8,8 +8,8 @@ import { transpile } from './transpiler';
 
 export async function execute(jsCode: string): Promise<any> {
   const id = randomUUID();
-  const tempTsxPath = resolve(tmpdir(), `graphwrite-exec-${id}.tsx`);
-  const tempJsPath = resolve(tmpdir(), `graphwrite-exec-${id}.js`);
+  const tempTsxPath = resolve(tmpdir(), `magam-exec-${id}.tsx`);
+  const tempJsPath = resolve(tmpdir(), `magam-exec-${id}.js`);
 
   try {
     // 1. Write raw code to temp file
@@ -24,7 +24,7 @@ export async function execute(jsCode: string): Promise<any> {
     let localDistPath: string | undefined;
 
     try {
-      const corePath = require.resolve('@graphwrite/core');
+      const corePath = require.resolve('@magam/core');
       const splitPath = corePath.split('node_modules');
       if (splitPath.length > 1) {
         modulesPath =

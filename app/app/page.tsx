@@ -85,7 +85,7 @@ type TabContextMenuState = {
   y: number;
 };
 
-type GraphwriteTestHooks = {
+type MagamTestHooks = {
   getState: () => {
     openTabs: TabState[];
     activeTabId: string | null;
@@ -97,7 +97,7 @@ type GraphwriteTestHooks = {
 
 declare global {
   interface Window {
-    __graphwriteTest?: GraphwriteTestHooks;
+    __magamTest?: MagamTestHooks;
   }
 }
 
@@ -136,7 +136,7 @@ export default function Home() {
       return;
     }
 
-    window.__graphwriteTest = {
+    window.__magamTest = {
       getState: () => ({
         openTabs,
         activeTabId,

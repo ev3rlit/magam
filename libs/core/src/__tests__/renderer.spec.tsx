@@ -8,9 +8,9 @@ import { Edge } from '../components/Edge';
 import { Group } from '../components/Group';
 import { MindMap } from '../components/MindMap';
 import { Node } from '../components/Node';
-import { GraphwriteError } from '../errors';
+import { MagamError } from '../errors';
 
-describe('GraphWrite Renderer', () => {
+describe('Magam Renderer', () => {
   it('should render a simple tree to JSON', async () => {
     const element = (
       <canvas>
@@ -171,43 +171,43 @@ describe('GraphWrite Renderer', () => {
   });
 
   describe('Validation', () => {
-    it('should throw GraphwriteError if Sticky is missing id', async () => {
+    it('should throw MagamError if Sticky is missing id', async () => {
       const element = (
         <canvas>
           <Sticky x={0} y={0} />
         </canvas>
       );
-      await expect(renderToGraph(element)).rejects.toThrow(GraphwriteError);
+      await expect(renderToGraph(element)).rejects.toThrow(MagamError);
       await expect(renderToGraph(element)).rejects.toThrow(
         "Missing required prop 'id'",
       );
     });
 
-    it('should throw GraphwriteError if Sticky is missing x', async () => {
+    it('should throw MagamError if Sticky is missing x', async () => {
       const element = (
         <canvas>
           <Sticky id="1" y={0} />
         </canvas>
       );
-      await expect(renderToGraph(element)).rejects.toThrow(GraphwriteError);
+      await expect(renderToGraph(element)).rejects.toThrow(MagamError);
       await expect(renderToGraph(element)).rejects.toThrow(
         "Missing required prop 'x'",
       );
     });
 
-    it('should throw GraphwriteError if Sticky is missing y', async () => {
+    it('should throw MagamError if Sticky is missing y', async () => {
       const element = (
         <canvas>
           <Sticky id="1" x={0} />
         </canvas>
       );
-      await expect(renderToGraph(element)).rejects.toThrow(GraphwriteError);
+      await expect(renderToGraph(element)).rejects.toThrow(MagamError);
       await expect(renderToGraph(element)).rejects.toThrow(
         "Missing required prop 'y'",
       );
     });
 
-    it('should throw GraphwriteError if Shape is missing props', async () => {
+    it('should throw MagamError if Shape is missing props', async () => {
       const element = (
         <canvas>
           <Shape id="s1" x={0} />
@@ -218,7 +218,7 @@ describe('GraphWrite Renderer', () => {
       );
     });
 
-    it('should throw GraphwriteError if Text is missing props', async () => {
+    it('should throw MagamError if Text is missing props', async () => {
       const element = (
         <canvas>
           <Text id="t1" x={0} />
