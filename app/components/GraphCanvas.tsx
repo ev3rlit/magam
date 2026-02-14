@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   Background,
   BackgroundVariant,
@@ -18,8 +12,8 @@ import 'reactflow/dist/style.css';
 import { useGraphStore } from '@/store/graph';
 import StickyNode from './nodes/StickyNode';
 import ShapeNode from './nodes/ShapeNode';
-import ImageNode from './nodes/ImageNode';
 import TextNode from './nodes/TextNode';
+import ImageNode from './nodes/ImageNode';
 import MarkdownNode from './nodes/MarkdownNode';
 import SequenceDiagramNode from './nodes/SequenceDiagramNode';
 import FloatingEdge from './edges/FloatingEdge';
@@ -36,75 +30,6 @@ import { ContextMenu } from './ContextMenu';
 import { useContextMenu } from '@/hooks/useContextMenu';
 import { ExportDialog } from './ExportDialog';
 import { CustomBackground } from './CustomBackground';
-import { SearchOverlay } from './ui/SearchOverlay';
-
-const SEARCH_RESULT_HIGHLIGHT_CLASS = 'search-result-highlight';
-
-function getNodeDataClassName(data: unknown): {
-  className: string;
-  base: Record<string, unknown>;
-} {
-  if (!data || typeof data !== 'object') {
-    return { className: '', base: {} };
-  }
-
-  const base = data as Record<string, unknown>;
-  const className = typeof base.className === 'string' ? base.className : '';
-  return { className, base };
-}
-
-function applySearchHighlight(
-  nodes: FlowNode[],
-  highlightElementIds: string[],
-) {
-  if (!highlightElementIds.length) {
-    return nodes;
-  }
-
-  const highlightSet = new Set(highlightElementIds);
-  let hasChange = false;
-
-  const nextNodes = nodes.map((node) => {
-    const { className, base } = getNodeDataClassName(node.data);
-    const hasHighlight = className
-      .split(/\s+/)
-      .includes(SEARCH_RESULT_HIGHLIGHT_CLASS);
-    const shouldHighlight = highlightSet.has(node.id);
-
-    if (shouldHighlight === hasHighlight) {
-      return node;
-    }
-
-    hasChange = true;
-
-    if (shouldHighlight) {
-      const nextClassName =
-        `${className} ${SEARCH_RESULT_HIGHLIGHT_CLASS}`.trim();
-      return {
-        ...node,
-        data: {
-          ...base,
-          className: nextClassName,
-        },
-      };
-    }
-
-    const nextClassName = className
-      .split(/\s+/)
-      .filter((token) => token !== SEARCH_RESULT_HIGHLIGHT_CLASS)
-      .join(' ');
-
-    return {
-      ...node,
-      data: {
-        ...base,
-        className: nextClassName,
-      },
-    };
-  });
-
-  return hasChange ? nextNodes : nodes;
-}
 
 function GraphCanvasContent() {
   const nodeTypes = useMemo(
@@ -133,40 +58,17 @@ function GraphCanvasContent() {
     onNodesChange,
     onEdgesChange,
     setSelectedNodes,
-    openTabs,
-    activeTabId,
-    updateTabSnapshot,
     graphId,
     needsAutoLayout,
     layoutType,
     mindMapGroups,
     canvasBackground,
-    highlightElementIds,
   } = useGraphStore();
-
-  const displayedNodes = useMemo(
-    () => applySearchHighlight(nodes, highlightElementIds),
-    [nodes, highlightElementIds],
-  );
 
   const { calculateLayout, isLayouting } = useElkLayout();
   const nodesInitialized = useNodesInitialized();
-  const {
-    zoomIn,
-    zoomOut,
-    fitView,
-    getZoom,
-    setNodes,
-    getViewport,
-    setViewport,
-  } = useReactFlow();
-  const {
-    isOpen: isContextMenuOpen,
-    context: contextMenuContext,
-    items: contextMenuItems,
-    openMenu,
-    closeMenu,
-  } = useContextMenu();
+  const { zoomIn, zoomOut, fitView, getZoom, setNodes } = useReactFlow();
+  const { isOpen: isContextMenuOpen, context: contextMenuContext, items: contextMenuItems, openMenu, closeMenu } = useContextMenu();
   const { copyImageToClipboard } = useExportImage();
   const [exportDialog, setExportDialog] = useState<{
     isOpen: boolean;
@@ -178,98 +80,19 @@ function GraphCanvasContent() {
   });
   const [isGraphVisible, setIsGraphVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [interactionMode, setInteractionMode] =
-    useState<InteractionMode>('pointer');
+  const [interactionMode, setInteractionMode] = useState<InteractionMode>('pointer');
   const hasLayouted = useRef(false);
   const lastLayoutedGraphId = useRef<string | null>(null);
-  const captureViewportTimer = useRef(0);
-  const makeSelectionSnapshot = useCallback(
-    (selection: { nodeIds: string[]; edgeIds: string[] }) => {
-      const validNodeIds = selection.nodeIds.filter((nodeId) =>
-        useGraphStore.getState().nodes.some((node) => node.id === nodeId),
-      );
-      const validEdgeIds = selection.edgeIds.filter((edgeId) =>
-        useGraphStore.getState().edges.some((edge) => edge.id === edgeId),
-      );
-
-      return {
-        nodeIds: validNodeIds,
-        edgeIds: validEdgeIds,
-      };
-    },
-    [],
-  );
 
   const showToast = (message: string) => {
     setToastMessage(message);
     setTimeout(() => setToastMessage(null), 2000);
   };
 
-  const snapshotTabState = useCallback(
-    (selectionOverride?: { nodeIds: string[]; edgeIds: string[] }) => {
-      const activeTabId = useGraphStore.getState().activeTabId;
-      if (!activeTabId) {
-        return;
-      }
-
-      const state = useGraphStore.getState();
-      const normalizedSelection = selectionOverride ?? {
-        nodeIds: state.selectedNodeIds,
-        edgeIds: [],
-      };
-      const validSelection = makeSelectionSnapshot(normalizedSelection);
-      const viewport = getViewport();
-
-      updateTabSnapshot(activeTabId, {
-        lastViewport: viewport,
-        lastSelection: {
-          nodeIds: validSelection.nodeIds,
-          edgeIds: validSelection.edgeIds,
-          updatedAt: Date.now(),
-        },
-      });
-    },
-    [getViewport, makeSelectionSnapshot, updateTabSnapshot],
-  );
-
-  const restoreTabState = useCallback(
-    (tabId: string) => {
-      const tabState = openTabs.find((tab) => tab.tabId === tabId);
-      const state = useGraphStore.getState();
-
-      if (!tabState) {
-        setSelectedNodes([]);
-        return;
-      }
-
-      if (tabState.lastViewport) {
-        setViewport(tabState.lastViewport);
-      } else {
-        fitView({ duration: 0 });
-      }
-
-      const requestedNodeIds = tabState.lastSelection?.nodeIds ?? [];
-      const restoredSelection = requestedNodeIds.filter((nodeId) =>
-        state.nodes.some((node) => node.id === nodeId),
-      );
-      if (requestedNodeIds.length !== restoredSelection.length) {
-        console.debug('[Telemetry] tabs_restore_failed', {
-          tabId,
-          pageId: tabState.pageId,
-          requestedNodeCount: requestedNodeIds.length,
-          restoredNodeCount: restoredSelection.length,
-        });
-      }
-      setSelectedNodes(restoredSelection);
-    },
-    [openTabs, setSelectedNodes, setViewport, fitView],
-  );
-
   const handleZoomIn = () => {
     zoomIn({ duration: 300 });
     setTimeout(() => {
       showToast(`Zoom: ${Math.round(getZoom() * 100)}%`);
-      snapshotTabState();
     }, 350);
   };
 
@@ -277,7 +100,6 @@ function GraphCanvasContent() {
     zoomOut({ duration: 300 });
     setTimeout(() => {
       showToast(`Zoom: ${Math.round(getZoom() * 100)}%`);
-      snapshotTabState();
     }, 350);
   };
 
@@ -285,54 +107,41 @@ function GraphCanvasContent() {
     fitView({ duration: 300 });
     setTimeout(() => {
       showToast('Fit to view');
-      snapshotTabState();
     }, 350);
   };
 
-  const selectMindMapGroupByNodeId = useCallback(
-    (nodeId: string) => {
-      const node = useGraphStore
-        .getState()
-        .nodes.find((item) => item.id === nodeId);
-      const groupId = node?.data?.groupId as string | undefined;
+  const selectMindMapGroupByNodeId = useCallback((nodeId: string) => {
+    const node = useGraphStore.getState().nodes.find((item) => item.id === nodeId);
+    const groupId = node?.data?.groupId as string | undefined;
 
-      if (!groupId) {
-        showToast('그룹 정보가 없는 노드입니다.');
-        return;
-      }
+    if (!groupId) {
+      showToast('그룹 정보가 없는 노드입니다.');
+      return;
+    }
 
-      const groupNodeIds = useGraphStore
-        .getState()
-        .nodes.filter((item) => item.data?.groupId === groupId)
-        .map((item) => item.id);
-      setSelectedNodes(groupNodeIds);
-      showToast('그룹 노드가 선택되었습니다.');
+    const groupNodeIds = useGraphStore.getState().nodes
+      .filter((item) => item.data?.groupId === groupId)
+      .map((item) => item.id);
+    setSelectedNodes(groupNodeIds);
+    showToast('그룹 노드가 선택되었습니다.');
+  }, [setSelectedNodes, showToast]);
+
+  const contextMenuActions = useMemo(() => ({
+    fitView: () => {
+      handleFitView();
     },
-    [setSelectedNodes, showToast],
-  );
-
-  const contextMenuActions = useMemo(
-    () => ({
-      fitView: () => {
-        handleFitView();
-      },
-      copyImageToClipboard: (ids?: string[]) => {
-        return copyImageToClipboard(ids);
-      },
-      openExportDialog: (
-        scope: 'selection' | 'full',
-        selectedNodeIds?: string[],
-      ) => {
-        setExportDialog({
-          isOpen: true,
-          defaultArea: scope === 'selection' ? 'selection' : 'full',
-          selectedNodeIds: scope === 'selection' ? selectedNodeIds : undefined,
-        });
-      },
-      selectMindMapGroupByNodeId,
-    }),
-    [copyImageToClipboard, handleFitView, selectMindMapGroupByNodeId],
-  );
+    copyImageToClipboard: (ids?: string[]) => {
+      return copyImageToClipboard(ids);
+    },
+    openExportDialog: (scope: 'selection' | 'full', selectedNodeIds?: string[]) => {
+      setExportDialog({
+        isOpen: true,
+        defaultArea: scope === 'selection' ? 'selection' : 'full',
+        selectedNodeIds: scope === 'selection' ? selectedNodeIds : undefined,
+      });
+    },
+    selectMindMapGroupByNodeId,
+  }), [copyImageToClipboard, handleFitView, selectMindMapGroupByNodeId]);
 
   const onNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: FlowNode) => {
@@ -369,6 +178,7 @@ function GraphCanvasContent() {
     closeMenu();
   }, [closeMenu]);
 
+
   // Reset layout state when new graph is loaded
   useEffect(() => {
     if (graphId !== lastLayoutedGraphId.current) {
@@ -384,35 +194,20 @@ function GraphCanvasContent() {
     // Additional check: verify ALL nodes have actual measured dimensions
     // This prevents race condition where nodesInitialized is briefly true
     // before new nodes are fully rendered after file watch updates
-    const areAllNodesMeasured =
-      nodes.length > 0 &&
-      nodes.every(
-        (node) =>
-          typeof node.width === 'number' &&
-          typeof node.height === 'number' &&
-          node.width > 0 &&
-          node.height > 0,
-      );
+    const areAllNodesMeasured = nodes.length > 0 && nodes.every(
+      (node) => typeof node.width === 'number' && typeof node.height === 'number' && node.width > 0 && node.height > 0
+    );
 
     // Check if we have nodes, they are fully initialized (width/height measured), and we haven't run layout yet.
-    if (
-      nodes.length > 0 &&
-      nodesInitialized &&
-      areAllNodesMeasured &&
-      !hasLayouted.current
-    ) {
+    if (nodes.length > 0 && nodesInitialized && areAllNodesMeasured && !hasLayouted.current) {
       const runLayout = async () => {
         // Double-check: wait one more frame to ensure DOM is fully settled
-        await new Promise((resolve) => requestAnimationFrame(resolve));
+        await new Promise(resolve => requestAnimationFrame(resolve));
 
         // Re-verify measurements after the frame (in case of rapid updates)
         const currentNodes = useGraphStore.getState().nodes;
         const stillMeasured = currentNodes.every(
-          (node) =>
-            typeof node.width === 'number' &&
-            typeof node.height === 'number' &&
-            node.width > 0 &&
-            node.height > 0,
+          (node) => typeof node.width === 'number' && typeof node.height === 'number' && node.width > 0 && node.height > 0
         );
 
         if (!stillMeasured || hasLayouted.current) {
@@ -424,9 +219,7 @@ function GraphCanvasContent() {
           // ELK layout now handles everything:
           // - Internal group layouts
           // - Global group positioning (with anchor resolution)
-          console.log(
-            `[Layout] Triggering ELK layout (${layoutType} mode, ${mindMapGroups.length} group(s))...`,
-          );
+          console.log(`[Layout] Triggering ELK layout (${layoutType} mode, ${mindMapGroups.length} group(s))...`);
           await calculateLayout({
             direction: 'RIGHT',
             bidirectional: layoutType === 'bidirectional',
@@ -434,11 +227,9 @@ function GraphCanvasContent() {
           });
         } else {
           // Canvas mode: check if any nodes use anchor-based positioning
-          const hasAnchors = currentNodes.some((n) => n.data?.anchor);
+          const hasAnchors = currentNodes.some(n => n.data?.anchor);
           if (hasAnchors) {
-            console.log(
-              '[Layout] Canvas mode with anchors, resolving anchor positions...',
-            );
+            console.log('[Layout] Canvas mode with anchors, resolving anchor positions...');
             const resolved = resolveAnchors(currentNodes);
             setNodes(resolved);
             setTimeout(() => fitView({ duration: 300 }), 50);
@@ -454,39 +245,15 @@ function GraphCanvasContent() {
 
       runLayout();
     }
-  }, [
-    nodes.length,
-    nodesInitialized,
-    calculateLayout,
-    graphId,
-    needsAutoLayout,
-    layoutType,
-    mindMapGroups,
-    nodes,
-  ]);
+  }, [nodes.length, nodesInitialized, calculateLayout, graphId, needsAutoLayout, layoutType, mindMapGroups, nodes]);
 
   const onSelectionChange = useCallback(
-    ({
-      nodes: selectedNodes,
-      edges: selectedEdges,
-    }: OnSelectionChangeParams) => {
+    ({ nodes: selectedNodes }: OnSelectionChangeParams) => {
       const selectedIds = selectedNodes.map((node) => node.id);
-      const edgeIds = selectedEdges.map((edge) => edge.id);
-      snapshotTabState({
-        nodeIds: selectedIds,
-        edgeIds,
-      });
       setSelectedNodes(selectedIds);
     },
-    [setSelectedNodes, snapshotTabState],
+    [setSelectedNodes],
   );
-
-  const onMoveEnd = useCallback(() => {
-    window.clearTimeout(captureViewportTimer.current);
-    captureViewportTimer.current = window.setTimeout(() => {
-      snapshotTabState();
-    }, 120);
-  }, [snapshotTabState]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -506,9 +273,7 @@ function GraphCanvasContent() {
 
         if (selectedNodeIds.length > 0) {
           // Copy Logic Changed: Copy "mindmap.{nodeId}" to clipboard
-          const selectedIdStrings = selectedNodeIds
-            .map((id) => `mindmap.${id}`)
-            .join('\n');
+          const selectedIdStrings = selectedNodeIds.map(id => `mindmap.${id}`).join('\n');
 
           navigator.clipboard
             .writeText(selectedIdStrings)
@@ -541,29 +306,13 @@ function GraphCanvasContent() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  useEffect(() => {
-    if (!activeTabId) {
-      return;
-    }
-    if (!nodesInitialized || nodes.length === 0) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      restoreTabState(activeTabId);
-    }, 40);
-    return () => window.clearTimeout(timer);
-  }, [activeTabId, graphId, nodes.length, nodesInitialized, restoreTabState]);
-
   return (
     <>
       {isLayouting && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-2">
             <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
-            <p className="text-sm font-medium text-slate-600">
-              Optimizing layout...
-            </p>
+            <p className="text-sm font-medium text-slate-600">Optimizing layout...</p>
           </div>
         </div>
       )}
@@ -577,14 +326,13 @@ function GraphCanvasContent() {
         style={{ opacity: isGraphVisible ? 1 : 0 }}
       >
         <ReactFlow
-          nodes={displayedNodes}
+          nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onNodeContextMenu={onNodeContextMenu}
           onPaneContextMenu={onPaneContextMenu}
           onSelectionChange={onSelectionChange}
-          onMoveEnd={onMoveEnd}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           nodesDraggable={false}
@@ -604,26 +352,17 @@ function GraphCanvasContent() {
           }}
           proOptions={{ hideAttribution: true }}
         >
-          {typeof canvasBackground === 'string' &&
-            canvasBackground !== 'solid' && (
-              <Background
-                variant={
-                  canvasBackground === 'lines'
-                    ? BackgroundVariant.Lines
-                    : BackgroundVariant.Dots
-                }
-                gap={24}
-                size={1}
-                color="#cbd5e1"
-              />
-            )}
-          {typeof canvasBackground === 'object' &&
-            canvasBackground.type === 'custom' && (
-              <CustomBackground
-                svg={canvasBackground.svg}
-                gap={canvasBackground.gap}
-              />
-            )}
+          {typeof canvasBackground === 'string' && canvasBackground !== 'solid' && (
+            <Background
+              variant={canvasBackground === 'lines' ? BackgroundVariant.Lines : BackgroundVariant.Dots}
+              gap={24}
+              size={1}
+              color="#cbd5e1"
+            />
+          )}
+          {typeof canvasBackground === 'object' && canvasBackground.type === 'custom' && (
+            <CustomBackground svg={canvasBackground.svg} gap={canvasBackground.gap} />
+          )}
 
           <FloatingToolbar
             interactionMode={interactionMode}
@@ -634,31 +373,25 @@ function GraphCanvasContent() {
           />
         </ReactFlow>
 
-        {isContextMenuOpen &&
-          contextMenuContext &&
-          contextMenuItems.length > 0 && (
-            <ContextMenu
-              isOpen={isContextMenuOpen}
-              position={contextMenuContext.position}
-              items={contextMenuItems}
-              context={contextMenuContext}
-              onClose={onCloseContextMenu}
-            />
-          )}
+        {isContextMenuOpen && contextMenuContext && contextMenuItems.length > 0 && (
+          <ContextMenu
+            isOpen={isContextMenuOpen}
+            position={contextMenuContext.position}
+            items={contextMenuItems}
+            context={contextMenuContext}
+            onClose={onCloseContextMenu}
+          />
+        )}
 
         <ExportDialog
           isOpen={exportDialog.isOpen}
           defaultArea={exportDialog.defaultArea}
           selectedNodeIds={exportDialog.selectedNodeIds}
-          onClose={() =>
-            setExportDialog({ isOpen: false, defaultArea: 'full' })
-          }
+          onClose={() => setExportDialog({ isOpen: false, defaultArea: 'full' })}
         />
 
         {/* Bubble overlay - renders all bubbles above nodes */}
         <BubbleOverlay />
-
-        <SearchOverlay />
 
         {/* Toast Notification */}
         {toastMessage && (
