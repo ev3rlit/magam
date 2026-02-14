@@ -8,7 +8,13 @@ Magam is a **programmable whiteboard for AI agent collaboration**.
 
 ### Why "마감"?
 
-**마감**(magam) is a Korean word meaning *deadline* and *finishing*. In publishing, 마감 is the moment scattered drafts become a finished page. Magam does the same for diagrams — you describe your intent, and AI finishes it into a visual. One word, two meanings: the urgency to ship, and the craft of completion.
+**마감**(magam) carries layered meanings in Korean:
+
+- **감각적인 마인드맵** — *Ma* from mind map, *Gam* from 감각(sense). A sensory canvas for your thinking.
+- **My Gam (나의 감각)** — Your personal sense, your way of seeing the world, externalized.
+- **마감 = completion** — Not the stress of a deadline, but the aesthetics of finishing. The satisfaction of shaping raw thoughts into something whole.
+
+This app is a space to freely unfold your ideas, expressions, notes, and learning. Thoughts, knowledge, study — everything you carry in your head — spread across an infinite canvas and take shape. That process of expanding and completing your thinking: that's 마감.
 
 Diagrams defined in code are **faster than hand-drawing, clearer in intent, and easier to archive**.
 This app is designed **AI-First**, not Mobile-First.
