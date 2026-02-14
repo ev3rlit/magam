@@ -8,6 +8,12 @@ import {
   applyNodeChanges,
   applyEdgeChanges,
 } from 'reactflow';
+import type { SearchMode, SearchResult } from '@/utils/search';
+
+type SearchActionResult = {
+  clearQuery?: boolean;
+  clearHighlights?: boolean;
+};
 
 export type CustomBackgroundData = { type: 'custom'; svg: string; gap: number };
 export type CanvasBackgroundStyle = 'dots' | 'lines' | 'solid' | CustomBackgroundData;
@@ -34,6 +40,41 @@ export interface MindMapGroup {
   anchorGap?: number;
 }
 
+export interface TabViewportState {
+  x: number;
+  y: number;
+  zoom: number;
+}
+
+export interface TabSelectionState {
+  nodeIds: string[];
+  edgeIds: string[];
+  updatedAt: number;
+}
+
+export interface TabState {
+  tabId: string;
+  pageId: string;
+  title: string;
+  dirty: boolean;
+  lastViewport: TabViewportState | null;
+  lastSelection: TabSelectionState | null;
+  lastAccessedAt: number;
+  createdAt: number;
+}
+
+export interface OpenTabResultActivated {
+  status: 'activated' | 'opened';
+  tabId: string;
+}
+
+export interface OpenTabResultBlocked {
+  status: 'blocked';
+  replaceTabId: string;
+}
+
+export type OpenTabResult = OpenTabResultActivated | OpenTabResultBlocked;
+
 /**
  * File tree node structure for folder tree view
  */
@@ -58,6 +99,16 @@ export interface GraphState {
   needsAutoLayout: boolean; // true for MindMap, false for Canvas with explicit positions
   layoutType: 'tree' | 'bidirectional' | 'radial'; // Layout algorithm type (legacy, for single MindMap)
   mindMapGroups: MindMapGroup[]; // Multiple MindMap support
+  openTabs: TabState[];
+  activeTabId: string | null;
+  maxTabs: number;
+  isSearchOpen: boolean;
+  searchMode: SearchMode;
+  searchQuery: string;
+  searchResults: SearchResult[];
+  activeResultIndex: number;
+  highlightElementIds: string[];
+  lastExecutedSearch?: SearchResult;
   setGraph: (graph: { nodes: Node[]; edges: Edge[]; needsAutoLayout?: boolean; layoutType?: 'tree' | 'bidirectional' | 'radial'; mindMapGroups?: MindMapGroup[]; canvasBackground?: CanvasBackgroundStyle }) => void;
   setFiles: (files: string[]) => void;
   setFileTree: (tree: FileTreeNode | null) => void;
@@ -70,7 +121,39 @@ export interface GraphState {
   setCanvasBackground: (style: CanvasBackgroundStyle) => void;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
+  openTab: (pageId: string) => OpenTabResult;
+  replaceLeastRecentlyUsedTab: (pageId: string, replaceTabId: string) => void;
+  activateTab: (tabId: string) => void;
+  closeTab: (tabId: string) => void;
+  markTabDirty: (tabId: string, dirty: boolean) => void;
+  updateTabSnapshot: (tabId: string, snapshot: {
+    lastViewport?: TabViewportState | null;
+    lastSelection?: TabSelectionState | null;
+  }) => void;
+  openSearch: () => void;
+  closeSearch: (options?: SearchActionResult) => void;
+  setSearchMode: (mode: SearchMode) => void;
+  setSearchQuery: (query: string) => void;
+  setSearchResults: (results: SearchResult[]) => void;
+  moveSearchActiveIndex: (direction: 'up' | 'down') => void;
+  setSearchActiveIndex: (index: number) => void;
+  setSearchHighlightElementIds: (elementIds: string[]) => void;
+  resetSearchState: () => void;
 }
+
+export const getDefaultTabTitle = (pageId: string): string => {
+  const parts = pageId.split('/').filter(Boolean);
+  return parts.length > 0 ? parts[parts.length - 1] : pageId;
+};
+
+const selectLeastRecentlyUsedTab = (tabs: TabState[]): TabState | null => {
+  return tabs.reduce<TabState | null>((acc, tab) => {
+    if (!acc) return tab;
+    return tab.lastAccessedAt < acc.lastAccessedAt ? tab : acc;
+  }, null);
+};
+
+const getNow = () => Date.now();
 
 export const useGraphStore = create<GraphState>((set, get) => ({
   nodes: [],
@@ -87,6 +170,15 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   layoutType: 'tree',
   canvasBackground: 'dots',
   mindMapGroups: [],
+  openTabs: [],
+  activeTabId: null,
+  maxTabs: 10,
+  isSearchOpen: false,
+  searchMode: 'global',
+  searchQuery: '',
+  searchResults: [],
+  activeResultIndex: -1,
+  highlightElementIds: [],
   setGraph: ({ nodes, edges, needsAutoLayout = false, layoutType = 'tree', mindMapGroups = [], canvasBackground }) => set({ nodes, edges, needsAutoLayout, layoutType, mindMapGroups, graphId: uuidv4(), ...(canvasBackground ? { canvasBackground } : {}) }),
   setFiles: (files) => set({ files }),
   setFileTree: (fileTree) => set({ fileTree }),
@@ -114,4 +206,261 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       edges: applyEdgeChanges(changes, get().edges),
     });
   },
+  openTab: (pageId) => {
+    const { openTabs, maxTabs, activeTabId, currentFile } = get();
+    const existingTab = openTabs.find((tab) => tab.pageId === pageId);
+    const now = getNow();
+
+    if (existingTab) {
+      const nextTabs = openTabs.map((tab) => (
+        tab.tabId === existingTab.tabId
+          ? { ...tab, lastAccessedAt: now }
+          : tab
+      ));
+      set({
+        openTabs: nextTabs,
+        activeTabId: existingTab.tabId,
+        currentFile: pageId,
+      });
+      if (activeTabId !== existingTab.tabId || currentFile !== pageId) {
+        console.debug('[Telemetry] tabs_switched', { tabId: existingTab.tabId, pageId, source: 'openTab' });
+      }
+      return { status: 'activated', tabId: existingTab.tabId };
+    }
+
+    if (openTabs.length >= maxTabs) {
+      const replaceTab = selectLeastRecentlyUsedTab(openTabs);
+      if (replaceTab) {
+        console.debug('[Telemetry] tabs_limit_prompted', {
+          pageId,
+          replaceTabId: replaceTab.tabId,
+          tabCount: openTabs.length,
+        });
+        return { status: 'blocked', replaceTabId: replaceTab.tabId };
+      }
+      return { status: 'blocked', replaceTabId: activeTabId || openTabs[0]?.tabId || '' };
+    }
+
+    const nextTab: TabState = {
+      tabId: uuidv4(),
+      pageId,
+      title: getDefaultTabTitle(pageId),
+      dirty: false,
+      lastViewport: null,
+      lastSelection: null,
+      lastAccessedAt: now,
+      createdAt: now,
+    };
+
+    set({
+      openTabs: [...openTabs, nextTab],
+      activeTabId: nextTab.tabId,
+      currentFile: pageId,
+    });
+    console.debug('[Telemetry] tabs_opened', { tabId: nextTab.tabId, pageId, source: 'openTab' });
+    return { status: 'opened', tabId: nextTab.tabId };
+  },
+  replaceLeastRecentlyUsedTab: (pageId, replaceTabId) => {
+    const { openTabs } = get();
+    const now = getNow();
+    const exists = openTabs.some((tab) => tab.tabId === replaceTabId);
+    if (!exists) {
+      return;
+    }
+
+    const nextTabs = openTabs.map((tab) => (
+      tab.tabId === replaceTabId
+        ? {
+            ...tab,
+            pageId,
+            title: getDefaultTabTitle(pageId),
+            dirty: false,
+            lastViewport: null,
+            lastSelection: null,
+            lastAccessedAt: now,
+            createdAt: now,
+          }
+        : tab
+    ));
+
+    set({
+      openTabs: nextTabs,
+      activeTabId: replaceTabId,
+      currentFile: pageId,
+    });
+    console.debug('[Telemetry] tabs_limit_replaced', { tabId: replaceTabId, pageId });
+  },
+  activateTab: (tabId) => {
+    const { openTabs } = get();
+    const tab = openTabs.find((item) => item.tabId === tabId);
+    if (!tab) {
+      return;
+    }
+    const now = getNow();
+    set({
+      openTabs: openTabs.map((item) => (
+        item.tabId === tabId
+          ? { ...item, lastAccessedAt: now }
+          : item
+      )),
+      activeTabId: tabId,
+      currentFile: tab.pageId,
+    });
+    console.debug('[Telemetry] tabs_switched', { tabId, pageId: tab.pageId, source: 'activateTab' });
+  },
+  closeTab: (tabId) => {
+    const { openTabs, activeTabId, files } = get();
+    const targetTab = openTabs.find((tab) => tab.tabId === tabId);
+    if (!targetTab) {
+      return;
+    }
+
+    const remainingTabs = openTabs.filter((tab) => tab.tabId !== tabId);
+    const shouldClearActive = activeTabId === tabId;
+    if (remainingTabs.length === 0) {
+      console.debug('[Telemetry] tabs_closed', { tabId, pageId: targetTab.pageId, dirty: targetTab.dirty });
+      const fallbackPageId = files.find((file) => file !== targetTab.pageId) ?? files[0];
+      if (fallbackPageId) {
+        const now = getNow();
+        const fallbackTab: TabState = {
+          tabId: uuidv4(),
+          pageId: fallbackPageId,
+          title: getDefaultTabTitle(fallbackPageId),
+          dirty: false,
+          lastViewport: null,
+          lastSelection: null,
+          lastAccessedAt: now,
+          createdAt: now,
+        };
+        set({
+          openTabs: [fallbackTab],
+          activeTabId: fallbackTab.tabId,
+          currentFile: fallbackPageId,
+        });
+        console.debug('[Telemetry] tabs_fallback_opened', { tabId: fallbackTab.tabId, pageId: fallbackPageId });
+        return;
+      }
+
+      set({
+        openTabs: [],
+        activeTabId: null,
+        currentFile: null,
+      });
+      return;
+    }
+
+    let nextActiveId = activeTabId;
+    if (shouldClearActive) {
+      const sortedTabs = [...openTabs];
+      const targetIndex = sortedTabs.findIndex((tab) => tab.tabId === tabId);
+      const nextAdjacent = sortedTabs[targetIndex + 1] ?? sortedTabs[targetIndex - 1] ?? remainingTabs[remainingTabs.length - 1];
+      nextActiveId = nextAdjacent.tabId;
+    }
+
+    const nextActiveTab = remainingTabs.find((tab) => tab.tabId === nextActiveId) ?? remainingTabs[0];
+    set({
+      openTabs: remainingTabs,
+      activeTabId: nextActiveTab?.tabId ?? null,
+      currentFile: nextActiveTab?.pageId ?? null,
+    });
+    console.debug('[Telemetry] tabs_closed', { tabId, pageId: targetTab.pageId, dirty: targetTab.dirty });
+  },
+  markTabDirty: (tabId, dirty) => {
+    set((state) => ({
+      openTabs: state.openTabs.map((tab) => (
+        tab.tabId === tabId ? { ...tab, dirty } : tab
+      )),
+    }));
+  },
+  updateTabSnapshot: (tabId, snapshot) => {
+    set((state) => ({
+      openTabs: state.openTabs.map((tab) => {
+        if (tab.tabId !== tabId) {
+          return tab;
+        }
+        return {
+          ...tab,
+          lastAccessedAt: getNow(),
+          lastViewport: snapshot.lastViewport ?? tab.lastViewport,
+          lastSelection: snapshot.lastSelection ?? tab.lastSelection,
+        };
+      }),
+    }));
+  },
+  openSearch: () => {
+    set({ isSearchOpen: true });
+    console.debug('[Search] search_opened', {
+      mode: get().searchMode,
+      queryLength: get().searchQuery.length,
+      openAt: Date.now(),
+    });
+  },
+  closeSearch: ({ clearQuery = true, clearHighlights = true } = {}) => set((state) => ({
+    isSearchOpen: false,
+    searchMode: state.searchMode,
+    searchQuery: clearQuery ? '' : state.searchQuery,
+    searchResults: clearQuery ? [] : state.searchResults,
+    activeResultIndex: -1,
+    highlightElementIds: clearHighlights ? [] : state.highlightElementIds,
+  })),
+  setSearchMode: (searchMode) => set((state) => {
+    console.debug('[Search] search_mode_changed', {
+      before: state.searchMode,
+      after: searchMode,
+    });
+    return {
+      searchMode,
+      activeResultIndex: state.searchResults.length > 0 ? 0 : -1,
+    };
+  }),
+  setSearchQuery: (searchQuery) => {
+    console.debug('[Search] search_query_changed', { length: searchQuery.length });
+    set({
+      searchQuery,
+      searchResults: [],
+      activeResultIndex: -1,
+      ...(searchQuery.length === 0 ? { highlightElementIds: [] } : {}),
+    });
+  },
+  setSearchResults: (searchResults) => set((state) => ({
+    searchResults,
+    activeResultIndex: searchResults.length > 0
+      ? Math.min(Math.max(state.activeResultIndex, 0), searchResults.length - 1)
+      : -1,
+  })),
+  moveSearchActiveIndex: (direction) => set((state) => {
+    if (state.searchResults.length === 0) {
+      return { activeResultIndex: -1 };
+    }
+
+    if (state.activeResultIndex < 0) {
+      return { activeResultIndex: 0 };
+    }
+
+    const maxIndex = state.searchResults.length - 1;
+    const nextIndex = direction === 'down'
+      ? (state.activeResultIndex + 1) % state.searchResults.length
+      : (state.activeResultIndex - 1 + state.searchResults.length) % state.searchResults.length;
+
+    return {
+      activeResultIndex: Math.min(Math.max(nextIndex, 0), maxIndex),
+    };
+  }),
+  setSearchActiveIndex: (index) => set((state) => ({
+    activeResultIndex:
+      state.searchResults.length === 0
+        ? -1
+        : Math.min(Math.max(index, 0), state.searchResults.length - 1),
+  })),
+  setSearchHighlightElementIds: (highlightElementIds) => set({
+    highlightElementIds,
+  }),
+  resetSearchState: () => set({
+    isSearchOpen: false,
+    searchMode: 'global',
+    searchQuery: '',
+    searchResults: [],
+    activeResultIndex: -1,
+    highlightElementIds: [],
+  }),
 }));

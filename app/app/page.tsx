@@ -1,13 +1,21 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useFileSync } from '@/hooks/useFileSync';
 import { GraphCanvas } from '@/components/GraphCanvas';
 import { Sidebar } from '@/components/ui/Sidebar';
 import { Header } from '@/components/ui/Header';
 import { Footer } from '@/components/ui/Footer';
+import { TabBar } from '@/components/ui/TabBar';
+import { QuickOpenDialog } from '@/components/ui/QuickOpenDialog';
 import { ErrorOverlay } from '@/components/ui/ErrorOverlay';
-import { useGraphStore } from '@/store/graph';
+import { TabState, useGraphStore } from '@/store/graph';
 
 interface RenderNode {
   type: string;
@@ -40,6 +48,11 @@ interface RenderNode {
     // Markdown specific
     content?: string;
     variant?: string;
+    src?: string;
+    imageSrc?: string;
+    alt?: string;
+    fit?: string;
+    imageFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down';
     // Anchor positioning
     anchor?: string;
     position?: string;
@@ -61,9 +74,79 @@ interface RenderNode {
   children?: RenderNode[];
 }
 
+type PendingTabCloseRequest = {
+  tabIds: string[];
+};
+
+type TabContextMenuState = {
+  tabId: string;
+  x: number;
+  y: number;
+};
+
+type GraphwriteTestHooks = {
+  getState: () => {
+    openTabs: TabState[];
+    activeTabId: string | null;
+  };
+  getActiveTabId: () => string | null;
+  getOpenTabs: () => TabState[];
+  markTabDirty: (tabId: string, dirty: boolean) => void;
+};
+
+declare global {
+  interface Window {
+    __graphwriteTest?: GraphwriteTestHooks;
+  }
+}
+
 export default function Home() {
-  const { setFiles, setGraph, currentFile, setError: setGraphError } = useGraphStore();
+  const {
+    setFiles,
+    setGraph,
+    currentFile,
+    files,
+    openTabs,
+    activeTabId,
+    openTab,
+    activateTab,
+    closeTab,
+    markTabDirty,
+    replaceLeastRecentlyUsedTab,
+    isSearchOpen,
+    openSearch,
+    closeSearch,
+    setError: setGraphError,
+  } = useGraphStore();
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isQuickOpenOpen, setIsQuickOpenOpen] = useState(false);
+  const [pendingReplaceRequest, setPendingReplaceRequest] = useState<{
+    replaceTabId: string;
+    pageId: string;
+  } | null>(null);
+  const [pendingCloseRequest, setPendingCloseRequest] =
+    useState<PendingTabCloseRequest | null>(null);
+  const [tabContextMenu, setTabContextMenu] =
+    useState<TabContextMenuState | null>(null);
+  const tabContextMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production') {
+      return;
+    }
+
+    window.__graphwriteTest = {
+      getState: () => ({
+        openTabs,
+        activeTabId,
+      }),
+      getActiveTabId: () => activeTabId,
+      getOpenTabs: () => openTabs,
+      markTabDirty: (tabId, dirty) => {
+        markTabDirty(tabId, dirty);
+      },
+    };
+  }, [activeTabId, markTabDirty, openTabs]);
 
   // File sync - triggers re-render when file changes externally
   const handleFileChange = useCallback(() => {
@@ -91,6 +174,246 @@ export default function Home() {
     loadFiles();
   }, [loadFiles]);
 
+  const executeCloseTabs = useCallback(
+    (tabIds: string[]) => {
+      const targetTabIds = openTabs
+        .filter((tab) => tabIds.includes(tab.tabId))
+        .map((tab) => tab.tabId);
+      targetTabIds.forEach((targetTabId) => {
+        closeTab(targetTabId);
+      });
+    },
+    [closeTab, openTabs],
+  );
+
+  const requestCloseTabs = useCallback(
+    (tabIds: string[]) => {
+      const uniqueTabIds = Array.from(new Set(tabIds));
+      if (uniqueTabIds.length === 0) {
+        return;
+      }
+      const targetTabs = openTabs.filter((tab) =>
+        uniqueTabIds.includes(tab.tabId),
+      );
+      if (targetTabs.length === 0) {
+        return;
+      }
+
+      const dirtyTabIds = targetTabs
+        .filter((tab) => tab.dirty)
+        .map((tab) => tab.tabId);
+
+      if (dirtyTabIds.length > 0) {
+        console.debug('[Telemetry] tabs_close_dirty_prompted', {
+          source: 'request',
+          tabCount: targetTabs.length,
+          dirtyTabCount: dirtyTabIds.length,
+        });
+        setPendingCloseRequest({ tabIds: targetTabs.map((tab) => tab.tabId) });
+        return;
+      }
+
+      executeCloseTabs(targetTabs.map((tab) => tab.tabId));
+    },
+    [executeCloseTabs, openTabs],
+  );
+
+  const requestCloseTab = useCallback(
+    (tabId: string) => {
+      requestCloseTabs([tabId]);
+    },
+    [requestCloseTabs],
+  );
+
+  const openTabByPath = useCallback(
+    (pageId: string) => {
+      const result = openTab(pageId);
+      if (result.status === 'blocked') {
+        setPendingReplaceRequest({
+          replaceTabId: result.replaceTabId,
+          pageId,
+        });
+        return false;
+      }
+      setPendingReplaceRequest(null);
+      setIsQuickOpenOpen(false);
+      return true;
+    },
+    [openTab],
+  );
+
+  const confirmLimitReplace = useCallback(() => {
+    if (!pendingReplaceRequest) return;
+    replaceLeastRecentlyUsedTab(
+      pendingReplaceRequest.pageId,
+      pendingReplaceRequest.replaceTabId,
+    );
+    setPendingReplaceRequest(null);
+    setIsQuickOpenOpen(false);
+  }, [pendingReplaceRequest, replaceLeastRecentlyUsedTab]);
+
+  const cancelLimitReplace = useCallback(() => {
+    setPendingReplaceRequest(null);
+  }, []);
+
+  const requestCloseCurrentTabFromMenu = useCallback(() => {
+    if (!tabContextMenu) return;
+    requestCloseTab(tabContextMenu.tabId);
+    setTabContextMenu(null);
+  }, [requestCloseTab, tabContextMenu]);
+
+  const requestCloseOtherTabsFromMenu = useCallback(() => {
+    if (!tabContextMenu) return;
+    requestCloseTabs(
+      openTabs
+        .filter((tab) => tab.tabId !== tabContextMenu.tabId)
+        .map((tab) => tab.tabId),
+    );
+    setTabContextMenu(null);
+  }, [openTabs, requestCloseTabs, tabContextMenu]);
+
+  const requestCloseAllTabsFromMenu = useCallback(() => {
+    requestCloseTabs(openTabs.map((tab) => tab.tabId));
+    setTabContextMenu(null);
+  }, [openTabs, requestCloseTabs]);
+
+  const confirmTabClose = useCallback(
+    (shouldSave: boolean) => {
+      if (!pendingCloseRequest) return;
+
+      if (shouldSave) {
+        pendingCloseRequest.tabIds.forEach((tabId) => {
+          markTabDirty(tabId, false);
+        });
+      }
+      executeCloseTabs(pendingCloseRequest.tabIds);
+      setPendingCloseRequest(null);
+    },
+    [executeCloseTabs, markTabDirty, pendingCloseRequest],
+  );
+
+  const cancelTabClose = useCallback(() => {
+    setPendingCloseRequest(null);
+  }, []);
+
+  const activeTab = useMemo(
+    () => openTabs.find((tab) => tab.tabId === activeTabId) || null,
+    [activeTabId, openTabs],
+  );
+
+  const pendingCloseTabInfos = useMemo(() => {
+    if (!pendingCloseRequest) return null;
+    const tabsToClose = openTabs.filter((tab) =>
+      pendingCloseRequest.tabIds.includes(tab.tabId),
+    );
+    const dirtyTabs = tabsToClose.filter((tab) => tab.dirty);
+    return {
+      total: tabsToClose.length,
+      dirtyTotal: dirtyTabs.length,
+      tabNames: tabsToClose.map((tab) => tab.title || tab.pageId),
+    };
+  }, [openTabs, pendingCloseRequest]);
+
+  const openTabContextMenu = useCallback(
+    (tabId: string, event: React.MouseEvent) => {
+      setTabContextMenu({
+        tabId,
+        x: event.clientX,
+        y: event.clientY,
+      });
+    },
+    [],
+  );
+
+  const closeTabContextMenu = useCallback(() => {
+    setTabContextMenu(null);
+  }, []);
+
+  useEffect(() => {
+    if (!tabContextMenu) {
+      return;
+    }
+
+    const handlePointer = (event: MouseEvent | TouchEvent) => {
+      if (!tabContextMenuRef.current || !event.target) {
+        return;
+      }
+      if (!tabContextMenuRef.current.contains(event.target as Node)) {
+        setTabContextMenu(null);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setTabContextMenu(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointer);
+    document.addEventListener('touchstart', handlePointer);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointer);
+      document.removeEventListener('touchstart', handlePointer);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [tabContextMenu]);
+
+  useEffect(() => {
+    const isEditableTarget = (target: EventTarget | null): boolean =>
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      target instanceof HTMLSelectElement ||
+      (target as HTMLElement)?.isContentEditable;
+
+    const handleShortcut = (event: KeyboardEvent) => {
+      if (pendingReplaceRequest || pendingCloseRequest || tabContextMenu) {
+        return;
+      }
+
+      const isModifierPressed = event.metaKey || event.ctrlKey;
+      const key = event.key.toLowerCase();
+      if (!isModifierPressed) return;
+      if (isEditableTarget(event.target)) return;
+
+      if (key === 't') {
+        event.preventDefault();
+        setIsQuickOpenOpen(true);
+        return;
+      }
+
+      if (key === 'k') {
+        event.preventDefault();
+        if (isSearchOpen) {
+          closeSearch({ clearQuery: true, clearHighlights: true });
+        } else {
+          openSearch();
+        }
+        return;
+      }
+
+      if (key === 'w') {
+        event.preventDefault();
+        if (activeTab) {
+          requestCloseTab(activeTab.tabId);
+        }
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleShortcut);
+    return () => window.removeEventListener('keydown', handleShortcut);
+  }, [
+    activeTab,
+    pendingCloseRequest,
+    pendingReplaceRequest,
+    requestCloseTab,
+    tabContextMenu,
+    isSearchOpen,
+    openSearch,
+    closeSearch,
+  ]);
+
   useEffect(() => {
     async function renderFile() {
       if (!currentFile) return;
@@ -117,7 +440,9 @@ export default function Home() {
           // or custom format "file.tsx:10:5"
           if (data.details && typeof data.details === 'string') {
             // Look for specific file match if available
-            const match = data.details.match(/([a-zA-Z0-9_-]+\.tsx?):(\d+):(\d+)/);
+            const match = data.details.match(
+              /([a-zA-Z0-9_-]+\.tsx?):(\d+):(\d+)/,
+            );
             if (match) {
               location = {
                 file: match[1],
@@ -149,21 +474,32 @@ export default function Home() {
             // curved -> default (bezier)
             // step -> step
             switch (type) {
-              case 'straight': return 'straight';
-              case 'curved': return 'default';
-              case 'step': return 'step';
-              case 'default': return 'smoothstep';
-              default: return 'smoothstep';
+              case 'straight':
+                return 'straight';
+              case 'curved':
+                return 'default';
+              case 'step':
+                return 'step';
+              case 'default':
+                return 'smoothstep';
+              default:
+                return 'smoothstep';
             }
           };
 
           // Helper to map Tailwind classes to SVG stroke styles
           const getStrokeStyle = (className?: string) => {
             if (!className) return {};
-            if (className.includes('dashed') || className.includes('border-dashed')) {
+            if (
+              className.includes('dashed') ||
+              className.includes('border-dashed')
+            ) {
               return { strokeDasharray: '5 5' };
             }
-            if (className.includes('dotted') || className.includes('border-dotted')) {
+            if (
+              className.includes('dotted') ||
+              className.includes('border-dotted')
+            ) {
               return { strokeDasharray: '2 2' };
             }
             return {};
@@ -173,15 +509,26 @@ export default function Home() {
           let edgeIdCounter = 0;
           let mindmapIdCounter = 0;
           let sequenceIdCounter = 0;
+          let imageIdCounter = 0;
 
           // Track MindMap groups for layout
-          const mindMapGroups: { id: string; layoutType: 'tree' | 'bidirectional' | 'radial'; basePosition: { x: number; y: number }; spacing?: number; anchor?: string; anchorPosition?: string; anchorGap?: number }[] = [];
-
+          const mindMapGroups: {
+            id: string;
+            layoutType: 'tree' | 'bidirectional' | 'radial';
+            basePosition: { x: number; y: number };
+            spacing?: number;
+            anchor?: string;
+            anchorPosition?: string;
+            anchorGap?: number;
+          }[] = [];
 
           // Helper to resolve node ID with mindmap scope
           // - If ID contains '.', it's already fully qualified (e.g., "map1.node1")
           // - Otherwise, prefix with current mindmapId if inside a mindmap
-          const resolveNodeId = (id: string, currentMindmapId?: string): string => {
+          const resolveNodeId = (
+            id: string,
+            currentMindmapId?: string,
+          ): string => {
             if (!id) return id;
             if (id.includes('.')) return id; // Already fully qualified
             if (currentMindmapId) return `${currentMindmapId}.${id}`; // Add prefix
@@ -189,7 +536,10 @@ export default function Home() {
           };
           // Helper to process children recursively or flatly
           // mindmapId: current MindMap context (undefined for Canvas)
-          const processChildren = (childElements: RenderNode[], mindmapId?: string) => {
+          const processChildren = (
+            childElements: RenderNode[],
+            mindmapId?: string,
+          ) => {
             childElements.forEach((child: RenderNode) => {
               if (child.type === 'graph-edge') {
                 // Top-level edge
@@ -206,7 +556,10 @@ export default function Home() {
                     const handle = val.substring(colonIndex + 1);
                     return { id: resolveNodeId(id, mindmapId), handle };
                   }
-                  return { id: resolveNodeId(val, mindmapId), handle: undefined };
+                  return {
+                    id: resolveNodeId(val, mindmapId),
+                    handle: undefined,
+                  };
                 };
 
                 const sourceMeta = parseEdgeEndpoint(child.props.from);
@@ -214,7 +567,9 @@ export default function Home() {
 
                 // Determine edge type: if handles are specified, use traditional edge; otherwise use floating
                 const hasHandles = sourceMeta.handle || targetMeta.handle;
-                const edgeType = hasHandles ? getEdgeType(child.props.type) : 'floating';
+                const edgeType = hasHandles
+                  ? getEdgeType(child.props.type)
+                  : 'floating';
 
                 edges.push({
                   id: child.props.id || `edge-${edgeIdCounter++}`,
@@ -233,16 +588,20 @@ export default function Home() {
                     fontSize: child.props.labelFontSize,
                     fontWeight: 700,
                   },
-                  labelBgStyle: child.props.labelBgColor ? {
-                    fill: child.props.labelBgColor,
-                  } : undefined,
+                  labelBgStyle: child.props.labelBgColor
+                    ? {
+                        fill: child.props.labelBgColor,
+                      }
+                    : undefined,
                   animated: false,
                   type: edgeType,
                 });
               } else if (child.type === 'graph-mindmap') {
                 // MindMap container: extract ID and process children with scope
                 const mmId = child.props.id || `mindmap-${mindmapIdCounter++}`;
-                const layoutType = (child.props.layout as 'tree' | 'bidirectional' | 'radial') || 'tree';
+                const layoutType =
+                  (child.props.layout as 'tree' | 'bidirectional' | 'radial') ||
+                  'tree';
                 const baseX = child.props.x ?? 0;
                 const baseY = child.props.y ?? 0;
 
@@ -263,9 +622,19 @@ export default function Home() {
                 }
               } else if (child.type === 'graph-sequence') {
                 // Sequence diagram: single ReactFlow node containing the entire diagram
-                const seqId = child.props.id || `sequence-${sequenceIdCounter++}`;
-                const participants: { id: string; label: string; className?: string }[] = [];
-                const messages: { from: string; to: string; label?: string; type: string }[] = [];
+                const seqId =
+                  child.props.id || `sequence-${sequenceIdCounter++}`;
+                const participants: {
+                  id: string;
+                  label: string;
+                  className?: string;
+                }[] = [];
+                const messages: {
+                  from: string;
+                  to: string;
+                  label?: string;
+                  type: string;
+                }[] = [];
 
                 (child.children || []).forEach((seqChild: RenderNode) => {
                   if (seqChild.type === 'graph-participant') {
@@ -281,7 +650,10 @@ export default function Home() {
                       from: msgFrom,
                       to: msgTo,
                       label: seqChild.props.label,
-                      type: msgFrom === msgTo ? 'self' : (seqChild.props.type || 'sync'),
+                      type:
+                        msgFrom === msgTo
+                          ? 'self'
+                          : seqChild.props.type || 'sync',
                     });
                   }
                 });
@@ -337,7 +709,9 @@ export default function Home() {
                     contentChildren.push(grandChild.props.text);
                   } else if (grandChild.type === 'graph-text') {
                     // Also handle graph-text children
-                    const textContent = grandChild.children?.find((c: any) => c.type === 'text');
+                    const textContent = grandChild.children?.find(
+                      (c: any) => c.type === 'text',
+                    );
                     if (textContent) {
                       contentChildren.push(textContent.props.text);
                     } else if (grandChild.props.children) {
@@ -351,6 +725,13 @@ export default function Home() {
                     // Extract bubble from Markdown child
                     if (grandChild.props.bubble) {
                       childBubble = true;
+                    }
+                  } else if (grandChild.type === 'graph-image') {
+                    const imageSrc = grandChild.props.src;
+                    const imageAlt = grandChild.props.alt || '';
+                    if (imageSrc) {
+                      const markdownToken = `![${imageAlt}](${imageSrc})`;
+                      contentChildren.push(markdownToken);
                     }
                   }
                 });
@@ -367,19 +748,29 @@ export default function Home() {
                   });
                 }
 
-                const safeLabel = contentChildren
-                  .map(c => typeof c === 'string' || typeof c === 'number' ? String(c) : '')
-                  .join('\n') || child.props.label || '';
+                const safeLabel =
+                  contentChildren
+                    .map((c) =>
+                      typeof c === 'string' || typeof c === 'number'
+                        ? String(c)
+                        : '',
+                    )
+                    .join('\n') ||
+                  child.props.label ||
+                  '';
 
-                // Check if any child is graph-markdown to switch node type
-                const hasMarkdown = rendererChildren.some((c: RenderNode) => c.type === 'graph-markdown');
+                // Check if any child is markdown or image to switch node type
+                const hasMarkdown = rendererChildren.some(
+                  (c: RenderNode) =>
+                    c.type === 'graph-markdown' || c.type === 'graph-image',
+                );
 
                 // Bubble comes from: 1) Node's bubble prop OR 2) child Markdown's bubble prop
                 const nodeBubble = child.props.bubble || childBubble;
 
                 nodes.push({
                   id: nodeId,
-                  // Use 'markdown' type if markdown content is present, otherwise 'shape'
+                  // Use 'markdown' type if markdown/image content is present, otherwise 'shape'
                   type: hasMarkdown ? 'markdown' : 'shape',
                   position: { x: child.props.x || 0, y: child.props.y || 0 },
                   data: {
@@ -393,13 +784,28 @@ export default function Home() {
                     fontSize: child.props.fontSize,
                     // ... pass through other style props manually or spread carefully
                     labelColor: child.props.labelColor || child.props.color, // Text nodes might use color prop
-                    labelFontSize: child.props.labelFontSize || child.props.fontSize,
+                    labelFontSize:
+                      child.props.labelFontSize || child.props.fontSize,
                     labelBold: child.props.labelBold || child.props.bold,
                     fill: child.props.fill,
                     stroke: child.props.stroke,
                     // Semantic zoom bubble (from Node or child Markdown)
                     bubble: nodeBubble,
-                  }
+                  },
+                });
+              } else if (child.type === 'graph-image') {
+                const imageId = child.props.id || `image-${imageIdCounter++}`;
+                nodes.push({
+                  id: imageId,
+                  type: 'image',
+                  position: { x: child.props.x || 0, y: child.props.y || 0 },
+                  data: {
+                    src: child.props.src || '',
+                    alt: child.props.alt,
+                    width: child.props.width,
+                    height: child.props.height,
+                    fit: child.props.fit,
+                  },
                 });
               } else {
                 // It's a Node (Sticky, Shape, Text)
@@ -446,49 +852,67 @@ export default function Home() {
                 }
 
                 // Process nested edges: source is implicitly the parent node
-                nestedEdges.forEach((edgeChild: RenderNode, edgeIndex: number) => {
-                  // If 'from' is missing, inject parent id
-                  const sourceId = edgeChild.props.from || nodeId;
+                nestedEdges.forEach(
+                  (edgeChild: RenderNode, edgeIndex: number) => {
+                    // If 'from' is missing, inject parent id
+                    const sourceId = edgeChild.props.from || nodeId;
 
-                  edges.push({
-                    id: edgeChild.props.id || `nested-edge-${nodeId}-${edgeIndex}`,
-                    source: sourceId,
-                    target: edgeChild.props.to,
-                    label: edgeChild.props.label,
-                    style: {
-                      stroke: edgeChild.props.stroke || '#94a3b8',
-                      strokeWidth: edgeChild.props.strokeWidth || 2,
-                      ...getStrokeStyle(edgeChild.props.className),
-                    },
-                    labelStyle: {
-                      fill: edgeChild.props.labelTextColor,
-                      fontSize: edgeChild.props.labelFontSize,
-                      fontWeight: 700,
-                    },
-                    labelBgStyle: edgeChild.props.labelBgColor ? {
-                      fill: edgeChild.props.labelBgColor,
-                    } : undefined,
-                    animated: false,
-                    type: getEdgeType(edgeChild.props.type),
-                  });
-                });
+                    edges.push({
+                      id:
+                        edgeChild.props.id ||
+                        `nested-edge-${nodeId}-${edgeIndex}`,
+                      source: sourceId,
+                      target: edgeChild.props.to,
+                      label: edgeChild.props.label,
+                      style: {
+                        stroke: edgeChild.props.stroke || '#94a3b8',
+                        strokeWidth: edgeChild.props.strokeWidth || 2,
+                        ...getStrokeStyle(edgeChild.props.className),
+                      },
+                      labelStyle: {
+                        fill: edgeChild.props.labelTextColor,
+                        fontSize: edgeChild.props.labelFontSize,
+                        fontWeight: 700,
+                      },
+                      labelBgStyle: edgeChild.props.labelBgColor
+                        ? {
+                            fill: edgeChild.props.labelBgColor,
+                          }
+                        : undefined,
+                      animated: false,
+                      type: getEdgeType(edgeChild.props.type),
+                    });
+                  },
+                );
 
                 // Extract primitive content (strings/numbers) key for label
-                const safeLabel = contentChildren
-                  .map(c => typeof c === 'string' || typeof c === 'number' ? String(c) : '')
-                  .join('') || child.props.label || child.props.title || child.props.text || '';
+                const safeLabel =
+                  contentChildren
+                    .map((c) =>
+                      typeof c === 'string' || typeof c === 'number'
+                        ? String(c)
+                        : '',
+                    )
+                    .join('') ||
+                  child.props.label ||
+                  child.props.title ||
+                  child.props.text ||
+                  '';
 
                 // Create Node Object
-                const nodeType = child.type === 'graph-sticky' ? 'sticky'
-                  : child.type === 'graph-text' ? 'text'
-                    : 'shape';
+                const nodeType =
+                  child.type === 'graph-sticky'
+                    ? 'sticky'
+                    : child.type === 'graph-text'
+                      ? 'text'
+                      : 'shape';
 
                 // If it contains markdown content, force markdown type unless sticky/text explicitly overridden
                 // Actually if user uses <Sticky> <Markdown>...</Markdown> </Sticky>, we probably still want Sticky style but with Markdown content...
-                // But StickyNode doesn't render markdown. 
+                // But StickyNode doesn't render markdown.
                 // For now, let's treat explicit `Node` in root level (which maps to graph-node? No, Node.tsx uses graph-node)
                 // Wait, logic above was for `child.type === 'graph-node'`.
-                // This else block handles `graph-sticky`, `graph-shape` etc. 
+                // This else block handles `graph-sticky`, `graph-shape` etc.
                 // If the user uses `<Node>` (graph-node), it falls into the IF block above.
                 // The `else` block is for `Sticky` component usage.
 
@@ -513,10 +937,13 @@ export default function Home() {
                     fontSize: child.props.fontSize,
                     // ... pass through other style props manually or spread carefully
                     labelColor: child.props.labelColor || child.props.color, // Text nodes might use color prop
-                    labelFontSize: child.props.labelFontSize || child.props.fontSize,
+                    labelFontSize:
+                      child.props.labelFontSize || child.props.fontSize,
                     labelBold: child.props.labelBold || child.props.bold,
                     fill: child.props.fill,
                     stroke: child.props.stroke,
+                    imageSrc: child.props.imageSrc,
+                    imageFit: child.props.imageFit,
                     ports: ports, // Inject ports
 
                     // Anchor positioning props
@@ -530,7 +957,7 @@ export default function Home() {
                     height: child.props.height,
                     // Semantic zoom bubble
                     bubble: child.props.bubble,
-                  }
+                  },
                 });
               }
             });
@@ -547,7 +974,14 @@ export default function Home() {
           // Extract canvas-level metadata (e.g. background style from code)
           const canvasBackground = data.graph.meta?.background;
 
-          setGraph({ nodes, edges, needsAutoLayout: hasMindMap, layoutType, mindMapGroups, canvasBackground });
+          setGraph({
+            nodes,
+            edges,
+            needsAutoLayout: hasMindMap,
+            layoutType,
+            mindMapGroups,
+            canvasBackground,
+          });
         }
       } catch (error) {
         console.error('Failed to render file:', error);
@@ -559,10 +993,17 @@ export default function Home() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-white text-slate-900">
-      <Sidebar />
+      <Sidebar onOpenFile={openTabByPath} />
 
       <div className="flex flex-1 flex-col h-full overflow-hidden relative">
         <Header />
+        <TabBar
+          tabs={openTabs}
+          activeTabId={activeTabId}
+          onActivate={activateTab}
+          onClose={requestCloseTab}
+          onContextMenu={openTabContextMenu}
+        />
 
         <main className="flex-1 relative w-full h-full overflow-hidden">
           <ErrorOverlay />
@@ -570,6 +1011,160 @@ export default function Home() {
         </main>
 
         <Footer />
+
+        <QuickOpenDialog
+          isOpen={isQuickOpenOpen}
+          files={files}
+          onOpenFile={openTabByPath}
+          onClose={() => setIsQuickOpenOpen(false)}
+        />
+
+        {tabContextMenu && (
+          <div
+            ref={tabContextMenuRef}
+            role="menu"
+            className="fixed z-50 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl py-1"
+            style={{
+              left: `${Math.max(8, Math.min(tabContextMenu.x, window.innerWidth - 200))}px`,
+              top: `${Math.max(8, Math.min(tabContextMenu.y, window.innerHeight - 130))}px`,
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                event.preventDefault();
+                closeTabContextMenu();
+              }
+            }}
+          >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={requestCloseCurrentTabFromMenu}
+              className="w-full px-3 py-2 text-left text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              탭 닫기
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={requestCloseOtherTabsFromMenu}
+              className="w-full px-3 py-2 text-left text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              다른 탭 닫기
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={requestCloseAllTabsFromMenu}
+              className="w-full px-3 py-2 text-left text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              모든 탭 닫기
+            </button>
+          </div>
+        )}
+
+        {pendingCloseRequest && (
+          <div
+            className="fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-sm flex items-center justify-center px-4"
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                event.preventDefault();
+                cancelTabClose();
+                return;
+              }
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                cancelTabClose();
+              }
+            }}
+          >
+            <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl p-4 space-y-4">
+              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {pendingCloseTabInfos?.total === 1
+                  ? '변경사항이 저장되지 않았습니다'
+                  : `${pendingCloseTabInfos?.total ?? 0}개 탭에 저장되지 않은 변경사항이 있습니다`}
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                {pendingCloseTabInfos?.total === 1
+                  ? '현재 탭을 닫으면 편집한 내용이 손실될 수 있습니다.'
+                  : `${pendingCloseTabInfos?.dirtyTotal ?? 0}개 탭의 저장되지 않은 내용이 있습니다. 선택한 탭들을 닫으면 변경사항이 손실될 수 있습니다.`}
+              </p>
+              {!!pendingCloseTabInfos?.tabNames.length && (
+                <ul className="space-y-1 text-xs text-slate-700 dark:text-slate-300">
+                  {pendingCloseTabInfos.tabNames.slice(0, 5).map((tabName) => (
+                    <li key={tabName} className="truncate">
+                      {tabName}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => confirmTabClose(false)}
+                  className="rounded border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  저장 안 함
+                </button>
+                <button
+                  type="button"
+                  onClick={() => confirmTabClose(true)}
+                  className="rounded border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/40 px-3 py-1.5 text-xs font-medium hover:bg-blue-100 dark:hover:bg-blue-800"
+                >
+                  저장 후 닫기
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelTabClose}
+                  className="rounded bg-slate-900 text-white px-3 py-1.5 text-xs font-medium hover:bg-slate-700"
+                  autoFocus
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {pendingReplaceRequest && (
+          <div
+            className="fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-sm flex items-center justify-center px-4"
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                event.preventDefault();
+                cancelLimitReplace();
+              }
+            }}
+          >
+            <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl p-4 space-y-4">
+              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                탭 개수 제한
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                최대 10개 탭이 열려 있습니다. 가장 오래 사용하지 않은 탭을
+                교체하고 새 탭을 열까요?
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={cancelLimitReplace}
+                  className="rounded border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmLimitReplace}
+                  className="rounded bg-slate-900 text-white px-3 py-1.5 text-xs font-medium hover:bg-slate-700"
+                  autoFocus
+                >
+                  교체 후 열기
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
