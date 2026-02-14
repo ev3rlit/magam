@@ -1,10 +1,14 @@
-# Magam
+# Magam (마감)
 
 > **"The future of knowledge work is not 'drawing' but 'describing'."**
 
 ![Magam Example](./assets/readme.png)
 
 Magam is a **programmable whiteboard for AI agent collaboration**.
+
+### Why "마감"?
+
+**마감**(magam) is a Korean word meaning *deadline* and *finishing*. In publishing, 마감 is the moment scattered drafts become a finished page. Magam does the same for diagrams — you describe your intent, and AI finishes it into a visual. One word, two meanings: the urgency to ship, and the craft of completion.
 
 Diagrams defined in code are **faster than hand-drawing, clearer in intent, and easier to archive**.
 This app is designed **AI-First**, not Mobile-First.
