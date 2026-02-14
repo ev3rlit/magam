@@ -3,7 +3,7 @@
 import React from 'react';
 import { MousePointer2, Hand, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { cn } from '@/utils/cn';
-import { BackgroundSelector } from './BackgroundSelector';
+
 
 export type InteractionMode = 'pointer' | 'hand';
 
@@ -58,11 +58,6 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
                 icon={<Maximize className="w-4 h-4" />}
             />
 
-            {/* Divider */}
-            <div className="w-px h-4 bg-slate-300 dark:bg-slate-700 mx-1" />
-
-            {/* Background Style */}
-            <BackgroundSelector />
         </div>
     );
 };

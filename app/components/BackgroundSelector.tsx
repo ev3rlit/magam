@@ -3,9 +3,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Grid3x3, StretchHorizontal, Square } from 'lucide-react';
 import { cn } from '@/utils/cn';
-import { useGraphStore, CanvasBackgroundStyle } from '@/store/graph';
+import { useGraphStore } from '@/store/graph';
 
-const options: { value: CanvasBackgroundStyle; label: string; icon: React.ReactNode }[] = [
+type PresetValue = 'dots' | 'lines' | 'solid';
+const options: { value: PresetValue; label: string; icon: React.ReactNode }[] = [
   { value: 'dots', label: 'Dots', icon: <Grid3x3 className="w-4 h-4" /> },
   { value: 'lines', label: 'Lines', icon: <StretchHorizontal className="w-4 h-4" /> },
   { value: 'solid', label: 'Solid', icon: <Square className="w-4 h-4" /> },
@@ -38,7 +39,9 @@ export const BackgroundSelector: React.FC = () => {
     };
   }, [isOpen]);
 
-  const currentOption = options.find((o) => o.value === canvasBackground) ?? options[0];
+  const currentOption = (typeof canvasBackground === 'string'
+    ? options.find((o) => o.value === canvasBackground)
+    : undefined) ?? options[0];
 
   return (
     <div className="relative" ref={ref}>
@@ -71,7 +74,7 @@ export const BackgroundSelector: React.FC = () => {
               className={cn(
                 'p-2 rounded-md transition-all duration-200',
                 'hover:bg-slate-100 dark:hover:bg-slate-800',
-                canvasBackground === option.value
+                typeof canvasBackground === 'string' && canvasBackground === option.value
                   ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'
                   : 'text-slate-500 dark:text-slate-400',
               )}

@@ -9,7 +9,8 @@ import {
   applyEdgeChanges,
 } from 'reactflow';
 
-export type CanvasBackgroundStyle = 'dots' | 'lines' | 'solid';
+export type CustomBackgroundData = { type: 'custom'; svg: string; gap: number };
+export type CanvasBackgroundStyle = 'dots' | 'lines' | 'solid' | CustomBackgroundData;
 
 export interface AppError {
   message: string;

@@ -28,6 +28,7 @@ import { useExportImage } from '@/hooks/useExportImage';
 import { ContextMenu } from './ContextMenu';
 import { useContextMenu } from '@/hooks/useContextMenu';
 import { ExportDialog } from './ExportDialog';
+import { CustomBackground } from './CustomBackground';
 
 function GraphCanvasContent() {
   const nodeTypes = useMemo(
@@ -349,13 +350,16 @@ function GraphCanvasContent() {
           }}
           proOptions={{ hideAttribution: true }}
         >
-          {canvasBackground !== 'solid' && (
+          {typeof canvasBackground === 'string' && canvasBackground !== 'solid' && (
             <Background
               variant={canvasBackground === 'lines' ? BackgroundVariant.Lines : BackgroundVariant.Dots}
               gap={24}
               size={1}
               color="#cbd5e1"
             />
+          )}
+          {typeof canvasBackground === 'object' && canvasBackground.type === 'custom' && (
+            <CustomBackground svg={canvasBackground.svg} gap={canvasBackground.gap} />
           )}
 
           <FloatingToolbar
