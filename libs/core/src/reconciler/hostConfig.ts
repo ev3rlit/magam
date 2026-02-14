@@ -1,6 +1,10 @@
 export type Type = string;
 export type Props = Record<string, any>;
-export type Container = { type: 'root'; children: Instance[] };
+export type CustomBackground = { type: 'custom'; svg: string; gap: number };
+export type CanvasMeta = {
+  background?: 'dots' | 'lines' | 'solid' | CustomBackground;
+};
+export type Container = { type: 'root'; children: Instance[]; meta?: CanvasMeta };
 export type Instance = { type: string; props: Props; children: Instance[] };
 export type TextInstance = {
   type: 'text';
