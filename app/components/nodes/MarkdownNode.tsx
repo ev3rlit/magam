@@ -6,6 +6,8 @@ import { BaseNode } from './BaseNode';
 import remarkGfm from 'remark-gfm';
 import { CodeBlock } from '../ui/CodeBlock';
 import { useNodeNavigation } from '@/contexts/NavigationContext';
+import { toAssetApiUrl } from '@/utils/imageSource';
+import { useGraphStore } from '@/store/graph';
 
 interface MarkdownNodeData {
     label: string;
@@ -69,7 +71,12 @@ const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
                     {children}
                 </code>
             );
-        }
+        },
+        img: ({ node, src, alt, ...props }: any) => {
+            const currentFile = useGraphStore.getState().currentFile;
+            const resolvedSrc = src ? toAssetApiUrl(currentFile, src) : '';
+            return <img src={resolvedSrc} alt={alt || ''} {...props} />;
+        },
     }), [handleLinkClick]);
 
     const markdownContent = useMemo(() => (

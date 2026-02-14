@@ -3,6 +3,8 @@ import { NodeProps, Handle, Position } from 'reactflow';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { BaseNode } from './BaseNode';
+import { useGraphStore } from '@/store/graph';
+import { toAssetApiUrl } from '@/utils/imageSource';
 
 interface PortData {
   id: string;
@@ -24,6 +26,8 @@ interface ShapeNodeData {
   labelBold?: boolean;
   className?: string;
   ports?: PortData[];
+  imageSrc?: string;
+  imageFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down';
 }
 
 // Helper to determine Handle position and style based on string position
@@ -75,6 +79,7 @@ const getHandleConfig = (pos: string = 'top') => {
 };
 
 const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
+  const currentFile = useGraphStore((state) => state.currentFile);
   const shapeClasses = clsx(
     'flex items-center justify-center transition-all duration-200',
     {
@@ -126,6 +131,15 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
     });
   };
 
+  const imageUrl = data.imageSrc ? toAssetApiUrl(currentFile, data.imageSrc) : '';
+  const hasImage = !!imageUrl && data.type !== 'triangle';
+  const imageStyle = hasImage ? {
+    backgroundImage: `url(${imageUrl})`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'center',
+    backgroundSize: data.imageFit || 'cover',
+  } : undefined;
+
   if (data.type === 'triangle') {
     return (
       <BaseNode className="w-32 h-32 flex items-center justify-center" bubble={data.bubble} label={data.label}>
@@ -166,7 +180,12 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
   }
 
   return (
-    <BaseNode className={containerClasses} bubble={data.bubble} label={data.label}>
+    <BaseNode
+      className={containerClasses}
+      bubble={data.bubble}
+      label={data.label}
+      style={imageStyle}
+    >
       <div className="w-full flex items-start justify-center text-left break-words p-4 pointer-events-none select-none">
         <span
           className="text-sm font-medium leading-relaxed text-slate-700 whitespace-pre-wrap"

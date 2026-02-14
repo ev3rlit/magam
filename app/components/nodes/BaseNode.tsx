@@ -40,8 +40,9 @@ interface BaseNodeProps {
     /**
      * Label text used for bubble display.
      * First line is extracted and shown when bubble=true and zoomed out.
-     */
+    */
     label?: string;
+    style?: React.CSSProperties;
 }
 
 export const BaseNodeComponent = ({
@@ -53,6 +54,7 @@ export const BaseNodeComponent = ({
     endHandle = true,
     bubble = false,
     label,
+    style,
 }: BaseNodeProps) => {
     const { registerBubble, unregisterBubble } = useBubbleActions();
     const nodeId = useNodeId();
@@ -104,7 +106,7 @@ export const BaseNodeComponent = ({
     // Bubble is now rendered in BubbleOverlay, not here
 
     return (
-        <div className={twMerge("relative group", className)}>
+        <div className={twMerge("relative group", className)} style={style}>
             {/* Target handle */}
             {endHandle && (
                 <Handle

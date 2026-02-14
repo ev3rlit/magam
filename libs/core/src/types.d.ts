@@ -4,6 +4,7 @@ declare global {
       canvas: any;
       sticky: any;
       'graph-edge': any;
+      'graph-image': any;
       'graph-mindmap': any;
       'graph-markdown': any;
     }

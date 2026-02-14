@@ -2,6 +2,7 @@ export * from './lib/core';
 export * from './components/Sticky';
 export * from './components/Shape';
 export * from './components/Text';
+export * from './components/Image';
 export * from './components/Group';
 export * from './components/MindMap';
 export * from './components/Node';
@@ -22,4 +23,3 @@ export * from './errors';
 export * from './renderer';
 export * from './result';
 export * from './logger';
-
