@@ -1,18 +1,0 @@
-> tsup --config libs/core/tsup.config.ts
-
-[34mCLI[39m Building entry: libs/core/src/index.ts
-[34mCLI[39m Using tsconfig: libs/core/tsconfig.lib.json
-[34mCLI[39m tsup v8.5.1
-[34mCLI[39m Using tsup config: /Users/danghamo/Documents/gituhb/graphwritev2/libs/core/tsup.config.ts
-[34mCLI[39m Target: es2015
-[34mCLI[39m Cleaning output folder
-[34mCJS[39m Build start
-[34mESM[39m Build start
-[32mCJS[39m [1mdist/libs/core/index.js [22m[32m20.42 KB[39m
-[32mCJS[39m ⚡️ Build success in 41ms
-[32mESM[39m [1mdist/libs/core/index.mjs [22m[32m18.20 KB[39m
-[32mESM[39m ⚡️ Build success in 41ms
-[34mDTS[39m Build start
-[32mDTS[39m ⚡️ Build success in 1169ms
-[32mDTS[39m [1mdist/libs/core/index.d.ts  [22m[32m3.58 KB[39m
-[32mDTS[39m [1mdist/libs/core/index.d.mts [22m[32m3.58 KB[39m
