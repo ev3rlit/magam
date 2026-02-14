@@ -6,7 +6,11 @@ import { FolderOpen, Loader2, RefreshCw, PanelLeftClose, PanelLeftOpen } from 'l
 import { FolderTreeItem } from './FolderTreeItem';
 import { cn } from '@/utils/cn';
 
-export const Sidebar: React.FC = () => {
+interface SidebarProps {
+  onOpenFile?: (filePath: string) => boolean | void;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ onOpenFile }) => {
   const { fileTree, setFileTree } = useGraphStore();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -88,7 +92,12 @@ export const Sidebar: React.FC = () => {
               </div>
               {/* Render children */}
               {fileTree.children.map((child) => (
-                <FolderTreeItem key={child.path} node={child} depth={0} />
+                <FolderTreeItem
+                  key={child.path}
+                  node={child}
+                  depth={0}
+                  onOpenFile={onOpenFile}
+                />
               ))}
             </div>
           ) : (

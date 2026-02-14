@@ -1,10 +1,10 @@
 import React from 'react';
 import { useGraphStore } from '@/store/graph';
-import { Command, Wifi, WifiOff } from 'lucide-react';
+import { Command, Search as SearchIcon, Wifi, WifiOff } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export const Header: React.FC = () => {
-  const { status, currentFile } = useGraphStore();
+  const { status, currentFile, isSearchOpen, openSearch, closeSearch } = useGraphStore();
 
   const isConnected = status === 'connected';
 
@@ -35,6 +35,24 @@ export const Header: React.FC = () => {
       </div>
 
       <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            if (isSearchOpen) {
+              closeSearch({ clearQuery: true, clearHighlights: true });
+              return;
+            }
+
+            openSearch();
+          }}
+          className="px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-200 flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800"
+          aria-label="Search · ⌘K"
+        >
+          <SearchIcon className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Search · ⌘K</span>
+          <span className="sm:hidden">Search</span>
+        </button>
+
         <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-slate-50 dark:bg-slate-800/50">
           {isConnected ? (
             <Wifi className="w-3.5 h-3.5 text-green-500" />

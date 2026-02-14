@@ -8,10 +8,11 @@ import { useGraphStore, FileTreeNode } from '@/store/graph';
 interface FolderTreeItemProps {
     node: FileTreeNode;
     depth?: number;
+    onOpenFile?: (filePath: string) => boolean | void;
 }
 
-export const FolderTreeItem: React.FC<FolderTreeItemProps> = ({ node, depth = 0 }) => {
-    const { currentFile, setCurrentFile, expandedFolders, toggleFolder } = useGraphStore();
+export const FolderTreeItem: React.FC<FolderTreeItemProps> = ({ node, depth = 0, onOpenFile }) => {
+    const { currentFile, openTab, expandedFolders, toggleFolder } = useGraphStore();
 
     const isExpanded = expandedFolders.has(node.path);
     const isDirectory = node.type === 'directory';
@@ -20,8 +21,13 @@ export const FolderTreeItem: React.FC<FolderTreeItemProps> = ({ node, depth = 0 
     const handleClick = () => {
         if (isDirectory) {
             toggleFolder(node.path);
+            return;
+        }
+
+        if (onOpenFile) {
+            onOpenFile(node.path);
         } else {
-            setCurrentFile(node.path);
+            openTab(node.path);
         }
     };
 
@@ -79,7 +85,12 @@ export const FolderTreeItem: React.FC<FolderTreeItemProps> = ({ node, depth = 0 
             {isDirectory && isExpanded && node.children && (
                 <div>
                     {node.children.map((child) => (
-                        <FolderTreeItem key={child.path} node={child} depth={depth + 1} />
+                        <FolderTreeItem
+                            key={child.path}
+                            node={child}
+                            depth={depth + 1}
+                            onOpenFile={onOpenFile}
+                        />
                     ))}
                 </div>
             )}
