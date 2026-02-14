@@ -1,12 +1,16 @@
 {
-    "name": "@graphwrite/shared",
-    "version": "0.0.1",
-    "type": "commonjs",
-    "main": "./src/index.ts",
-    "scripts": {
-        "build": "tsup src/index.ts --format cjs,esm --dts"
-    },
-    "dependencies": {
-        "tslib": "^2.3.0"
-    }
+  "name": "@graphwrite/shared",
+  "version": "0.0.1",
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
+  }
 }

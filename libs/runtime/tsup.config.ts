@@ -1,9 +1,9 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-    entry: ['src/index.ts'],
-    format: ['cjs', 'esm'],
-    dts: true,
-    clean: true,
-    external: ['esbuild'],
+  entry: ['src/index.ts'],
+  format: ['cjs', 'esm'],
+  dts: false,
+  clean: true,
+  external: ['esbuild', '@graphwrite/core', '@graphwrite/shared'],
 });

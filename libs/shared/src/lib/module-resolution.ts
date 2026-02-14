@@ -46,8 +46,10 @@ export function resolveModulePaths(baseDir: string): ResolvedPaths {
   } catch {
     // Fallback: Check for local dist in monorepo environment
     const pathsToTry = [
-      resolve(baseDir, 'dist/libs/core/index.js'),
-      resolve(baseDir, '../../dist/libs/core/index.js'),
+      resolve(baseDir, 'libs/core/dist/index.js'),       // package-local dist
+      resolve(baseDir, '../libs/core/dist/index.js'),     // from subdirectory (e.g. examples/)
+      resolve(baseDir, 'dist/libs/core/index.js'),        // legacy Nx-style (backward compat)
+      resolve(baseDir, '../../dist/libs/core/index.js'),  // legacy Nx-style (backward compat)
     ];
 
     for (const p of pathsToTry) {

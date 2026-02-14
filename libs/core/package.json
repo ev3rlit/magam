@@ -2,15 +2,20 @@
   "name": "@graphwrite/core",
   "version": "0.0.1",
   "type": "commonjs",
-  "main": "./src/index.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "engines": { "node": ">=18" },
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts --external react"
+    "build": "tsup"
   },
   "peerDependencies": {
     "react": "^18.0.0"
   },
   "dependencies": {
-    "elkjs": "^0.11.0",
+    "neverthrow": "^8.2.0",
+    "pino": "^10.3.0",
     "react-reconciler": "^0.29.0",
     "tslib": "^2.3.0"
   }

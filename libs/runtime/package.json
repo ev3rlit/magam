@@ -2,11 +2,18 @@
   "name": "@graphwrite/runtime",
   "version": "0.0.1",
   "type": "commonjs",
-  "main": "./src/index.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "engines": { "node": ">=18" },
   "scripts": {
     "build": "tsup"
   },
   "dependencies": {
+    "@graphwrite/core": "workspace:*",
+    "@graphwrite/shared": "workspace:*",
+    "esbuild": "^0.27.2",
     "tslib": "^2.3.0"
   }
 }
