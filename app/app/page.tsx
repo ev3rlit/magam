@@ -15,6 +15,7 @@ import { Footer } from '@/components/ui/Footer';
 import { TabBar } from '@/components/ui/TabBar';
 import { QuickOpenDialog } from '@/components/ui/QuickOpenDialog';
 import { ErrorOverlay } from '@/components/ui/ErrorOverlay';
+import { SearchOverlay } from '@/components/ui/SearchOverlay';
 import { TabState, useGraphStore } from '@/store/graph';
 
 interface RenderNode {
@@ -1007,6 +1008,7 @@ export default function Home() {
 
         <main className="flex-1 relative w-full h-full overflow-hidden">
           <ErrorOverlay />
+          <SearchOverlay />
           <GraphCanvas />
         </main>
 
