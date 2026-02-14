@@ -36,6 +36,8 @@ Node IDs follow the pattern: `{mindmapId}.{nodeId}`
 - If the MindMap has an explicit `id` prop (e.g., `<MindMap id="main">`), the prefix is that ID (e.g., `main.intro`)
 - If no explicit `id`, an auto-generated ID like `mindmap-0` is used (e.g., `mindmap-0.root`)
 - Top-level canvas elements (Shape, Sticky, Text) outside a MindMap use their own `id` directly
+- Inside EmbedScope, IDs are prefixed with the scope: `<EmbedScope id="auth">` + `id="jwt"` = `"auth.jwt"`
+- EmbedScope + MindMap combines: `<EmbedScope id="auth">` + `<MindMap id="map">` + `<Node id="root">` = `"auth.map.root"`
 
 ### AI Workflow for Targeted Edits
 
@@ -62,7 +64,7 @@ Multiple nodes can be selected and copied at once. Each ID is separated by a new
 All components are imported from `@magam/core`:
 
 ```tsx
-import { Canvas, Shape, Sticky, MindMap, Node, Edge, Text, Markdown } from '@magam/core';
+import { Canvas, Shape, Sticky, MindMap, Node, Edge, Text, Markdown, EmbedScope } from '@magam/core';
 ```
 
 ### Canvas (Required Root)
@@ -307,6 +309,89 @@ Learn the basics first, then move on.
 
 **Styling:** Node links are styled with indigo color and arrow prefix (→) to distinguish from external links.
 
+### EmbedScope
+
+ID namespace isolation for reusable components. Wrapping elements in `EmbedScope` automatically prefixes all child IDs with the scope name, preventing collisions when the same component is used multiple times.
+
+**Props:**
+- `id` (required): Scope identifier. Becomes the prefix for all child IDs.
+- `children`: React nodes to scope.
+
+**How it works:**
+- Child `id` props are automatically prefixed: `id="app"` inside `<EmbedScope id="auth">` becomes `"auth.app"`
+- Child `anchor` props are automatically resolved to scoped IDs when a matching node exists in the same scope
+- Edge `from`/`to` props are also scoped automatically
+- IDs containing a dot (e.g., `"billing.app"`) are treated as already qualified and not prefixed
+- Nesting is supported: scopes chain (e.g., `"infra"` > `"aws"` > `"ec2"` = `"infra.aws.ec2"`)
+- EmbedScope adds no visual element to the canvas - it is purely logical
+
+**Basic usage:**
+
+```tsx
+{/* Reusable component - uses local IDs only */}
+function ServiceCluster({ label }: { label: string }) {
+  return (
+    <>
+      <Shape id="lb" anchor="gateway" position="bottom" gap={80} width={120} height={50}>
+        Load Balancer
+      </Shape>
+      <Shape id="app" anchor="lb" position="bottom" gap={60} width={120} height={50}>
+        {label} Server
+        <Edge to="db" />
+      </Shape>
+      <Shape id="db" anchor="app" position="bottom" gap={60} width={120} height={50}>
+        Database
+      </Shape>
+      <Edge from="lb" to="app" />
+    </>
+  );
+}
+
+export default function Example() {
+  return (
+    <Canvas>
+      <Shape id="gateway" x={0} y={0} width={140} height={50}>API Gateway</Shape>
+
+      {/* IDs become auth.lb, auth.app, auth.db */}
+      <EmbedScope id="auth">
+        <ServiceCluster label="Auth" />
+      </EmbedScope>
+
+      {/* IDs become billing.lb, billing.app, billing.db */}
+      <EmbedScope id="billing">
+        <ServiceCluster label="Billing" />
+      </EmbedScope>
+
+      {/* Cross-scope edge using fully qualified IDs */}
+      <Edge from="auth.app" to="billing.app" label="verify" />
+    </Canvas>
+  );
+}
+```
+
+**Anchor resolution inside EmbedScope:**
+
+Inside a scope, `anchor` props referencing sibling nodes are automatically resolved:
+- `anchor="lb"` inside `<EmbedScope id="auth">` resolves to `"auth.lb"` (because `"auth.lb"` exists)
+- `anchor="gateway"` inside `<EmbedScope id="auth">` stays as `"gateway"` (because `"auth.gateway"` does not exist - it is an external reference)
+
+This means reusable components work without any modification. Internal anchor chains resolve within the scope, while references to external nodes pass through unchanged.
+
+**Cross-boundary edges:**
+
+```tsx
+{/* From Canvas to scope: use fully qualified ID */}
+<Edge from="gateway" to="auth.lb" />
+
+{/* Between scopes: use fully qualified IDs */}
+<Edge from="auth.app" to="billing.app" />
+
+{/* Inside a component, reference external node with dot notation */}
+<Shape id="app" ...>
+  <Edge to="billing.app" />  {/* dot = already qualified, not prefixed */}
+</Shape>
+```
+
 ### Edge
 
 Connection line between elements.
@@ -447,6 +532,43 @@ Place multiple independent MindMaps on a single Canvas. Each MindMap has its own
 </Canvas>
 ```
 
+### Reusable Components with EmbedScope
+
+Extract repeated patterns into components and use EmbedScope to isolate IDs. Anchor references inside a scope are automatically resolved to sibling nodes.
+
+```tsx
+function DatabaseCluster() {
+  return (
+    <>
+      <Shape id="primary" x={0} y={0} width={120} height={50}>Primary</Shape>
+      <Shape id="replica" anchor="primary" position="right" gap={80} width={120} height={50}>
+        Replica
+      </Shape>
+      <Edge from="primary" to="replica" label="sync" />
+    </>
+  );
+}
+
+export default function MultiDB() {
+  return (
+    <Canvas>
+      {/* "users" scope: users.primary, users.replica */}
+      <EmbedScope id="users">
+        <DatabaseCluster />
+      </EmbedScope>
+
+      {/* "orders" scope: orders.primary, orders.replica */}
+      <EmbedScope id="orders">
+        <DatabaseCluster />
+      </EmbedScope>
+
+      {/* Cross-scope connection */}
+      <Edge from="users.primary" to="orders.primary" label="join" />
+    </Canvas>
+  );
+}
+```
+
 ### Brainstorming with Stickies
 
 ```tsx
@@ -479,6 +601,7 @@ Place multiple independent MindMaps on a single Canvas. Each MindMap has its own
 8. **Keep node content concise** - use child nodes for detailed breakdowns
 9. **Split large MindMaps into multiple smaller ones** - Rather than cramming everything into one huge MindMap, separate by topic or section. This makes hierarchies clearer and improves readability. Use `anchor` positioning to arrange them spatially.
 10. **Use `bubble` for semantic zoom** - Add `bubble` prop to root nodes and level 1-2 children so section titles remain visible when zoomed out. Skip bubbles on level 4+ detail nodes to avoid visual clutter.
+11. **Use `EmbedScope` for reusable components** - When the same component pattern is used multiple times, wrap each instance in `<EmbedScope id="...">` to isolate IDs. Internal `anchor` references resolve automatically within the scope. Use dot notation (e.g., `"auth.app"`) for cross-scope references.
 
 ## File Structure
 
