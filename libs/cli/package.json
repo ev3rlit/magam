@@ -1,16 +1,32 @@
 {
   "name": "@graphwrite/cli",
   "version": "0.0.1",
-  "private": true,
   "type": "commonjs",
-  "main": "./src/index.ts",
+  "main": "./dist/index.js",
+  "bin": {
+    "graphwrite": "./dist/bin.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts"
+    "build": "tsup"
   },
   "dependencies": {
-    "tslib": "^2.3.0"
+    "@graphwrite/core": "workspace:*",
+    "@graphwrite/shared": "workspace:*",
+    "chokidar": "^5.0.0",
+    "esbuild": "^0.27.2",
+    "fast-glob": "^3.3.3",
+    "ws": "^8.19.0"
+  },
+  "optionalDependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.3"
   },
   "devDependencies": {
-    "fast-glob": "^3.3.3"
+    "tslib": "^2.3.0"
   }
 }
