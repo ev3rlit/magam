@@ -35,8 +35,8 @@
 
 1. 채팅 사이드 패널 UI (메시지 입력, 목록, AI 선택)
 2. CLI 자동 감지 (claude, gemini, codex)
-3. CLI 어댑터 패턴 기반 프로세스 실행
-4. stdout/stderr 실시간 스트리밍
+3. **공식 SDK 우선** 어댑터 기반 실행 (Claude Agent SDK, Codex SDK, Gemini 직접 spawn)
+4. JSONL/stdout 실시간 스트리밍
 5. 시스템 프롬프트 자동 구성 (파일 컨텍스트, Magam API)
 6. 파일 변경 → 캔버스 자동 반영 (기존 파이프라인 활용)
 7. 채팅 히스토리 (메모리 기반, 세션 내)
@@ -60,16 +60,22 @@
 #### Backend (`libs/cli/src/chat/`)
 
 1. **`detector.ts`** — CLI 감지 모듈
-   - `which`/`where` 명령으로 CLI 존재 확인
+   - SDK import 가능 여부 확인 (Claude, Codex)
+   - `which`/`where` 명령으로 CLI 존재 확인 (Gemini, 폴백)
    - `--version` 실행으로 설치 검증
    - 감지 결과 캐시 (앱 시작 시 1회 + 수동 재탐색)
 
-2. **`adapters/`** — CLI 어댑터
-   - `base.ts`: `CLIAdapter` 인터페이스 정의
-   - `claude.ts`: Claude Code 어댑터
-   - `gemini.ts`: Gemini CLI 어댑터
-   - `codex.ts`: Codex CLI 어댑터
-   - 각 어댑터는 CLI별 인자 구성, 프로세스 spawn, 출력 파싱 담당
+2. **`adapters/`** — CLI 어댑터 (SDK 우선 설계)
+   - `base.ts`: `CLIAdapter` 공통 인터페이스 정의
+   - `claude.ts`: **Claude Agent SDK** (`@anthropic-ai/claude-agent-sdk`) 래퍼
+     - SDK의 `query()` → async iterator로 JSONL 메시지 수신
+     - SDK가 subprocess spawn, JSONL 파싱, 세션 관리를 캡슐화
+   - `codex.ts`: **Codex SDK** (`@openai/codex-sdk`) 래퍼
+     - SDK의 `Thread.runStreamed()` → async generator로 JSONL 이벤트 수신
+     - SDK가 subprocess spawn, JSONL 파싱, 스레드 관리를 캡슐화
+   - `gemini.ts`: **직접 spawn** (`child_process.spawn`)
+     - Gemini CLI 공식 SDK 미제공, 직접 프로세스 관리 필요
+     - stdout NDJSON 파싱 또는 raw text 폴백
 
 3. **`prompt-builder.ts`** — 시스템 프롬프트 구성기
    - 현재 파일 내용 수집
@@ -80,11 +86,11 @@
 4. **`session.ts`** — 세션 관리
    - 세션 ID 생성/관리
    - 메시지 히스토리 보관 (메모리)
-   - 활성 프로세스 추적
+   - SDK 세션 resume 기능 연동 (Claude: `--resume`, Codex: `resumeThread()`)
 
 5. **`handler.ts`** — 채팅 핸들러 (엔드포인트 로직)
-   - 메시지 수신 → 어댑터 선택 → 프로세스 실행 → 응답 스트리밍
-   - 프로세스 라이프사이클 관리 (시작/중단/타임아웃)
+   - 메시지 수신 → 어댑터 선택 → SDK/프로세스 실행 → 응답 스트리밍
+   - SDK가 프로세스 라이프사이클을 관리 (Claude, Codex), Gemini만 직접 관리
 
 #### Frontend (`app/`)
 
@@ -121,9 +127,11 @@
    → /chat/send 엔드포인트
 5. ChatHandler:
    a. PromptBuilder로 시스템 프롬프트 구성
-   b. 선택된 CLIAdapter로 프로세스 spawn
-   c. stdin에 프롬프트 전달
-   d. stdout/stderr를 SSE(Server-Sent Events)로 스트리밍
+   b. 선택된 CLIAdapter의 run() 호출
+      - Claude/Codex: SDK의 query()/runStreamed() → async iterator
+      - Gemini: child_process.spawn → stdout 스트림
+   c. SDK/프로세스 출력을 ChatChunk로 정규화
+   d. ChatChunk를 SSE(Server-Sent Events)로 스트리밍
 6. Frontend: EventSource로 SSE 수신
    → status: 'streaming'
    → AI 메시지에 청크 누적 표시
@@ -227,21 +235,22 @@ export interface ChatState {
   abortController: AbortController | null;
 }
 
-// ===== CLI 어댑터 =====
+// ===== CLI 어댑터 (SDK 우선 설계) =====
 
 export interface CLIAdapter {
   id: ProviderId;
   displayName: string;
-  command: string;
   installUrl: string;
 
+  // 감지
   detect(): Promise<ProviderInfo>;
-  buildCommand(prompt: string, options: CLIRunOptions): {
-    command: string;
-    args: string[];
-    env?: Record<string, string>;
-  };
-  parseOutput(chunk: Buffer): ChatChunk[];
+
+  // 실행 — SDK 또는 직접 spawn, 내부 구현에 따라 다름
+  // 공통적으로 AsyncIterable<ChatChunk>를 반환
+  run(prompt: string, options: CLIRunOptions): AsyncIterable<ChatChunk>;
+
+  // 중단
+  abort(): void;
 }
 
 export interface CLIRunOptions {
@@ -249,6 +258,7 @@ export interface CLIRunOptions {
   workingDirectory: string;
   currentFile?: string;
   timeout?: number;             // 기본 300,000ms (5분)
+  allowedTools?: string[];      // SDK의 도구 제한 옵션
 }
 
 export interface ChatChunk {
@@ -256,6 +266,19 @@ export interface ChatChunk {
   content: string;
   metadata?: Record<string, unknown>;
 }
+
+// ===== SDK별 내부 구현 참고 =====
+//
+// ClaudeAdapter: @anthropic-ai/claude-agent-sdk
+//   query({ prompt, options: { systemPrompt, cwd, allowedTools } })
+//   → AsyncIterable<Message> → ChatChunk로 변환
+//
+// CodexAdapter: @openai/codex-sdk
+//   new Codex() → startThread() → runStreamed(prompt)
+//   → AsyncGenerator<Event> → ChatChunk로 변환
+//
+// GeminiAdapter: child_process.spawn('gemini', [...args])
+//   → stdout NDJSON stream → ChatChunk로 변환
 ```
 
 ### 5.2 시스템 프롬프트 템플릿
@@ -305,42 +328,47 @@ Users describe diagrams and you write React/TSX code using Magam components.
 
 ## 6. 단계별 구현 (Phase 1..6)
 
-## Phase 1. CLI 감지 및 어댑터 기반 구축
+## Phase 1. CLI 감지 및 SDK 기반 어댑터 구축
 
-목표: CLI 감지와 프로세스 실행의 기반을 만든다. UI 없이 CLI 계층만으로 동작을 검증한다.
+목표: CLI 감지와 SDK 호출의 기반을 만든다. UI 없이 CLI 계층만으로 동작을 검증한다.
 
 ### 작업
 
 1. `libs/cli/src/chat/` 디렉토리 생성
-2. `detector.ts` 구현
-   - `detectProvider(command: string): Promise<ProviderInfo>`
+2. SDK 패키지 설치
+   - `bun add @anthropic-ai/claude-agent-sdk` (Claude Agent SDK)
+   - `bun add @openai/codex-sdk` (Codex SDK)
+3. `detector.ts` 구현
+   - `detectProvider(id: ProviderId): Promise<ProviderInfo>`
    - `detectAllProviders(): Promise<ProviderInfo[]>`
-   - `which` 명령 실행 + `--version` 검증
+   - SDK import 시도 → `which` 명령 폴백 → `--version` 검증
    - 결과 메모리 캐시
-3. `adapters/base.ts` — `CLIAdapter` 인터페이스 정의
-4. `adapters/claude.ts` — Claude Code 어댑터 구현
-   - `claude --print -p "prompt"` 실행
-   - stdout 스트리밍 파싱
-   - 프로세스 라이프사이클 (spawn/kill/timeout)
-5. 프로세스 관리 유틸리티
-   - 타임아웃 처리 (기본 300초)
-   - 강제 종료 (SIGTERM → SIGKILL 폴백)
-   - 좀비 프로세스 방지 (detach + unref 전략)
-6. 단위 테스트
+4. `adapters/base.ts` — `CLIAdapter` 인터페이스 정의
+   - `run()` → `AsyncIterable<ChatChunk>` 공통 반환 타입
+   - `abort()` — 중단 인터페이스
+5. `adapters/claude.ts` — Claude Agent SDK 래퍼 구현
+   - `@anthropic-ai/claude-agent-sdk`의 `query()` 호출
+   - SDK async iterator → `ChatChunk` 정규화
+   - `systemPrompt`, `cwd`, `allowedTools` 옵션 매핑
+   - SDK가 subprocess 관리를 캡슐화 (직접 spawn 불필요)
+6. SDK 메시지 → ChatChunk 변환 유틸리티
+   - Claude SDK Message → ChatChunk 매핑
+   - 파일 변경 이벤트 추출
+7. 단위 테스트
    - 감지 성공/실패 케이스
-   - 프로세스 spawn/timeout/kill 검증
-   - 어댑터 인자 구성 검증
+   - SDK 호출 → ChatChunk 변환 검증
+   - abort() 동작 검증
 
 ### 산출물
 
-- CLI 감지 모듈 + Claude Code 어댑터 + 테스트
+- CLI 감지 모듈 + Claude Agent SDK 기반 어댑터 + 테스트
 - `bun test` 통과
 
 ### 종료 기준
 
 - Claude Code 설치 여부 감지가 정확히 동작
-- 프로세스 spawn → stdout 수신 → 종료 플로우가 안정적으로 동작
-- 타임아웃/강제 종료가 좀비 프로세스 없이 동작
+- SDK `query()` → ChatChunk 스트리밍이 안정적으로 동작
+- `abort()` 호출 시 SDK 세션이 즉시 종료됨
 
 ---
 
@@ -490,18 +518,21 @@ Users describe diagrams and you write React/TSX code using Magam components.
 
 ## Phase 5. 추가 CLI 어댑터 및 UX 완성
 
-목표: Gemini CLI, Codex CLI를 추가하고, 사용자 경험의 완성도를 높인다.
+목표: Codex SDK 어댑터, Gemini 직접 spawn 어댑터를 추가하고 UX 완성도를 높인다.
 
 ### 작업
 
-1. `adapters/gemini.ts` — Gemini CLI 어댑터 구현
-   - 실행 명령: `gemini -p "prompt"`
-   - stdout 파싱
-   - 버전 감지
-2. `adapters/codex.ts` — Codex CLI 어댑터 구현
-   - 실행 명령: `codex "prompt"`
-   - stdout 파싱
-   - 버전 감지
+1. `adapters/codex.ts` — **Codex SDK** 래퍼 구현
+   - `@openai/codex-sdk`의 `Codex` → `Thread` → `runStreamed()` 호출
+   - SDK async generator → `ChatChunk` 정규화
+   - 스레드 기반 세션 관리 (`resumeThread()` 활용)
+   - SDK가 subprocess 관리를 캡슐화
+2. `adapters/gemini.ts` — Gemini CLI **직접 spawn** 어댑터 구현
+   - `child_process.spawn('gemini', [prompt], { shell: false })` — positional arg 방식
+   - stdout NDJSON 파싱 → `ChatChunk` 변환
+   - raw text 폴백 (NDJSON 파싱 실패 시)
+   - 프로세스 라이프사이클 직접 관리 (타임아웃, SIGTERM → SIGKILL)
+   - 알려진 제약: `ShellTool` 비대화형 모드 미지원 이슈 대응
 3. `SetupGuide.tsx` — CLI 미설치 안내 UI
    - 각 CLI별 설치 가이드 카드
    - "다시 확인" 버튼 (재탐색)
@@ -870,39 +901,44 @@ isProviderReady(): boolean;
 
 | 위협 | 설명 | 대응 |
 |------|------|------|
-| CLI 인자 인젝션 | 사용자 입력이 셸 명령에 직접 삽입 | `child_process.spawn` 사용 (shell: false), 인자 배열 전달 |
-| 디렉토리 탈출 | AI가 프로젝트 외부 파일 접근 | workingDirectory 제한, CLI의 자체 보안 정책 활용 |
-| 프로세스 폭주 | 무한 루프/대량 출력 | 타임아웃, stdout 버퍼 상한, 프로세스 강제 종료 |
+| CLI 인자 인젝션 | 사용자 입력이 셸 명령에 직접 삽입 | **SDK가 인자 처리를 캡슐화** (Claude, Codex), Gemini는 `spawn(shell: false)` + 인자 배열 |
+| 디렉토리 탈출 | AI가 프로젝트 외부 파일 접근 | SDK의 `cwd` 옵션으로 제한, CLI의 자체 보안 정책 활용 |
+| 도구 권한 과잉 | AI가 불필요한 도구(셸 명령 등) 실행 | SDK의 `allowedTools` 옵션으로 `Read`, `Write`, `Edit`만 허용 |
+| 프로세스 폭주 | 무한 루프/대량 출력 | SDK timeout 옵션, Gemini는 자체 타임아웃 + stdout 버퍼 상한 |
 | 민감 정보 노출 | 환경 변수/설정 파일이 프롬프트에 포함 | 시스템 프롬프트 구성 시 .env, credentials 파일 제외 |
 
 ### 11.2 원칙
 
-1. `child_process.spawn`은 반드시 `shell: false`로 실행 (셸 해석 방지)
-2. 사용자 입력은 CLI 인자 배열로만 전달 (문자열 연결 금지)
-3. 작업 디렉토리는 프로젝트 루트로 고정
-4. 환경 변수는 최소한만 전달 (PATH 등 필수만)
-5. 프롬프트에 포함할 파일은 `.tsx`만 허용 (설정 파일 제외)
+1. **SDK를 통한 호출 우선**: Claude/Codex는 SDK가 프로세스 보안을 관리
+2. Gemini만 `child_process.spawn`을 사용하며 반드시 `shell: false`로 실행
+3. SDK의 `allowedTools` 옵션으로 AI의 도구 사용 범위를 제한
+4. 작업 디렉토리는 프로젝트 루트로 고정 (SDK `cwd` 옵션)
+5. 환경 변수는 최소한만 전달 (PATH 등 필수만)
+6. 프롬프트에 포함할 파일은 `.tsx`만 허용 (설정 파일 제외)
 
 ---
 
 ## 12. 리스크와 대응
 
-1. **CLI 도구 인터페이스 변경**
-   - 대응: 어댑터 패턴으로 격리, 버전별 분기 로직, 주요 CLI 릴리스 모니터링
+1. **CLI 도구 인터페이스 변경** → 리스크 **낮음** (SDK가 흡수)
+   - 대응: SDK 버전 업그레이드로 대응, Gemini만 어댑터 수준에서 직접 분기
 
-2. **프로세스 관리 복잡성**
-   - 대응: 단일 활성 프로세스 정책 (큐잉 대신 이전 프로세스 중단), 강제 종료 폴백
+2. **프로세스 관리 복잡성** → 리스크 **낮음** (SDK가 캡슐화)
+   - 대응: Claude/Codex는 SDK가 프로세스 라이프사이클 관리, Gemini만 직접 관리 (단일 활성 프로세스 정책)
 
-3. **스트리밍 파싱 불안정**
-   - 대응: raw 텍스트 폴백 표시, CLI별 파서 분리, 에러 격리
+3. **SDK 패키지 호환성**
+   - 대응: SDK 버전 pinning, 주요 릴리스 시 호환성 테스트, peer dependency 충돌 모니터링
 
-4. **대용량 파일 컨텍스트**
+4. **Gemini CLI 스트리밍 파싱 불안정** (SDK 미제공)
+   - 대응: NDJSON 우선, raw 텍스트 폴백, 알려진 비대화형 모드 제약 사항 문서화
+
+5. **대용량 파일 컨텍스트**
    - 대응: 컨텍스트 크기 상한 (예: 50KB), 관련 부분만 선별, 파일 목록만 포함 옵션
 
-5. **크로스 플랫폼 호환성**
-   - 대응: `which` (Unix) / `where` (Windows) 분기, 경로 정규화, CI에서 다중 OS 테스트
+6. **크로스 플랫폼 호환성**
+   - 대응: SDK가 플랫폼 차이 흡수 (Claude, Codex), Gemini는 `which`/`where` 분기 + CI 다중 OS 테스트
 
-6. **AI 응답 품질 편차**
+7. **AI 응답 품질 편차**
    - 대응: 시스템 프롬프트 최적화, Magam 컴포넌트 예시 포함, 응답 검증 (TSX 파싱)
 
 ---
@@ -925,25 +961,28 @@ isProviderReady(): boolean;
 
 ### 14.1 설계/준비
 
-- [ ] CLI 어댑터 인터페이스 확정
+- [ ] CLI 어댑터 인터페이스 확정 (SDK 우선 설계)
 - [ ] SSE 스트리밍 프로토콜 확정
 - [ ] 시스템 프롬프트 템플릿 초안 작성
 - [ ] Zustand 스토어 상태/액션 설계 확정
 - [ ] UI 와이어프레임/목업 확정
+- [ ] SDK 패키지 호환성 검증 (`@anthropic-ai/claude-agent-sdk`, `@openai/codex-sdk`)
 
 ### 14.2 Backend 구현
 
+- [ ] SDK 패키지 설치 (`@anthropic-ai/claude-agent-sdk`, `@openai/codex-sdk`)
 - [ ] CLI 감지 모듈 (`detector.ts`)
 - [ ] CLI 어댑터 인터페이스 (`adapters/base.ts`)
-- [ ] Claude Code 어댑터 (`adapters/claude.ts`)
-- [ ] Gemini CLI 어댑터 (`adapters/gemini.ts`)
-- [ ] Codex CLI 어댑터 (`adapters/codex.ts`)
+- [ ] Claude Code 어댑터 — Claude Agent SDK 래퍼 (`adapters/claude.ts`)
+- [ ] Codex CLI 어댑터 — Codex SDK 래퍼 (`adapters/codex.ts`)
+- [ ] Gemini CLI 어댑터 — 직접 spawn (`adapters/gemini.ts`)
+- [ ] SDK 메시지 → ChatChunk 변환 유틸리티
 - [ ] 시스템 프롬프트 빌더 (`prompt-builder.ts`)
-- [ ] 세션 관리 (`session.ts`)
+- [ ] 세션 관리 (`session.ts`) — SDK 세션 resume 연동
 - [ ] 채팅 핸들러 (`handler.ts`)
 - [ ] HTTP 엔드포인트 (`/chat/providers`, `/chat/send`, `/chat/stop`)
 - [ ] SSE 스트리밍 구현
-- [ ] 프로세스 라이프사이클 관리 (타임아웃, 강제종료)
+- [ ] Gemini 프로세스 라이프사이클 관리 (타임아웃, 강제종료)
 
 ### 14.3 Frontend 구현
 
@@ -962,7 +1001,9 @@ isProviderReady(): boolean;
 ### 14.4 테스트
 
 - [ ] CLI 감지 단위 테스트
-- [ ] CLI 어댑터 단위 테스트
+- [ ] Claude SDK 어댑터 단위 테스트 (ChatChunk 변환)
+- [ ] Codex SDK 어댑터 단위 테스트 (ChatChunk 변환)
+- [ ] Gemini spawn 어댑터 단위 테스트 (NDJSON 파싱)
 - [ ] 프롬프트 빌더 단위 테스트
 - [ ] 세션 관리 단위 테스트
 - [ ] Zustand 스토어 상태 전이 테스트
@@ -983,27 +1024,39 @@ isProviderReady(): boolean;
 
 ---
 
-## 15. 파일 구조 요약 (신규 생성 대상)
+## 15. 의존성 요약 (신규 추가)
+
+```
+# SDK 패키지 (서버 사이드 전용)
+@anthropic-ai/claude-agent-sdk   # Claude Code 공식 SDK (내부적으로 CLI subprocess 관리)
+@openai/codex-sdk                # Codex CLI 공식 SDK (내부적으로 CLI subprocess 관리)
+
+# Gemini CLI는 SDK 없음 — child_process.spawn으로 직접 관리
+```
+
+## 16. 파일 구조 요약 (신규 생성 대상)
 
 ```
 libs/cli/src/chat/
-├── detector.ts                 # CLI 감지 모듈
+├── detector.ts                 # CLI 감지 모듈 (SDK import + which/where 폴백)
 ├── handler.ts                  # 채팅 핸들러
 ├── prompt-builder.ts           # 시스템 프롬프트 구성
-├── session.ts                  # 세션 관리
+├── session.ts                  # 세션 관리 (SDK 세션 resume 연동)
+├── chunk-normalizer.ts         # SDK 메시지 → ChatChunk 변환 유틸리티
 ├── adapters/
 │   ├── base.ts                 # CLIAdapter 인터페이스
-│   ├── claude.ts               # Claude Code 어댑터
-│   ├── gemini.ts               # Gemini CLI 어댑터
-│   └── codex.ts                # Codex CLI 어댑터
+│   ├── claude.ts               # Claude Agent SDK 래퍼 (@anthropic-ai/claude-agent-sdk)
+│   ├── codex.ts                # Codex SDK 래퍼 (@openai/codex-sdk)
+│   └── gemini.ts               # Gemini CLI 직접 spawn (child_process)
 └── __tests__/
     ├── detector.spec.ts
     ├── prompt-builder.spec.ts
     ├── session.spec.ts
+    ├── chunk-normalizer.spec.ts
     └── adapters/
         ├── claude.spec.ts
-        ├── gemini.spec.ts
-        └── codex.spec.ts
+        ├── codex.spec.ts
+        └── gemini.spec.ts
 
 app/store/
 └── chat.ts                     # Zustand 채팅 스토어
@@ -1024,12 +1077,12 @@ app/app/api/chat/
 
 ---
 
-## 16. 미해결 의사결정 (Open Decisions)
+## 17. 미해결 의사결정 (Open Decisions)
 
 1. **채팅 패널 위치**: 오른쪽 사이드바 고정 vs 사용자 지정 가능 (하단/오른쪽)
-2. **세션 영속성**: 메모리 전용 vs 파일 시스템 저장 (`.magam/chat-history/`)
+2. **세션 영속성**: 메모리 전용 vs SDK 세션 resume 활용 vs 파일 시스템 저장 (`.magam/chat-history/`)
 3. **멀티 파일 편집 UX**: 변경 파일 개별 확인 vs 일괄 알림
 4. **CLI 동시 실행 정책**: 단일 활성 프로세스 vs 큐잉
 5. **컨텍스트 크기 상한**: 고정값 vs 사용자 설정 가능
-6. **Claude Code 실행 모드**: `--print` (비대화형) vs 대화형 모드
-7. **어댑터 플러그인 시스템**: v1에서 인터페이스만 정의 vs 실제 플러그인 로딩 메커니즘 구현
+6. **SDK 버전 고정 전략**: 정확한 버전 pinning vs semver range 허용
+7. **Gemini CLI SDK 전환 시점**: Gemini 공식 SDK 출시 시 어댑터 교체 기준 (자동 감지 vs 수동 업데이트)
