@@ -1,5 +1,49 @@
 # Local AI Chat 기능 PRD (Magam)
 
+## 0. How to verify locally (release-check quick list)
+
+> 현재 코드베이스 기준으로 바로 확인 가능한 최소 절차입니다.
+
+1. 의존성 설치
+
+   ```bash
+   bun install
+   ```
+
+2. 개발 서버 실행 (CLI HTTP + 앱 개발 서버 포함)
+
+   ```bash
+   bun run dev
+   ```
+
+   - 기본 chat endpoint: `http://localhost:3002/chat/*`
+   - 포트 변경: `MAGAM_HTTP_PORT=<port> bun run dev`
+
+3. 채팅 스모크 테스트 실행
+
+   ```bash
+   bun run chat:smoke
+   ```
+
+   - 필요 시 provider 지정:
+
+     ```bash
+     MAGAM_SMOKE_PROVIDER=codex bun run chat:smoke
+     ```
+
+4. 수동 UI 확인 (선택)
+   - Chat 패널 열기 → provider 선택
+   - 짧은 프롬프트 전송 (예: "한 줄로 답해줘")
+   - 스트리밍 응답 및 중단 버튼 동작 확인
+
+## 0.1 TODO / Known limitations (현재 단계)
+
+- 채팅 세션/히스토리는 메모리 기반이며 재시작 시 유지되지 않는다.
+- provider adapter는 현재 CLI 직접 실행 래퍼 방식이며, PRD의 SDK 우선 설계와 완전 일치하지 않는다(후속 정렬 필요).
+- smoke 테스트는 endpoint/스트림 계약 검증 중심이며, 실제 provider 인증/로그인 상태까지 보장하지 않는다.
+- 스트림 중단(`POST /chat/stop`)은 실패가 아니라 정상 종료로 취급한다. 서버는 중단 시 `event: done`(metadata에 `stopped: true`, `code: "ABORTED"`)를 보낼 수 있으며 smoke는 이를 PASS로 간주한다.
+- 동시 다중 채팅 실행보다 단일 세션 실행 안정성에 우선순위를 둔 구현이다.
+
 ## 1. 배경
 
 Magam는 사용자가 TSX 코드로 다이어그램을 작성하면 캔버스에 렌더링하는 "AI-Native Programmatic Whiteboard"이다. 현재 사용자가 다이어그램을 수정하려면 직접 TSX 코드를 편집해야 하며, AI 보조를 받으려면 외부 도구(터미널, 브라우저 등)를 오가야 한다.
@@ -443,12 +487,14 @@ AI CLI 호출 시 다음 컨텍스트를 자동으로 포함한다:
 | 레이어 | 파일/모듈 | 변경 내용 |
 |--------|----------|----------|
 | Frontend | `app/store/graph.ts` | chat 상태 슬라이스 추가 (또는 별도 `chat.ts` 스토어) |
-| Frontend | `app/components/chat/` | ChatPanel, MessageList, ChatInput, AISelector 컴포넌트 신규 |
+| Frontend | `app/components/chat/` | ChatPanel, MessageList, ChatInput, AISelector 컴포넌트 신규 (권한 모드 토글 포함) |
 | Frontend | `app/components/ui/Header.tsx` | 채팅 토글 버튼 추가 |
 | Frontend | `app/app/api/chat/` | 채팅 API 라우트 (CLI 실행 프록시) |
 | Backend | `libs/cli/src/chat/` | CLIDetector, CLIAdapter(SDK 래퍼), PromptBuilder, SessionManager 신규 |
 | Backend | `libs/cli/src/server/http.ts` | `/chat/send`, `/chat/providers`, `/chat/stop` 엔드포인트 추가 |
-| Shared | `libs/shared/src/` | 채팅 관련 공용 타입 정의 |
+| Shared | `libs/shared/src/` | 채팅 관련 공용 타입 정의 (`permissionMode: auto\|interactive`) |
+
+기본 권한 모드는 `auto`이며, UI에서 `자동 승인`/`확인`으로 전환할 수 있다.
 
 ---
 

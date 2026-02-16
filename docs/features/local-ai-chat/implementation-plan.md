@@ -10,6 +10,49 @@
 
 ---
 
+## 1.1 빠른 로컬 검증 (현재 구현 기준)
+
+Local AI Chat 변경 후 최소 확인 절차:
+
+1. 서버 시작
+
+   ```bash
+   bun run dev
+   ```
+
+   - 기본 HTTP 서버: `http://localhost:3002`
+   - 포트 변경 시: `MAGAM_HTTP_PORT=<port> bun run dev`
+
+2. 채팅 스모크 실행
+
+   ```bash
+   bun run chat:smoke
+   ```
+
+   자주 쓰는 오버라이드 예시:
+
+   ```bash
+   MAGAM_SMOKE_BASE_URL=http://localhost:3002 \
+   MAGAM_SMOKE_API_PREFIX=/chat \
+   MAGAM_SMOKE_PROVIDER=codex \
+   MAGAM_SMOKE_MESSAGE="짧게 한 줄로 답해줘" \
+   MAGAM_SMOKE_CURRENT_FILE=examples/mindmap.tsx \
+   bun run chat:smoke
+   ```
+
+3. UI 수동 확인 (빠르게)
+
+   - 브라우저에서 앱 열기
+   - Chat 패널 열기 → provider 선택
+   - "한 줄로 답해줘" 같은 짧은 메시지 전송
+   - 응답이 스트리밍되고, 중단 버튼이 동작하는지 확인
+
+## 1.2 TODO / Known limitations (현재 구현 기준)
+
+- 세션/히스토리는 메모리 저장소(`ChatSessionStore`) 기반으로, 프로세스 재시작 시 복구되지 않는다.
+- provider 어댑터는 현재 CLI 명령 실행 + fallback 전략을 사용하며, 문서상 SDK 우선 설계와는 차이가 있다.
+- smoke(`bun run chat:smoke`)는 API 계약/스트림 중심 검증이며, 각 CLI 계정 로그인 상태 검증은 환경 의존이다.
+
 ## 2. 목표
 
 ### 2.1 제품 목표
@@ -326,7 +369,107 @@ Users describe diagrams and you write React/TSX code using Magam components.
 
 ---
 
-## 6. 단계별 구현 (Phase 1..6)
+## 6. 병렬 개발 전략 (Parallel Delivery)
+
+## 6.1 트랙 분리 (Workstreams)
+
+### Track A — Core Backend (CLI Runtime)
+- 범위: `libs/cli/src/chat/adapters/*`, `detector.ts`, `chunk-normalizer.ts`, `session.ts`
+- 책임: Provider 감지, SDK/프로세스 실행, ChatChunk 정규화, 세션/중단 처리
+- 산출물: Claude/Codex/Gemini 어댑터 + 단위 테스트
+
+### Track B — API/SSE Gateway
+- 범위: `handler.ts`, `libs/cli/src/server/http.ts`
+- 책임: `/chat/providers`, `/chat/send`, `/chat/stop` 계약 구현, SSE 송출, 에러 코드 표준화
+- 산출물: 안정적인 스트리밍 엔드포인트 + 계약 테스트
+
+### Track C — Frontend Chat UI
+- 범위: `app/store/chat.ts`, `app/components/chat/*`, `app/app/api/chat/*`
+- 책임: 채팅 패널/입력/메시지 렌더링, 스트리밍 상태 전이, 중단/재시도 UX
+- 산출물: E2E 가능한 채팅 UI
+
+### Track D — Canvas Integration
+- 범위: 파일 감시(WebSocket/chokidar) 연동 지점 + 파일 변경 배지 UX
+- 책임: AI 파일 변경을 캔버스 자동 반영으로 연결, 충돌/연속 변경 안정화
+- 산출물: file_change 이벤트 기반 시각 피드백 + 캔버스 반영 안정성
+
+### Track E — QA / Security / Performance
+- 범위: 테스트/품질 체계 전반
+- 책임: 회귀, 보안(인자 인젝션/디렉토리 제한), 성능(NFR) 검증
+- 산출물: 릴리스 품질 게이트 통과 리포트
+
+## 6.2 선행 고정 계약 (Contract Freeze)
+
+병렬 구현 시작 전에 아래 3개를 고정한다.
+
+1. **ChatChunk 스키마 고정**
+   - `type: text | tool_use | file_change | error | done`
+   - `content`, `metadata` 필드 규칙
+
+2. **HTTP/SSE 계약 고정**
+   - `GET /chat/providers`
+   - `POST /chat/send` (SSE 이벤트명/페이로드)
+   - `POST /chat/stop`
+
+3. **Frontend Store 액션 계약 고정**
+   - `appendChunk`, `completeMessage`, `failMessage`, `stopGeneration`, `retryLastMessage`
+
+> 위 계약이 고정되면 Track A/B/C/D는 목업 기반으로 독립 병렬 개발이 가능하다.
+
+## 6.3 의존성 매트릭스
+
+| 작업 | 선행 필요 | 병렬 가능 대상 |
+|---|---|---|
+| A: Adapter 구현 | Contract Freeze | B, C |
+| B: API/SSE 구현 | Contract Freeze | A, C |
+| C: UI/Store 구현 | Contract Freeze | A, B, D |
+| D: Canvas 연동 | `file_change` 이벤트 형식 확정 | C |
+| E: 통합 품질 검증 | A/B/C/D 기능 연결 | 전 트랙 결과물 |
+
+## 6.4 스프린트 운영안 (권장)
+
+### Sprint 0 (0.5~1일): Interface Freeze
+- 공용 타입(`chat-types`) 확정
+- SSE 이벤트/에러코드 표준 문서화
+- Mock 서버/Mock 스트림 준비
+
+### Sprint 1 (병렬 구현 시작)
+- Track A: Claude Adapter + detector
+- Track B: `/providers`, `/send` SSE 뼈대
+- Track C: ChatPanel + Store + 스트리밍 렌더
+- Track D: file_change 배지 UI/연결 준비
+
+### Sprint 2 (기능 확장)
+- Track A: Codex/Gemini Adapter
+- Track B: `/stop`, timeout, 에러맵
+- Track C: 중단/재시도/Provider 전환 UX
+- Track D: 실제 파일 변경 → 캔버스 E2E
+
+### Sprint 3 (품질 게이트)
+- Track E 중심: 보안/성능/회귀/E2E
+- NFR 달성 여부 측정 및 개선
+
+## 6.5 현재 코드 기준 정합성 메모 (Baseline Alignment)
+
+1. **HTTP/WS 현행 인터페이스**
+   - 현행 Next API 프록시는 `/api/render`, `/api/files`, `/api/file-tree` 중심이다.
+   - 현행 WS 동기화는 `app/ws/server.ts`의 JSON-RPC(`file.subscribe`, `file.changed`, `files.changed`)를 사용한다.
+   - Local AI Chat은 이를 깨지 않고 `/api/chat/*`을 신규 추가한다.
+
+2. **스토어/UI 현황**
+   - 현재 전역 상태는 `app/store/graph.ts` 중심이며 채팅 전용 스토어는 없다.
+   - `app/components/ui/Header.tsx`는 검색/연결 상태 UI만 포함한다.
+   - 채팅은 기존 탭/검색 단축키(`Cmd/Ctrl+K/T/W`)와 충돌하지 않도록 `Cmd/Ctrl+J`를 사용한다.
+
+3. **공유 타입 위치 규칙**
+   - 본 레포의 shared 패턴에 맞춰 신규 계약 타입은 `libs/shared/src/lib/chat-types.ts`에 둔다.
+   - `libs/shared/src/index.ts`에서 export하여 FE/BE가 동일 타입을 참조한다.
+
+4. **스트리밍/보안 구현 규칙**
+   - Next API Route의 채팅 프록시는 `ReadableStream` 패스스루를 사용한다(`res.json()` 금지).
+   - `workingDirectory`는 클라이언트에서 받지 않고 서버 고정 cwd(`MAGAM_TARGET_DIR`/allowlist)만 사용한다.
+
+## 7. 단계별 구현 (Phase 1..6)
 
 ## Phase 1. CLI 감지 및 SDK 기반 어댑터 구축
 
@@ -399,6 +542,7 @@ Users describe diagrams and you write React/TSX code using Magam components.
    - `Content-Type: text/event-stream`
    - 청크 단위 이벤트 전송
    - 정상/에러/완료 이벤트 구분
+   - Next API Route 프록시는 `ReadableStream` 패스스루로 구현 (`res.json()` 금지)
 6. 에러 핸들링
    - CLI 미설치 에러
    - 프로세스 실행 실패
@@ -466,7 +610,7 @@ Users describe diagrams and you write React/TSX code using Magam components.
    - 현재 선택 도구 표시
 8. `Header.tsx` 수정 — 채팅 토글 버튼 추가
    - `💬 Chat` 버튼 또는 아이콘 버튼
-   - `Cmd/Ctrl+L` 단축키 바인딩
+   - `Cmd/Ctrl+J` 단축키 바인딩 (브라우저 기본 단축키와 충돌 회피)
 
 ### 산출물
 
@@ -489,6 +633,7 @@ Users describe diagrams and you write React/TSX code using Magam components.
 
 1. 파일 변경 감지 연동 검증
    - AI CLI가 파일 수정 → chokidar 감지 → WebSocket → 캔버스 업데이트
+   - v1 기준 Source of Truth는 `app/ws/server.ts`의 JSON-RPC 이벤트(`file.changed`, `files.changed`)로 통일
    - 기존 `file.changed` → `re-render` 파이프라인이 AI 변경에도 정상 동작 확인
 2. 파일 변경 이벤트를 채팅에 반영
    - SSE `file_change` 이벤트 수신 시 메시지에 FileChange 배지 추가
@@ -549,7 +694,7 @@ Users describe diagrams and you write React/TSX code using Magam components.
    - 에러 메시지 하단에 "재시도" 버튼
    - 마지막 사용자 메시지를 재전송
 7. 단축키 연결
-   - `Cmd/Ctrl+L`: 패널 열기/닫기
+   - `Cmd/Ctrl+J`: 패널 열기/닫기
    - `Cmd/Ctrl+.` 또는 `Esc` (패널 포커스 시): AI 중단
    - 입력 포커스 예외 처리
 
@@ -611,9 +756,9 @@ Users describe diagrams and you write React/TSX code using Magam components.
 
 ---
 
-## 7. API 설계
+## 8. API 설계
 
-### 7.1 HTTP 엔드포인트
+### 8.1 HTTP 엔드포인트
 
 #### `GET /chat/providers`
 
@@ -653,10 +798,11 @@ Users describe diagrams and you write React/TSX code using Magam components.
   "message": "마인드맵에 새 노드를 추가해줘",
   "providerId": "claude",
   "sessionId": "uuid-session-123",
-  "currentFile": "architecture.tsx",
-  "workingDirectory": "/path/to/project"
+  "currentFile": "architecture.tsx"
 }
 ```
+
+> 보안 노트: `workingDirectory`는 클라이언트 요청 바디에서 받지 않는다. 서버가 `MAGAM_TARGET_DIR`(또는 allowlist) 기반의 고정 cwd를 사용한다.
 
 **Response: `text/event-stream`**
 ```
@@ -688,7 +834,7 @@ data: {"type":"done","content":"","metadata":{"duration":3200,"exitCode":0}}
 }
 ```
 
-### 7.2 Zustand Store 액션 계약
+### 8.2 Zustand Store 액션 계약
 
 ```ts
 // Panel
@@ -718,7 +864,7 @@ getInstalledProviders(): ProviderInfo[];
 isProviderReady(): boolean;
 ```
 
-### 7.3 이벤트 흐름
+### 8.3 이벤트 흐름
 
 ```
 사용자 Enter
@@ -746,9 +892,9 @@ isProviderReady(): boolean;
 
 ---
 
-## 8. UI 작업 상세
+## 9. UI 작업 상세
 
-### 8.1 ChatPanel 레이아웃
+### 9.1 ChatPanel 레이아웃
 
 - 위치: 캔버스 오른쪽 사이드바
 - 기본 너비: 380px
@@ -756,20 +902,20 @@ isProviderReady(): boolean;
 - 리사이즈: 좌측 가장자리 드래그
 - 열기/닫기 애니메이션: slide-in/out (200ms ease)
 
-### 8.2 헤더
+### 9.2 헤더
 
 - 좌측: "Chat" 타이틀
 - 중앙/우측: AI 선택 드롭다운
 - 우측 끝: 닫기 버튼 (X)
 
-### 8.3 메시지 목록
+### 9.3 메시지 목록
 
 - 스크롤 영역: flex-1 (패널 높이에 맞춤)
 - 자동 스크롤: 새 메시지/스트리밍 시 하단으로
 - 수동 스크롤: 위로 스크롤하면 자동 스크롤 해제
 - "↓ 새 메시지" 버튼: 자동 스크롤 해제 중 새 메시지 시 표시
 
-### 8.4 메시지 스타일
+### 9.4 메시지 스타일
 
 | 역할 | 정렬 | 배경 | 모서리 |
 |------|------|------|--------|
@@ -777,7 +923,7 @@ isProviderReady(): boolean;
 | assistant | 좌측 | gray-50 / gray-800 (dark) | rounded-lg, 좌측 상단 직각 |
 | system | 중앙 | transparent | 테두리 없음, 작은 텍스트 |
 
-### 8.5 입력 영역
+### 9.5 입력 영역
 
 - textarea: 자동 높이 확장 (1줄~5줄)
 - placeholder: "메시지를 입력하세요... (Enter로 전송)"
@@ -785,7 +931,7 @@ isProviderReady(): boolean;
 - 중단 버튼: `■` 아이콘 (streaming 시, 빨간색)
 - 비활성: AI 미감지 시 입력 비활성 + 안내 메시지
 
-### 8.6 미설치 안내 (SetupGuide)
+### 9.6 미설치 안내 (SetupGuide)
 
 - 패널 중앙에 안내 카드 표시
 - 각 CLI별 아이콘, 이름, 설치 링크
@@ -794,9 +940,9 @@ isProviderReady(): boolean;
 
 ---
 
-## 9. 테스트 계획
+## 10. 테스트 계획
 
-### 9.1 단위 테스트
+### 10.1 단위 테스트
 
 **대상: `libs/cli/src/chat/`**
 
@@ -820,7 +966,7 @@ isProviderReady(): boolean;
    - 세션 생성/조회/삭제
    - 메시지 추가/조회
 
-### 9.2 스토어 테스트
+### 10.2 스토어 테스트
 
 **대상: `app/store/chat.ts`**
 
@@ -834,7 +980,7 @@ isProviderReady(): boolean;
 8. setActiveProvider → 도구 변경 + 세션 초기화 안내
 9. clearSession → 세션/메시지 초기화
 
-### 9.3 컴포넌트 테스트
+### 10.3 컴포넌트 테스트
 
 **대상: `app/components/chat/`**
 
@@ -847,7 +993,7 @@ isProviderReady(): boolean;
 7. SetupGuide 재탐색 버튼 동작
 8. 파일 변경 배지 표시
 
-### 9.4 통합 테스트
+### 10.4 통합 테스트
 
 1. 메시지 전송 → SSE 수신 → 메시지 표시 → 완료 전체 흐름
 2. AI 파일 수정 → WebSocket 감지 → 캔버스 업데이트
@@ -855,14 +1001,14 @@ isProviderReady(): boolean;
 4. AI 도구 전환 → 어댑터 교체 → 정상 실행
 5. 에러 발생 → 에러 메시지 표시 → 재시도 동작
 
-### 9.5 E2E 테스트
+### 10.5 E2E 테스트
 
 1. 시나리오 A: 빈 파일 → 채팅으로 다이어그램 생성 → 캔버스 확인
 2. 시나리오 B: 기존 다이어그램 → 채팅으로 수정 → 변경 반영 확인
 3. 시나리오 C: AI 도구 전환 → 이후 요청이 변경된 도구로 실행
 4. 시나리오 D: CLI 미설치 → 안내 표시 → 설치 후 재탐색
 
-### 9.6 보안 테스트
+### 10.6 보안 테스트
 
 1. CLI 인자에 셸 메타문자 포함 시 이스케이프 동작
 2. 작업 디렉토리 외부 파일 접근 시도 차단
@@ -870,23 +1016,23 @@ isProviderReady(): boolean;
 
 ---
 
-## 10. 성능 목표 및 측정 방법
+## 11. 성능 목표 및 측정 방법
 
-### 10.1 목표
+### 11.1 목표
 
 1. CLI 프로세스 시작 → 첫 stdout p95 ≤ 2초
 2. stdout 청크 → UI 렌더링 ≤ 100ms
 3. 캔버스 재렌더링 크래시/전체 재마운트 0회
 4. 100개 메시지 히스토리에서 스크롤 60fps 유지
 
-### 10.2 측정 방법
+### 11.2 측정 방법
 
 1. `performance.now()`로 send 시점 → 첫 chunk 수신 시점 측정
 2. chunk 수신 시점 → DOM 반영 시점 측정 (requestAnimationFrame)
 3. React Profiler로 캔버스 컴포넌트 리렌더 횟수 측정
 4. 메시지 100개 상태에서 FPS 측정 (Chrome DevTools Performance)
 
-### 10.3 튜닝 전략
+### 11.3 튜닝 전략
 
 1. SSE 청크 배치 (16ms 윈도우)
 2. 메시지 목록 가상화 (메시지 50개 이상 시)
@@ -895,9 +1041,9 @@ isProviderReady(): boolean;
 
 ---
 
-## 11. 보안 설계
+## 12. 보안 설계
 
-### 11.1 위협 모델
+### 12.1 위협 모델
 
 | 위협 | 설명 | 대응 |
 |------|------|------|
@@ -907,7 +1053,7 @@ isProviderReady(): boolean;
 | 프로세스 폭주 | 무한 루프/대량 출력 | SDK timeout 옵션, Gemini는 자체 타임아웃 + stdout 버퍼 상한 |
 | 민감 정보 노출 | 환경 변수/설정 파일이 프롬프트에 포함 | 시스템 프롬프트 구성 시 .env, credentials 파일 제외 |
 
-### 11.2 원칙
+### 12.2 원칙
 
 1. **SDK를 통한 호출 우선**: Claude/Codex는 SDK가 프로세스 보안을 관리
 2. Gemini만 `child_process.spawn`을 사용하며 반드시 `shell: false`로 실행
@@ -918,7 +1064,7 @@ isProviderReady(): boolean;
 
 ---
 
-## 12. 리스크와 대응
+## 13. 리스크와 대응
 
 1. **CLI 도구 인터페이스 변경** → 리스크 **낮음** (SDK가 흡수)
    - 대응: SDK 버전 업그레이드로 대응, Gemini만 어댑터 수준에서 직접 분기
@@ -943,7 +1089,7 @@ isProviderReady(): boolean;
 
 ---
 
-## 13. 완료 기준 (Definition of Done)
+## 14. 완료 기준 (Definition of Done)
 
 1. FR-1 ~ FR-12 전부 Acceptance Criteria 충족
 2. NFR-1 ~ NFR-7 측정/로그 근거가 PR에 포함됨
@@ -957,18 +1103,21 @@ isProviderReady(): boolean;
 
 ---
 
-## 14. 작업 체크리스트
+## 15. 작업 체크리스트
 
-### 14.1 설계/준비
+### 15.1 설계/준비
 
 - [ ] CLI 어댑터 인터페이스 확정 (SDK 우선 설계)
 - [ ] SSE 스트리밍 프로토콜 확정
+- [ ] Contract Freeze 문서화 (ChatChunk / API / Store 액션)
+- [ ] 트랙별 파일 소유권(Ownership) 매핑 확정
+- [ ] Mock SSE 서버/샘플 이벤트 준비 (병렬 UI 개발용)
 - [ ] 시스템 프롬프트 템플릿 초안 작성
 - [ ] Zustand 스토어 상태/액션 설계 확정
 - [ ] UI 와이어프레임/목업 확정
 - [ ] SDK 패키지 호환성 검증 (`@anthropic-ai/claude-agent-sdk`, `@openai/codex-sdk`)
 
-### 14.2 Backend 구현
+### 15.2 Backend 구현
 
 - [ ] SDK 패키지 설치 (`@anthropic-ai/claude-agent-sdk`, `@openai/codex-sdk`)
 - [ ] CLI 감지 모듈 (`detector.ts`)
@@ -984,7 +1133,7 @@ isProviderReady(): boolean;
 - [ ] SSE 스트리밍 구현
 - [ ] Gemini 프로세스 라이프사이클 관리 (타임아웃, 강제종료)
 
-### 14.3 Frontend 구현
+### 15.3 Frontend 구현
 
 - [ ] Zustand 채팅 스토어 (`store/chat.ts`)
 - [ ] Next.js API 라우트 프록시 (`api/chat/`)
@@ -996,9 +1145,9 @@ isProviderReady(): boolean;
 - [ ] SetupGuide 컴포넌트
 - [ ] Header 채팅 토글 버튼
 - [ ] 파일 변경 배지 UI
-- [ ] 단축키 연결 (`Cmd/Ctrl+L`, `Cmd/Ctrl+.`)
+- [ ] 단축키 연결 (`Cmd/Ctrl+J`, `Cmd/Ctrl+.`)
 
-### 14.4 테스트
+### 15.4 테스트
 
 - [ ] CLI 감지 단위 테스트
 - [ ] Claude SDK 어댑터 단위 테스트 (ChatChunk 변환)
@@ -1014,7 +1163,7 @@ isProviderReady(): boolean;
 - [ ] 보안 테스트 (인자 인젝션)
 - [ ] 성능 측정 리포트
 
-### 14.5 출시
+### 15.5 출시
 
 - [ ] 접근성 점검 완료
 - [ ] 보안 리뷰 체크리스트 완료
@@ -1024,7 +1173,7 @@ isProviderReady(): boolean;
 
 ---
 
-## 15. 의존성 요약 (신규 추가)
+## 16. 의존성 요약 (신규 추가)
 
 ```
 # SDK 패키지 (서버 사이드 전용)
@@ -1034,7 +1183,7 @@ isProviderReady(): boolean;
 # Gemini CLI는 SDK 없음 — child_process.spawn으로 직접 관리
 ```
 
-## 16. 파일 구조 요약 (신규 생성 대상)
+## 17. 파일 구조 요약 (신규 생성 대상)
 
 ```
 libs/cli/src/chat/
@@ -1077,7 +1226,7 @@ app/app/api/chat/
 
 ---
 
-## 17. 미해결 의사결정 (Open Decisions)
+## 18. 미해결 의사결정 (Open Decisions)
 
 1. **채팅 패널 위치**: 오른쪽 사이드바 고정 vs 사용자 지정 가능 (하단/오른쪽)
 2. **세션 영속성**: 메모리 전용 vs SDK 세션 resume 활용 vs 파일 시스템 저장 (`.magam/chat-history/`)
@@ -1086,3 +1235,197 @@ app/app/api/chat/
 5. **컨텍스트 크기 상한**: 고정값 vs 사용자 설정 가능
 6. **SDK 버전 고정 전략**: 정확한 버전 pinning vs semver range 허용
 7. **Gemini CLI SDK 전환 시점**: Gemini 공식 SDK 출시 시 어댑터 교체 기준 (자동 감지 vs 수동 업데이트)
+
+---
+
+## 19. 실행 티켓 백로그 (Parallel Ready)
+
+아래 티켓은 트랙 병렬 개발을 전제로 분해했다. 표기 규칙:
+- Priority: `P0`(필수 선행), `P1`(핵심 기능), `P2`(완성도/최적화)
+- Depends On: 선행 티켓 ID
+- Track: A(Core Backend), B(API/SSE), C(Frontend UI), D(Canvas), E(QA/Sec/Perf)
+
+### P0 — Contract Freeze / 병렬 개발 착수
+
+#### LAT-001 — Chat Contract Freeze (타입/이벤트/에러코드)
+- Track: A + B + C
+- Priority: P0
+- Depends On: 없음
+- Scope:
+  - `ChatChunk`, `ProviderInfo`, `ChatMessage` 최종 타입 고정
+  - SSE 이벤트(`chunk|done|error`) payload 규칙 고정
+  - 에러 코드 표준(`CLI_NOT_FOUND`, `TIMEOUT`, `ABORTED`, `UNKNOWN`) 고정
+- DoD:
+  - `libs/shared/src/lib/chat-types.ts` 생성/확정
+  - 문서 내 계약 섹션 반영
+  - FE/BE mock 개발 가능 상태
+- Estimate: 0.5d
+
+#### LAT-002 — Track Ownership & PR 규칙 확정
+- Track: E
+- Priority: P0
+- Depends On: LAT-001
+- Scope:
+  - 트랙별 파일 소유권 및 리뷰어 매핑
+  - PR 단위 전략(Contract PR → Track PR → Integration PR) 정의
+- DoD:
+  - CONTRIBUTING 또는 docs에 운영 규칙 기록
+  - 중복 수정 충돌 구간 최소화
+- Estimate: 0.5d
+
+#### LAT-003 — Mock SSE Server / Fixture 구축
+- Track: B + C
+- Priority: P0
+- Depends On: LAT-001
+- Scope:
+  - `/api/chat/send`용 mock stream fixture 생성
+  - text/tool_use/file_change/error/done 시나리오 fixture 준비
+- DoD:
+  - Backend 미완성 상태에서도 UI 스트리밍 검증 가능
+- Estimate: 0.5d
+
+### P1 — 핵심 기능 구현
+
+#### LAT-010 — Provider Detector 구현
+- Track: A
+- Priority: P1
+- Depends On: LAT-001
+- Scope: Claude/Codex SDK import 확인 + CLI 존재/버전 감지 + 캐시
+- DoD: `/chat/providers` 연결 가능한 ProviderInfo 반환
+- Estimate: 1d
+
+#### LAT-011 — Claude Adapter (SDK) 구현
+- Track: A
+- Priority: P1
+- Depends On: LAT-001
+- Scope: `@anthropic-ai/claude-agent-sdk` 연동, ChatChunk 정규화, abort 지원
+- DoD: text/tool_use/file_change/done 이벤트 안정 송출
+- Estimate: 1d
+
+#### LAT-012 — Codex Adapter (SDK) 구현
+- Track: A
+- Priority: P1
+- Depends On: LAT-001
+- Scope: `@openai/codex-sdk` 연동, thread/session 처리
+- DoD: runStreamed 이벤트를 ChatChunk로 변환
+- Estimate: 1d
+
+#### LAT-013 — Gemini Adapter (spawn) 구현
+- Track: A
+- Priority: P1
+- Depends On: LAT-001
+- Scope: NDJSON 우선 파싱 + raw fallback, timeout, SIGTERM→SIGKILL
+- DoD: 비정상 종료/타임아웃 포함 안정 처리
+- Estimate: 1.5d
+
+#### LAT-020 — Chat Handler + SSE 엔드포인트 구현
+- Track: B
+- Priority: P1
+- Depends On: LAT-001, LAT-010
+- Scope: `/chat/providers`, `/chat/send`, `/chat/stop` 구현
+- DoD: curl 기준 SSE 스트리밍 정상 동작
+- Estimate: 1d
+
+#### LAT-021 — PromptBuilder 구현
+- Track: A
+- Priority: P1
+- Depends On: LAT-001
+- Scope: current file + Magam API 요약 + 프로젝트 파일 목록 + 크기 제한
+- DoD: send 요청 시 system prompt 자동 구성
+- Estimate: 1d
+
+#### LAT-022 — Session Manager 구현
+- Track: A
+- Priority: P1
+- Depends On: LAT-001
+- Scope: 세션 생성/조회/중단/히스토리 메모리 관리
+- DoD: provider 전환/중단 시 상태 일관성 보장
+- Estimate: 0.75d
+
+#### LAT-030 — Frontend Chat Store 구현
+- Track: C
+- Priority: P1
+- Depends On: LAT-001, LAT-003
+- Scope: 상태 전이(idle/thinking/streaming/error), appendChunk, stop/retry
+- DoD: mock SSE로 end-to-end 상태 전이 검증
+- Estimate: 1d
+
+#### LAT-031 — ChatPanel UI 컴포넌트 구현
+- Track: C
+- Priority: P1
+- Depends On: LAT-001, LAT-003
+- Scope: MessageList, ChatInput, AISelector, SetupGuide
+- DoD: 메시지 송수신/중단 버튼/UI 상태 반영
+- Estimate: 1.5d
+
+#### LAT-032 — Next API Proxy(`/api/chat/*`) 구현
+- Track: C
+- Priority: P1
+- Depends On: LAT-001
+- Scope: providers/send/stop 프록시 및 스트림 브릿지
+- DoD: Frontend에서 백엔드 직접 의존 없이 호출 가능
+- Estimate: 0.75d
+
+#### LAT-040 — Canvas File-Change 연동
+- Track: D
+- Priority: P1
+- Depends On: LAT-001, LAT-020
+- Scope: AI 파일 변경 이벤트를 캔버스 재렌더 파이프라인에 안정 연결
+- DoD: AI 수정 후 캔버스 자동 업데이트(크래시 0)
+- Estimate: 1d
+
+#### LAT-041 — File Change Badge UX
+- Track: D + C
+- Priority: P1
+- Depends On: LAT-001, LAT-040
+- Scope: 채팅 메시지 하단 변경 파일 배지 + 파일 이동 액션
+- DoD: 변경 파일 가시성 확보
+- Estimate: 0.5d
+
+### P2 — 품질/안정화
+
+#### LAT-050 — 단위 테스트 세트(A/B)
+- Track: E
+- Priority: P2
+- Depends On: LAT-010..LAT-022
+- Scope: detector/adapters/prompt/session/handler
+- DoD: 핵심 모듈 테스트 커버리지 확보
+- Estimate: 1.5d
+
+#### LAT-051 — 컴포넌트/스토어 테스트(C)
+- Track: E + C
+- Priority: P2
+- Depends On: LAT-030..LAT-032
+- Scope: 상태 전이, 렌더링, 상호작용
+- DoD: 회귀 방지 테스트 확보
+- Estimate: 1d
+
+#### LAT-052 — 통합/E2E 시나리오
+- Track: E
+- Priority: P2
+- Depends On: LAT-040, LAT-041
+- Scope: 시나리오 A/B/C/D/E 검증
+- DoD: 핵심 사용자 여정 통과
+- Estimate: 1.5d
+
+#### LAT-053 — 보안 검증
+- Track: E
+- Priority: P2
+- Depends On: LAT-013, LAT-020
+- Scope: 인자 인젝션, cwd 제한, allowedTools 정책 검증
+- DoD: 보안 체크리스트 통과
+- Estimate: 0.75d
+
+#### LAT-054 — 성능 측정/튜닝
+- Track: E + C + B
+- Priority: P2
+- Depends On: LAT-020, LAT-031, LAT-040
+- Scope: p95 첫응답, 청크→UI 지연, 렌더 비용 측정/개선
+- DoD: NFR 목표 충족 근거 리포트
+- Estimate: 1d
+
+### 권장 실행 순서 (요약)
+1. `LAT-001 → LAT-002/LAT-003`
+2. 병렬 착수: `A(010~013)`, `B(020)`, `C(030~032)`
+3. 연동: `D(040~041)`
+4. 안정화: `E(050~054)`
