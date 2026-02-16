@@ -4,6 +4,8 @@ import * as fs from 'fs';
 import glob from 'fast-glob';
 import { transpile } from '../core/transpiler';
 import { execute } from '../core/executor';
+import { ChatHandler } from '../chat/handler';
+import type { ChatPermissionMode, SendChatRequest, StopChatRequest } from '@magam/shared';
 
 const DEFAULT_PORT = 3002;
 
@@ -29,6 +31,7 @@ export interface FileTreeNode {
 
 export async function startHttpServer(config: HttpServerConfig): Promise<HttpServerResult> {
   const port = config.port ?? (parseInt(process.env.MAGAM_HTTP_PORT || '') || DEFAULT_PORT);
+  const chatHandler = new ChatHandler({ targetDir: config.targetDir });
 
   const server = http.createServer(async (req, res) => {
     // CORS headers
@@ -51,6 +54,12 @@ export async function startHttpServer(config: HttpServerConfig): Promise<HttpSer
         await handleFiles(req, res, config.targetDir);
       } else if (req.method === 'GET' && url.pathname === '/file-tree') {
         await handleFileTree(req, res, config.targetDir);
+      } else if (req.method === 'GET' && url.pathname === '/chat/providers') {
+        await handleChatProviders(res, chatHandler);
+      } else if (req.method === 'POST' && url.pathname === '/chat/send') {
+        await handleChatSend(req, res, chatHandler);
+      } else if (req.method === 'POST' && url.pathname === '/chat/stop') {
+        await handleChatStop(req, res, chatHandler);
       } else if (req.method === 'GET' && url.pathname === '/health') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'ok', targetDir: config.targetDir }));
@@ -235,6 +244,163 @@ async function handleFileTree(req: http.IncomingMessage, res: http.ServerRespons
       type: 'FILE_TREE_ERROR'
     }));
   }
+}
+
+async function handleChatProviders(res: http.ServerResponse, chatHandler: ChatHandler) {
+  const providers = await chatHandler.getProviders();
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ providers }));
+}
+
+
+function normalizePermissionMode(raw: unknown): ChatPermissionMode {
+  return raw === 'interactive' ? 'interactive' : 'auto';
+}
+
+function normalizeModel(raw: unknown): string | undefined {
+  if (typeof raw !== 'string') return undefined;
+  const model = raw.trim();
+  if (!model || model.length > MAX_MODEL_LENGTH) return undefined;
+  if (!MODEL_PATTERN.test(model)) return undefined;
+  return model;
+}
+
+function normalizeReasoningEffort(raw: unknown): 'low' | 'medium' | 'high' | undefined {
+  if (typeof raw !== 'string') return undefined;
+  const normalized = raw.trim().toLowerCase();
+  if (normalized === 'low' || normalized === 'medium' || normalized === 'high') {
+    return normalized;
+  }
+  return undefined;
+}
+
+const MAX_FILE_MENTIONS = 10;
+const MAX_NODE_MENTIONS = 20;
+const MAX_PATH_LENGTH = 512;
+const MAX_NODE_FIELD_LENGTH = 2000;
+const MAX_MODEL_LENGTH = 120;
+const MODEL_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:/-]*$/;
+
+function normalizeFileMentions(raw: unknown): SendChatRequest['fileMentions'] {
+  if (!Array.isArray(raw)) return undefined;
+
+  const mentions: NonNullable<SendChatRequest['fileMentions']> = [];
+  for (const entry of raw.slice(0, MAX_FILE_MENTIONS)) {
+    const mentionPath =
+      typeof entry === 'string' ? entry.trim() : typeof entry?.path === 'string' ? entry.path.trim() : '';
+
+    if (!mentionPath || mentionPath.length > MAX_PATH_LENGTH) {
+      continue;
+    }
+
+    mentions.push({ path: mentionPath });
+  }
+
+  return mentions.length > 0 ? mentions : undefined;
+}
+
+function normalizeNodeMentions(raw: unknown): SendChatRequest['nodeMentions'] {
+  if (!Array.isArray(raw)) return undefined;
+
+  const mentions: NonNullable<SendChatRequest['nodeMentions']> = [];
+
+  for (const entry of raw.slice(0, MAX_NODE_MENTIONS)) {
+    if (!entry || typeof entry !== 'object') continue;
+
+    const id = typeof entry.id === 'string' ? entry.id.trim() : '';
+    if (!id || id.length > MAX_NODE_FIELD_LENGTH) continue;
+
+    const sanitize = (value: unknown): string | undefined => {
+      if (typeof value !== 'string') return undefined;
+      const trimmed = value.trim();
+      if (!trimmed) return undefined;
+      return trimmed.slice(0, MAX_NODE_FIELD_LENGTH);
+    };
+
+    const mention = {
+      id,
+      type: sanitize(entry.type),
+      title: sanitize(entry.title),
+      summary: sanitize(entry.summary),
+    };
+
+    if (!mention.summary) continue;
+    mentions.push(mention);
+  }
+
+  return mentions.length > 0 ? mentions : undefined;
+}
+
+async function handleChatSend(req: http.IncomingMessage, res: http.ServerResponse, chatHandler: ChatHandler) {
+  const body = (await parseBody(req)) as Partial<SendChatRequest> & { workingDirectory?: string };
+
+  if (body.workingDirectory) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: 'workingDirectory must not be provided by client',
+      type: 'VALIDATION_ERROR',
+    }));
+    return;
+  }
+
+  if (!body.message || !body.providerId) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Missing message/providerId in body', type: 'VALIDATION_ERROR' }));
+    return;
+  }
+
+  const normalizedEffort =
+    normalizeReasoningEffort(body.reasoningEffort) ??
+    normalizeReasoningEffort(body.effort) ??
+    normalizeReasoningEffort(body.reasoning);
+
+  const request: SendChatRequest = {
+    message: body.message,
+    providerId: body.providerId,
+    sessionId: body.sessionId,
+    currentFile: body.currentFile,
+    permissionMode: normalizePermissionMode(body.permissionMode),
+    model: normalizeModel(body.model),
+    ...(normalizedEffort ? { reasoningEffort: normalizedEffort } : {}),
+    fileMentions: normalizeFileMentions(body.fileMentions),
+    nodeMentions: normalizeNodeMentions(body.nodeMentions),
+  };
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+  });
+
+  try {
+    for await (const chunk of chatHandler.send(request)) {
+      res.write(`event: ${chunk.type === 'done' ? 'done' : chunk.type === 'error' ? 'error' : 'chunk'}\n`);
+      res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+    }
+  } catch (error: any) {
+    const chunk = {
+      type: 'error',
+      content: error?.message || 'Chat stream failed',
+      metadata: { stage: 'server-stream' },
+    };
+    res.write('event: error\n');
+    res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+  } finally {
+    res.end();
+  }
+}
+
+async function handleChatStop(req: http.IncomingMessage, res: http.ServerResponse, chatHandler: ChatHandler) {
+  const body = (await parseBody(req)) as Partial<StopChatRequest>;
+  if (!body.sessionId) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Missing sessionId in body', type: 'VALIDATION_ERROR' }));
+    return;
+  }
+
+  const stopped = chatHandler.stop(body.sessionId);
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(stopped));
 }
 
 function parseBody(req: http.IncomingMessage): Promise<any> {
