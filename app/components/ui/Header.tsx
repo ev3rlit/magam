@@ -1,10 +1,18 @@
 import React from 'react';
 import { useGraphStore } from '@/store/graph';
-import { Command, Search as SearchIcon, Wifi, WifiOff } from 'lucide-react';
+import { useChatStore } from '@/store/chat';
+import {
+  Bot,
+  Command,
+  Search as SearchIcon,
+  Wifi,
+  WifiOff,
+} from 'lucide-react';
 import { clsx } from 'clsx';
 
 export const Header: React.FC = () => {
   const { status, currentFile, isSearchOpen, openSearch, closeSearch } = useGraphStore();
+  const { isOpen: isChatOpen, toggleOpen: toggleChatOpen } = useChatStore();
 
   const isConnected = status === 'connected';
 
@@ -51,6 +59,22 @@ export const Header: React.FC = () => {
           <SearchIcon className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Search · ⌘K</span>
           <span className="sm:hidden">Search</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={toggleChatOpen}
+          className={clsx(
+            'px-3 py-1.5 rounded-full border text-xs flex items-center gap-2',
+            isChatOpen
+              ? 'border-indigo-300 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-300'
+              : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800',
+          )}
+          aria-label="AI Chat · ⌘J"
+        >
+          <Bot className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">AI Chat · ⌘J</span>
+          <span className="sm:hidden">AI</span>
         </button>
 
         <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-slate-50 dark:bg-slate-800/50">

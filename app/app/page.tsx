@@ -16,6 +16,8 @@ import { TabBar } from '@/components/ui/TabBar';
 import { QuickOpenDialog } from '@/components/ui/QuickOpenDialog';
 import { ErrorOverlay } from '@/components/ui/ErrorOverlay';
 import { SearchOverlay } from '@/components/ui/SearchOverlay';
+import { ChatPanel } from '@/components/chat/ChatPanel';
+import { useChatStore } from '@/store/chat';
 import { TabState, useGraphStore } from '@/store/graph';
 
 interface RenderNode {
@@ -119,6 +121,7 @@ export default function Home() {
     closeSearch,
     setError: setGraphError,
   } = useGraphStore();
+  const toggleChat = useChatStore((state) => state.toggleOpen);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isQuickOpenOpen, setIsQuickOpenOpen] = useState(false);
   const [pendingReplaceRequest, setPendingReplaceRequest] = useState<{
@@ -383,6 +386,12 @@ export default function Home() {
         return;
       }
 
+      if (key === 'j') {
+        event.preventDefault();
+        toggleChat();
+        return;
+      }
+
       if (key === 'k') {
         event.preventDefault();
         if (isSearchOpen) {
@@ -413,6 +422,7 @@ export default function Home() {
     isSearchOpen,
     openSearch,
     closeSearch,
+    toggleChat,
   ]);
 
   useEffect(() => {
@@ -998,6 +1008,7 @@ export default function Home() {
 
       <div className="flex flex-1 flex-col h-full overflow-hidden relative">
         <Header />
+        <ChatPanel />
         <TabBar
           tabs={openTabs}
           activeTabId={activeTabId}
