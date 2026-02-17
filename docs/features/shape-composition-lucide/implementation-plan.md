@@ -4,7 +4,7 @@
 `docs/features/shape-composition-lucide/README.md` PRD를 구현 가능한 작업 단위로 분해합니다.
 
 핵심 원칙:
-- BaseObject는 내부 전용
+- 내부 공통 오브젝트 계층은 내부 전용
 - 범용 오브젝트는 Shape
 - Lucide는 children 선언형
 
@@ -34,13 +34,13 @@
   - (향후) badge/sticker/meta
 
 ### 3.2 내부 계층
-- BaseObject: internal-only
+- private object primitive: internal-only
   - selection state
   - handles/ports
   - anchor positioning
   - common wrapper layout
 - Node-level wrappers (Shape/Sticky/MindMap/Sticker)
-  - BaseObject 위에 스타일/기본 spacing만 제공
+  - private object primitive 위에 스타일/기본 spacing만 제공
 
 ### 3.3 파싱 규칙
 - JSX children를 파싱해 `RenderableChild[]`로 정규화
@@ -54,7 +54,7 @@
 ## Phase 0. 계약 확정
 - children 파싱 스펙 정의
 - icon prop deprecate 정책 확정
-- BaseObject 공개 금지 규칙 문서화
+- 내부 공통 오브젝트 계층 공개 금지 규칙 문서화
 
 완료 기준:
 - 팀 합의된 파싱/호환 스펙 문서화
@@ -89,7 +89,7 @@
 - 최소 예제 3개를 children 선언형으로 업데이트
 
 완료 기준:
-- 사용자 문서에서 BaseObject 직접 사용 예시 0건
+- 사용자 문서에서 내부 공통 오브젝트 계층 직접 사용 예시 0건
 
 ## Phase 5. 품질/릴리스
 - 회귀 테스트
@@ -188,7 +188,7 @@ v2에서 최소 로깅:
 
 ## 9) 의사결정 기록
 
-1. BaseObject는 내부 전용으로 유지 (외부 공개 금지)
+1. 내부 공통 오브젝트 계층은 내부 전용으로 유지 (외부 공개 금지)
 2. 범용 오브젝트는 Shape 기준으로 문서화
 3. Lucide는 컴포넌트 직접 선언(`name` 문자열 방식 비권장)
 4. 접두사 없는 원형 사용(`<Bug />`, `<Rocket />`)

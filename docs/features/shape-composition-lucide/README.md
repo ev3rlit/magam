@@ -9,7 +9,7 @@
 
 이번 리팩터링의 핵심은 다음입니다.
 
-1. **BaseObject는 코어 내부 전용으로 유지**
+1. **내부 공통 오브젝트 계층은 코어 내부 전용으로 유지**
 2. 사용자/문서 레벨의 범용 오브젝트는 **Shape**를 사용
 3. 아이콘은 prop이 아니라 **children으로 선언** (`<Bug />`, `<Rocket />`)
 4. Shape/Sticky/MindMapNode/Sticker 어디서든 자식으로 Lucide를 구성 가능
@@ -36,7 +36,7 @@
 1. Shape를 범용 오브젝트로 공식화한다.
 2. Lucide 컴포넌트를 children으로 선언해 렌더할 수 있다.
 3. Shape/Sticky/MindMapNode/Sticker 모두 children 조합 모델을 지원한다.
-4. BaseObject는 외부 노출 없이 내부 구현체로 유지한다.
+4. 내부 공통 오브젝트 계층은 외부 노출 없이 내부 구현체로 유지한다.
 
 ### 비목표 (Non-Goals)
 1. 이번 단계에서 다중 아이콘 편집 GUI 완성
@@ -106,13 +106,13 @@
 - 4개 타입 모두에서 Lucide child 렌더 동작
 - 타입별 렌더 차이는 스타일만 다르고 선언 규칙은 동일
 
-### FR-4. BaseObject 내부 전용 유지
-- BaseObject는 공개 API/문서에서 직접 사용하지 않음
+### FR-4. 내부 공통 오브젝트 계층 내부 전용 유지
+- 내부 공통 오브젝트 계층은 공개 API/문서에서 직접 사용하지 않음
 - 내부 공통 동작(선택/핸들/레이아웃)만 담당
 
 **Acceptance Criteria**
-- 사용자 문서/예제에서 BaseObject 노출 없음
-- 내부 컴포넌트는 BaseObject를 통해 동작 일관성 유지
+- 사용자 문서/예제에서 내부 공통 오브젝트 계층 노출 없음
+- 내부 컴포넌트는 공통 오브젝트 계층을 통해 동작 일관성 유지
 
 ### FR-5. icon prop 완전 제거
 - 기존 `icon` prop 경로를 제거한다.
@@ -158,7 +158,7 @@
 ## 7) UX/API 원칙
 
 - **보이는 API는 단순하게:** Shape + children
-- **내부 구조는 강하게:** BaseObject 내부 공통화
+- **내부 구조는 강하게:** 내부 공통 오브젝트 계층으로 공통화
 - **표현은 조합형:** 아이콘/텍스트/배지 등 child 조합으로 확장
 
 ---
@@ -167,7 +167,7 @@
 
 ### 8.1 레이어
 - Public Layer: `Shape`, `Sticky`, `Node(MindMap)`, `Sticker`
-- Internal Layer: `BaseObject` (코어 내부 전용)
+- Internal Layer: private object primitive (코어 내부 전용)
 - Renderer Layer: children 파싱(텍스트/Lucide/기타 child)
 
 ### 8.2 권장 선언 방식
@@ -199,7 +199,7 @@ import { Bug, Rocket, Cloud } from 'lucide-react';
 |---|---|---|
 | children 파싱 복잡도 증가 | 런타임 오류 가능 | 타입 가드 + 테스트 강화 |
 | 기존 icon prop 사용자 혼선 | 마이그레이션 비용 | 제거 공지 + 자동 변환 가이드 + 예제 치환 |
-| 노드 타입별 스타일 차이 | 일관성 저하 | BaseObject 슬롯 규약 명시 |
+| 노드 타입별 스타일 차이 | 일관성 저하 | 공통 오브젝트 계층 슬롯 규약 명시 |
 
 ---
 
