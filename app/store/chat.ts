@@ -21,6 +21,24 @@ export interface ChatMessage {
   createdAt: number;
 }
 
+export interface ChatSessionSummary {
+  id: string;
+  title: string;
+  groupId?: string | null;
+  providerId: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ChatSessionGroup {
+  id: string;
+  name: string;
+  color?: string | null;
+  sortOrder: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export type ChatStoreStatus =
   | 'idle'
   | 'loadingProviders'
@@ -88,6 +106,9 @@ export interface ChatState {
   reasoningEffort: ChatReasoningEffort;
   sessionId: string | null;
   messages: ChatMessage[];
+  sessions: ChatSessionSummary[];
+  groups: ChatSessionGroup[];
+  currentSessionTitle: string | null;
   progressEvents: ChatProgressEvent[];
   currentStage: ChatProgressStage | null;
   activeRequestId: string | null;
@@ -102,6 +123,15 @@ export interface ChatState {
   setPermissionMode: (mode: ChatPermissionMode) => void;
   sendMessage: (request: string | ChatSendRequest) => Promise<void>;
   stopGeneration: () => Promise<void>;
+  loadSessions: (query?: { groupId?: string; providerId?: string; q?: string; limit?: number }) => Promise<void>;
+  createSession: (input?: { title?: string; providerId?: string; groupId?: string | null }) => Promise<string | null>;
+  openSession: (sessionId: string) => Promise<void>;
+  updateSession: (sessionId: string, patch: { title?: string; providerId?: string; groupId?: string | null }) => Promise<void>;
+  deleteSession: (sessionId: string) => Promise<void>;
+  loadGroups: () => Promise<void>;
+  createGroup: (input: { name: string; color?: string; sortOrder?: number }) => Promise<void>;
+  updateGroup: (groupId: string, patch: { name?: string; color?: string | null; sortOrder?: number }) => Promise<void>;
+  deleteGroup: (groupId: string) => Promise<void>;
   clearMessages: () => void;
 }
 
@@ -217,6 +247,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   reasoningEffort: 'medium',
   sessionId: null,
   messages: [],
+  sessions: [],
+  groups: [],
+  currentSessionTitle: null,
   progressEvents: [],
   currentStage: null,
   activeRequestId: null,
@@ -551,6 +584,225 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ error: message });
     } finally {
       set({ status: 'ready', currentStage: null, activeRequestId: null });
+    }
+  },
+
+  loadSessions: async (query) => {
+    try {
+      const params = new URLSearchParams();
+      if (query?.groupId) params.set('groupId', query.groupId);
+      if (query?.providerId) params.set('providerId', query.providerId);
+      if (query?.q) params.set('q', query.q);
+      if (query?.limit) params.set('limit', String(query.limit));
+
+      const res = await fetch(`/api/chat/sessions${params.size ? `?${params.toString()}` : ''}`, {
+        cache: 'no-store',
+      });
+      if (!res.ok) throw new Error(`Failed to load sessions (${res.status})`);
+
+      const data = await res.json();
+      const sessions = Array.isArray(data?.sessions) ? data.sessions : [];
+      set({ sessions });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown session loading error';
+      set({ error: message });
+    }
+  },
+
+  createSession: async (input) => {
+    try {
+      const providerId = input?.providerId ?? get().selectedProviderId;
+      if (!providerId) {
+        set({ error: 'Please select an AI provider first.' });
+        return null;
+      }
+
+      const res = await fetch('/api/chat/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: input?.title,
+          providerId,
+          groupId: input?.groupId,
+        }),
+      });
+
+      if (!res.ok) throw new Error(`Failed to create session (${res.status})`);
+
+      const data = await res.json();
+      const session = data?.session as ChatSessionSummary | undefined;
+      if (!session) return null;
+
+      set((state) => ({
+        sessionId: session.id,
+        currentSessionTitle: session.title,
+        selectedProviderId: session.providerId,
+        sessions: [session, ...state.sessions.filter((item) => item.id !== session.id)],
+        messages: [],
+        progressEvents: [],
+        currentStage: null,
+      }));
+
+      return session.id;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown session create error';
+      set({ error: message });
+      return null;
+    }
+  },
+
+  openSession: async (sessionId) => {
+    try {
+      const [sessionRes, messagesRes] = await Promise.all([
+        fetch(`/api/chat/sessions/${encodeURIComponent(sessionId)}`, { cache: 'no-store' }),
+        fetch(`/api/chat/sessions/${encodeURIComponent(sessionId)}/messages?limit=200`, {
+          cache: 'no-store',
+        }),
+      ]);
+
+      if (!sessionRes.ok) throw new Error(`Failed to open session (${sessionRes.status})`);
+      if (!messagesRes.ok) throw new Error(`Failed to load messages (${messagesRes.status})`);
+
+      const sessionData = await sessionRes.json();
+      const messagesData = await messagesRes.json();
+
+      const session = sessionData?.session as ChatSessionSummary | undefined;
+      const messages = Array.isArray(messagesData?.items)
+        ? messagesData.items.map((message: any) => ({
+            id: String(message.id),
+            role: String(message.role) as ChatMessageRole,
+            content: String(message.content ?? ''),
+            createdAt: Number(message.createdAt ?? Date.now()),
+          }))
+        : [];
+
+      if (!session) return;
+
+      set({
+        sessionId: session.id,
+        currentSessionTitle: session.title,
+        selectedProviderId: session.providerId,
+        messages,
+        progressEvents: [],
+        currentStage: null,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown session open error';
+      set({ error: message });
+    }
+  },
+
+  updateSession: async (sessionId, patch) => {
+    try {
+      const res = await fetch(`/api/chat/sessions/${encodeURIComponent(sessionId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) throw new Error(`Failed to update session (${res.status})`);
+
+      const data = await res.json();
+      const updated = data?.session as ChatSessionSummary | undefined;
+      if (!updated) return;
+
+      set((state) => ({
+        sessions: state.sessions.map((session) => (session.id === sessionId ? updated : session)),
+        ...(state.sessionId === sessionId
+          ? {
+              currentSessionTitle: updated.title,
+              selectedProviderId: updated.providerId,
+            }
+          : {}),
+      }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown session update error';
+      set({ error: message });
+    }
+  },
+
+  deleteSession: async (sessionId) => {
+    try {
+      const res = await fetch(`/api/chat/sessions/${encodeURIComponent(sessionId)}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error(`Failed to delete session (${res.status})`);
+
+      set((state) => {
+        const nextSessions = state.sessions.filter((session) => session.id !== sessionId);
+        const isCurrent = state.sessionId === sessionId;
+        return {
+          sessions: nextSessions,
+          ...(isCurrent
+            ? {
+                sessionId: null,
+                currentSessionTitle: null,
+                messages: [],
+                progressEvents: [],
+                currentStage: null,
+              }
+            : {}),
+        };
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown session delete error';
+      set({ error: message });
+    }
+  },
+
+  loadGroups: async () => {
+    try {
+      const res = await fetch('/api/chat/groups', { cache: 'no-store' });
+      if (!res.ok) throw new Error(`Failed to load groups (${res.status})`);
+
+      const data = await res.json();
+      const groups = Array.isArray(data?.groups) ? data.groups : [];
+      set({ groups });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown group loading error';
+      set({ error: message });
+    }
+  },
+
+  createGroup: async (input) => {
+    try {
+      const res = await fetch('/api/chat/groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) throw new Error(`Failed to create group (${res.status})`);
+      await Promise.all([get().loadGroups(), get().loadSessions({ limit: 100 })]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown group create error';
+      set({ error: message });
+    }
+  },
+
+  updateGroup: async (groupId, patch) => {
+    try {
+      const res = await fetch(`/api/chat/groups/${encodeURIComponent(groupId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) throw new Error(`Failed to update group (${res.status})`);
+      await Promise.all([get().loadGroups(), get().loadSessions({ limit: 100 })]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown group update error';
+      set({ error: message });
+    }
+  },
+
+  deleteGroup: async (groupId) => {
+    try {
+      const res = await fetch(`/api/chat/groups/${encodeURIComponent(groupId)}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error(`Failed to delete group (${res.status})`);
+      await Promise.all([get().loadGroups(), get().loadSessions({ limit: 100 })]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown group delete error';
+      set({ error: message });
     }
   },
 

@@ -39,6 +39,7 @@
 ## 0.1 TODO / Known limitations (현재 단계)
 
 - 채팅 세션/히스토리는 메모리 기반이며 재시작 시 유지되지 않는다.
+- 세션 영속화/다중 세션 관리는 `docs/features/chat-session-management/README.md` 및 `implementation-plan.md`를 기준으로 vNext에서 도입한다.
 - provider adapter는 현재 CLI 직접 실행 래퍼 방식이며, PRD의 SDK 우선 설계와 완전 일치하지 않는다(후속 정렬 필요).
 - smoke 테스트는 endpoint/스트림 계약 검증 중심이며, 실제 provider 인증/로그인 상태까지 보장하지 않는다.
 - 스트림 중단(`POST /chat/stop`)은 실패가 아니라 정상 종료로 취급한다. 서버는 중단 시 `event: done`(metadata에 `stopped: true`, `code: "ABORTED"`)를 보낼 수 있으며 smoke는 이를 PASS로 간주한다.
