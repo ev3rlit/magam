@@ -17,10 +17,8 @@ import { QuickOpenDialog } from '@/components/ui/QuickOpenDialog';
 import { ErrorOverlay } from '@/components/ui/ErrorOverlay';
 import { SearchOverlay } from '@/components/ui/SearchOverlay';
 import { ChatPanel } from '@/components/chat/ChatPanel';
-import { IconPickerPanel } from '@/components/ui/IconPickerPanel';
 import { useChatStore } from '@/store/chat';
 import { TabState, useGraphStore } from '@/store/graph';
-import type { LucideIconName } from '@/utils/lucideRegistry';
 import { extractNodeContent } from '@/utils/nodeContent';
 
 interface RenderNode {
@@ -46,7 +44,6 @@ interface RenderNode {
     fill?: string;
     stroke?: string;
     strokeWidth?: number;
-    icon?: string;
     labelTextColor?: string;
     labelBgColor?: string;
     // MindMap Node specific
@@ -138,8 +135,6 @@ export default function Home() {
     useState<PendingTabCloseRequest | null>(null);
   const [tabContextMenu, setTabContextMenu] =
     useState<TabContextMenuState | null>(null);
-  const [iconPickerDismissedNodeId, setIconPickerDismissedNodeId] =
-    useState<string | null>(null);
   const tabContextMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -317,41 +312,6 @@ export default function Home() {
     if (selectedNodeIds.length !== 1) return null;
     return nodes.find((node) => node.id === selectedNodeIds[0]) ?? null;
   }, [nodes, selectedNodeIds]);
-
-  const selectedNodeIcon = useMemo(() => {
-    const icon = selectedSingleNode?.data?.icon;
-    return typeof icon === 'string' ? icon : null;
-  }, [selectedSingleNode]);
-
-  const applyNodeIcon = useCallback(
-    (iconName: LucideIconName, _source: 'search' | 'recent') => {
-      if (!selectedSingleNode) return;
-      updateNode(selectedSingleNode.id, { icon: iconName });
-    },
-    [selectedSingleNode, updateNode],
-  );
-
-  const clearNodeIcon = useCallback(() => {
-    if (!selectedSingleNode) return;
-    const start = performance.now();
-    updateNode(selectedSingleNode.id, { icon: null });
-    console.debug('[Telemetry] icon_removed', {
-      icon_name: selectedNodeIcon,
-      source: 'direct',
-      success: true,
-      duration_ms: Math.round(performance.now() - start),
-    });
-  }, [selectedNodeIcon, selectedSingleNode, updateNode]);
-
-  useEffect(() => {
-    if (!selectedSingleNode) {
-      setIconPickerDismissedNodeId(null);
-      return;
-    }
-    if (iconPickerDismissedNodeId && iconPickerDismissedNodeId !== selectedSingleNode.id) {
-      setIconPickerDismissedNodeId(null);
-    }
-  }, [iconPickerDismissedNodeId, selectedSingleNode]);
 
   const pendingCloseTabInfos = useMemo(() => {
     if (!pendingCloseRequest) return null;
@@ -757,7 +717,7 @@ export default function Home() {
                 }
 
                 const rendererChildren = child.children || [];
-                const { label: baseLabel, icon } = extractNodeContent(
+                const { label: baseLabel, parsedChildren } = extractNodeContent(
                   rendererChildren,
                   child.props.children,
                   { textJoiner: '\n' },
@@ -821,7 +781,7 @@ export default function Home() {
                     labelBold: child.props.labelBold || child.props.bold,
                     fill: child.props.fill,
                     stroke: child.props.stroke,
-                    icon,
+                    children: parsedChildren,
                     // Semantic zoom bubble (from Node or child Markdown)
                     bubble: nodeBubble,
                   },
@@ -852,7 +812,6 @@ export default function Home() {
                 const rendererChildren = child.children || [];
                 const {
                   label: parsedLabel,
-                  icon,
                   parsedChildren,
                 } = extractNodeContent(rendererChildren, child.props.children);
 
@@ -949,7 +908,6 @@ export default function Home() {
                     labelBold: child.props.labelBold || child.props.bold,
                     fill: child.props.fill,
                     stroke: child.props.stroke,
-                    icon,
                     children: parsedChildren,
                     imageSrc: child.props.imageSrc,
                     imageFit: child.props.imageFit,
@@ -1019,20 +977,6 @@ export default function Home() {
           <ErrorOverlay />
           <SearchOverlay />
           <GraphCanvas />
-          <IconPickerPanel
-            isOpen={
-              !!selectedSingleNode &&
-              iconPickerDismissedNodeId !== selectedSingleNode.id
-            }
-            selectedNodeId={selectedSingleNode?.id ?? null}
-            currentIconName={selectedNodeIcon}
-            onApplyIcon={applyNodeIcon}
-            onClearIcon={clearNodeIcon}
-            onClose={() => {
-              if (!selectedSingleNode) return;
-              setIconPickerDismissedNodeId(selectedSingleNode.id);
-            }}
-          />
         </main>
 
         <Footer />
