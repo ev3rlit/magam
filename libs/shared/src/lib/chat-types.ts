@@ -85,3 +85,32 @@ export interface SendChatRequest {
 export interface StopChatRequest {
   sessionId: string;
 }
+
+export interface SessionGroup {
+  id: string;
+  name: string;
+  color?: string | null;
+  sortOrder: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface StoredChatSession {
+  id: string;
+  title: string;
+  groupId?: string | null;
+  providerId: ProviderId;
+  createdAt: number;
+  updatedAt: number;
+  archivedAt?: number | null;
+}
+
+export interface StoredChatMessage {
+  id: string;
+  sessionId: string;
+  role: MessageRole;
+  content: string;
+  providerId?: ProviderId | null;
+  createdAt: number;
+  metadata?: Record<string, unknown>;
+}
