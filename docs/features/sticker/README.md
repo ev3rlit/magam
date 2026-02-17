@@ -245,18 +245,27 @@ Magam 캔버스는 현재 이미지/텍스트/도형을 개별 오브젝트로 �
 
 ## 13) 구현 체크리스트 / 실행 로그 (TASK-STK)
 
-- [x] TASK-STK-13(부분): 복사 시 선택 노드 JSON payload에 sticker 필드(kind/src/text/emoji/style) 보존
+- [x] TASK-STK-13(진행): 복사 시 선택 노드 JSON payload에 sticker 필드(kind/src/text/emoji/style) 보존 + 붙여넣기 시 sticker 데이터 보존/ID 재매핑 + 붙여넣기 기준 undo/redo 스냅샷 복원
 - [x] TASK-STK-14/15: sticker id 스코프 반영 + anchor 스코프 해석 회귀 테스트 추가
-- [ ] TASK-STK-16/17(부분): SVG 입력 host props 보존 테스트 추가 (내보내기 시각 parity는 추가 검증 필요)
-- [ ] TASK-STK-18/19: Inspector UI 및 삽입 프리셋 엔트리 미구현
-- [ ] TASK-STK-20(진행): 본 섹션에 구현/테스트 로그 지속 업데이트
+- [x] TASK-STK-16(진행): core renderer 레벨에서 PNG/JPG/SVG/PDF 타겟 공통 sticker style host props 보존 회귀 테스트 추가
+- [ ] TASK-STK-17: 실제 export 엔진 캡처 결과(시각 parity) 골든 비교는 미완료
+- [ ] TASK-STK-18/19: Inspector UI 및 삽입 프리셋 엔트리 미구현 (이번 사이클 최소 inspector 필드는 미반영)
+- [x] TASK-STK-20(부분): 테스트 실행 로그/증거 파일 경로 갱신
 
 ### 테스트 로그 (AC 매핑)
 
 - AC-12/13: `libs/core/src/__tests__/embedScope.spec.tsx`
-  - Sticker anchor scope 해석 케이스 추가
+  - Sticker anchor scope 해석 케이스 추가 (기존 유지)
 - AC-16: `libs/core/src/__tests__/sticker.spec.tsx`
-  - SVG src + outline/shadow/padding props 보존 케이스 추가
+  - PNG/JPG/SVG/PDF 타겟에 대해 sticker host props(src/outline/shadow/padding) 보존 회귀 케이스 확장
 - AC-11: `app/utils/stickerDefaults.test.ts`
-  - sticker 스타일 필드 정규화/보존 케이스 추가
+  - sticker 스타일 필드 정규화/보존 케이스 추가 (기존 유지)
+- TASK-STK-13 보강: `app/utils/clipboardGraph.ts`, `app/utils/clipboardGraph.test.ts`, `app/components/GraphCanvas.tsx`
+  - 붙여넣기 시 노드/엣지 ID 재매핑, sticker data 유지, 붙여넣기 기준 undo/redo 복원 흐름 추가
+
+### 테스트 실행 상태 (2026-02-17)
+
+- ✅ `bun test libs/core/src/__tests__/sticker.spec.tsx`
+- ✅ `bun test app/utils/stickerDefaults.test.ts app/utils/clipboardGraph.test.ts`
+- ⚠️ 전체 워크스페이스 테스트(`bun test`)는 기존 환경/무관 영역 이슈 가능성으로 미실행 (스티커 범위 타깃 테스트 위주 검증)
 
