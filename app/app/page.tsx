@@ -16,6 +16,7 @@ import { TabBar } from '@/components/ui/TabBar';
 import { QuickOpenDialog } from '@/components/ui/QuickOpenDialog';
 import { ErrorOverlay } from '@/components/ui/ErrorOverlay';
 import { SearchOverlay } from '@/components/ui/SearchOverlay';
+import { StickerInspector } from '@/components/ui/StickerInspector';
 import { ChatPanel } from '@/components/chat/ChatPanel';
 import { useChatStore } from '@/store/chat';
 import { TabState, useGraphStore } from '@/store/graph';
@@ -1066,6 +1067,7 @@ export default function Home() {
           <ErrorOverlay />
           <SearchOverlay />
           <GraphCanvas />
+          <StickerInspector />
         </main>
 
         <Footer />

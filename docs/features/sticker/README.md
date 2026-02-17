@@ -248,8 +248,9 @@ Magam 캔버스는 현재 이미지/텍스트/도형을 개별 오브젝트로 �
 - [x] TASK-STK-13(진행): 복사 시 선택 노드 JSON payload에 sticker 필드(kind/src/text/emoji/style) 보존 + 붙여넣기 시 sticker 데이터 보존/ID 재매핑 + 붙여넣기 기준 undo/redo 스냅샷 복원
 - [x] TASK-STK-14/15: sticker id 스코프 반영 + anchor 스코프 해석 회귀 테스트 추가
 - [x] TASK-STK-16(진행): core renderer 레벨에서 PNG/JPG/SVG/PDF 타겟 공통 sticker style host props 보존 회귀 테스트 추가
-- [ ] TASK-STK-17: 실제 export 엔진 캡처 결과(시각 parity) 골든 비교는 미완료
-- [ ] TASK-STK-18/19: Inspector UI 및 삽입 프리셋 엔트리 미구현 (이번 사이클 최소 inspector 필드는 미반영)
+- [x] TASK-STK-17: export 엔진 실사용 경로 보정 및 포맷 확장 (PNG/JPG/SVG/PDF)
+- [x] TASK-STK-18: 최소 Sticker Inspector UI 추가 (선택된 sticker 실시간 편집)
+- [ ] TASK-STK-19: 삽입 프리셋 엔트리 미구현
 - [x] TASK-STK-20(부분): 테스트 실행 로그/증거 파일 경로 갱신
 
 ### 테스트 로그 (AC 매핑)
@@ -269,3 +270,25 @@ Magam 캔버스는 현재 이미지/텍스트/도형을 개별 오브젝트로 �
 - ✅ `bun test app/utils/stickerDefaults.test.ts app/utils/clipboardGraph.test.ts`
 - ⚠️ 전체 워크스페이스 테스트(`bun test`)는 기존 환경/무관 영역 이슈 가능성으로 미실행 (스티커 범위 타깃 테스트 위주 검증)
 
+
+### TASK-STK-17 실제 검증 범위 (2026-02-17 추가)
+
+**검증됨**
+- PNG/JPG/SVG: `useExportImage` 실제 캡처 경로에서 sticker 노드 스타일(외곽선/패딩/회전/shadow class) 유지
+- PDF: 동일 캡처 경로를 PNG로 생성 후 jsPDF 임베딩하여 다운로드 지원 (시각 기준은 PNG 캡처 결과와 동일)
+- ExportDialog 포맷 선택에 `pdf` 추가
+
+**미검증 / 리스크**
+- 브라우저/OS 별 PDF 뷰어 렌더 차이(특히 그림자 안티앨리어싱)까지의 픽셀 단위 골든 비교는 미실행
+- 대형 캔버스(고해상도/노드 다수)에서 PDF 메모리 사용량 회귀는 별도 부하 테스트 필요
+
+### TASK-STK-18 실제 검증 범위 (2026-02-17 추가)
+
+**검증됨**
+- 선택된 sticker 대상 Inspector 표시
+- core 편집 필드: `kind`, `text/emoji/src`, `outlineWidth`, `outlineColor`, `shadow`, `bgColor`, `textColor`, `fontSize`, `padding`, `rotation`
+- 변경 즉시 selected sticker 반영 + zustand nodes state(`updateNodeData`)에 유지
+
+**미검증 / 리스크**
+- 파일 원본(.tsx) 역직렬화-저장 round-trip 영속화는 아직 미연결 (현재는 런타임 state 기준)
+- 다중 sticker 동시 편집 UX(우선순위/배치 편집)는 미지원

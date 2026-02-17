@@ -80,3 +80,36 @@ describe('search state', () => {
     expect(useGraphStore.getState().activeResultIndex).toBe(1);
   });
 });
+
+describe('sticker node updates', () => {
+  it('updateNodeData는 선택된 sticker data를 현재 state 모델에 반영한다', () => {
+    useGraphStore.setState((state) => ({
+      ...state,
+      nodes: [
+        {
+          id: 'sticker-1',
+          type: 'sticker',
+          position: { x: 0, y: 0 },
+          data: { kind: 'text', text: 'before', outlineWidth: 4 },
+        } as any,
+      ],
+    }));
+
+    useGraphStore.getState().updateNodeData('sticker-1', {
+      text: 'after',
+      outlineWidth: 8,
+      outlineColor: '#fff',
+    });
+
+    const nextNode = useGraphStore
+      .getState()
+      .nodes.find((node) => node.id === 'sticker-1');
+
+    expect(nextNode?.data).toMatchObject({
+      kind: 'text',
+      text: 'after',
+      outlineWidth: 8,
+      outlineColor: '#fff',
+    });
+  });
+});
