@@ -3,18 +3,17 @@ import { NodeProps } from 'reactflow';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { BaseNode } from './BaseNode';
-import { getLucideIconByName } from '@/utils/lucideRegistry';
+import type { RenderableChild } from '@/utils/childComposition';
+import { renderNodeContent } from './renderableContent';
 
 interface StickyNodeData {
   label: string;
   color?: string;
   className?: string; // Support custom Tailwind classes
-  icon?: string;
+  children?: RenderableChild[];
 }
 
 const StickyNode = ({ data, selected }: NodeProps<StickyNodeData>) => {
-  const Icon = getLucideIconByName(data.icon);
-
   return (
     <BaseNode
       className={twMerge(
@@ -34,10 +33,12 @@ const StickyNode = ({ data, selected }: NodeProps<StickyNodeData>) => {
     >
       <div className="w-full h-full flex items-center justify-center text-center break-words overflow-hidden pointer-events-none select-none">
         <div className="flex items-center gap-2">
-          {Icon && <Icon className="w-4 h-4 text-slate-600 shrink-0" />}
-          <span className="text-base leading-relaxed font-medium text-slate-800">
-            {data.label}
-          </span>
+          {renderNodeContent({
+            children: data.children,
+            fallbackLabel: data.label,
+            iconClassName: 'w-4 h-4 text-slate-600 shrink-0',
+            textClassName: 'text-base leading-relaxed font-medium text-slate-800',
+          })}
         </div>
       </div>
     </BaseNode>

@@ -5,7 +5,8 @@ import { twMerge } from 'tailwind-merge';
 import { BaseNode } from './BaseNode';
 import { useGraphStore } from '@/store/graph';
 import { toAssetApiUrl } from '@/utils/imageSource';
-import { getLucideIconByName } from '@/utils/lucideRegistry';
+import type { RenderableChild } from '@/utils/childComposition';
+import { renderNodeContent } from './renderableContent';
 
 interface PortData {
   id: string;
@@ -29,7 +30,7 @@ interface ShapeNodeData {
   ports?: PortData[];
   imageSrc?: string;
   imageFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down';
-  icon?: string;
+  children?: RenderableChild[];
 }
 
 // Helper to determine Handle position and style based on string position
@@ -135,7 +136,6 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
 
   const imageUrl = data.imageSrc ? toAssetApiUrl(currentFile, data.imageSrc) : '';
   const hasImage = !!imageUrl && data.type !== 'triangle';
-  const Icon = getLucideIconByName(data.icon);
   const imageStyle = hasImage ? {
     backgroundImage: `url(${imageUrl})`,
     backgroundRepeat: 'no-repeat',
@@ -170,13 +170,14 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
           </svg>
           <div className="absolute inset-0 flex items-center justify-center pt-8 pointer-events-none select-none">
             <div className="flex items-center gap-2 px-4">
-              {Icon && <Icon className="w-4 h-4 text-slate-500 shrink-0" />}
-              <span
-                className="text-sm font-medium leading-tight text-center text-slate-700 whitespace-pre-wrap"
-                style={labelStyle}
-              >
-                {data.label}
-              </span>
+              {renderNodeContent({
+                children: data.children,
+                fallbackLabel: data.label,
+                iconClassName: 'w-4 h-4 text-slate-500 shrink-0',
+                textClassName:
+                  'text-sm font-medium leading-tight text-center text-slate-700 whitespace-pre-wrap',
+                textStyle: labelStyle,
+              })}
             </div>
           </div>
           {renderPorts()}
@@ -194,13 +195,14 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
     >
       <div className="w-full flex items-start justify-center text-left break-words p-4 pointer-events-none select-none">
         <div className="flex items-center gap-2">
-          {Icon && <Icon className="w-4 h-4 text-slate-500 shrink-0" />}
-          <span
-            className="text-sm font-medium leading-relaxed text-slate-700 whitespace-pre-wrap"
-            style={labelStyle}
-          >
-            {data.label}
-          </span>
+          {renderNodeContent({
+            children: data.children,
+            fallbackLabel: data.label,
+            iconClassName: 'w-4 h-4 text-slate-500 shrink-0',
+            textClassName:
+              'text-sm font-medium leading-relaxed text-slate-700 whitespace-pre-wrap',
+            textStyle: labelStyle,
+          })}
         </div>
       </div>
       {renderPorts()}

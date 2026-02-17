@@ -1,5 +1,9 @@
 # Lucide 아이콘 기능 PRD (Magam)
 
+> ⚠️ **문서 상태(업데이트):** `icon` prop 기반 v1 계획은 종료되었습니다.
+> 현재 표준은 `docs/features/shape-composition-lucide/README.md`의 children 선언형 모델입니다.
+> `icon` prop은 breaking change로 제거되었으며, 신규 문서/예제는 children 선언형만 사용합니다.
+
 ## 1. 배경
 
 현재 Magam의 노드 표현은 텍스트/색상 중심이라, 노드 의미를 빠르게 식별하기 어렵습니다.

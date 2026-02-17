@@ -21,6 +21,7 @@ import { IconPickerPanel } from '@/components/ui/IconPickerPanel';
 import { useChatStore } from '@/store/chat';
 import { TabState, useGraphStore } from '@/store/graph';
 import type { LucideIconName } from '@/utils/lucideRegistry';
+import { extractNodeContent } from '@/utils/nodeContent';
 
 interface RenderNode {
   type: string;
@@ -755,31 +756,22 @@ export default function Home() {
                   });
                 }
 
-                // Extract content from children
-                const contentChildren: any[] = [];
                 const rendererChildren = child.children || [];
+                const { label: baseLabel, icon } = extractNodeContent(
+                  rendererChildren,
+                  child.props.children,
+                  { textJoiner: '\n' },
+                );
+
+                const textChildren = baseLabel
+                  ? [{ type: 'text' as const, text: baseLabel }]
+                  : [];
 
                 // Track bubble from children (Markdown may have bubble prop)
                 let childBubble = false;
 
                 rendererChildren.forEach((grandChild: RenderNode) => {
-                  if (grandChild.type === 'text') {
-                    contentChildren.push(grandChild.props.text);
-                  } else if (grandChild.type === 'graph-text') {
-                    // Also handle graph-text children
-                    const textContent = grandChild.children?.find(
-                      (c: any) => c.type === 'text',
-                    );
-                    if (textContent) {
-                      contentChildren.push(textContent.props.text);
-                    } else if (grandChild.props.children) {
-                      contentChildren.push(grandChild.props.children);
-                    }
-                  } else if (grandChild.type === 'graph-markdown') {
-                    // Handle graph-markdown children - extract content prop
-                    if (grandChild.props.content) {
-                      contentChildren.push(grandChild.props.content);
-                    }
+                  if (grandChild.type === 'graph-markdown') {
                     // Extract bubble from Markdown child
                     if (grandChild.props.bubble) {
                       childBubble = true;
@@ -789,31 +781,13 @@ export default function Home() {
                     const imageAlt = grandChild.props.alt || '';
                     if (imageSrc) {
                       const markdownToken = `![${imageAlt}](${imageSrc})`;
-                      contentChildren.push(markdownToken);
+                      textChildren.push({ type: 'text', text: markdownToken });
                     }
                   }
                 });
 
-                // Fallback to props.children
-                if (rendererChildren.length === 0 && child.props.children) {
-                  const propsChildren = Array.isArray(child.props.children)
-                    ? child.props.children
-                    : [child.props.children];
-                  propsChildren.forEach((c: any) => {
-                    if (typeof c === 'string' || typeof c === 'number') {
-                      contentChildren.push(c);
-                    }
-                  });
-                }
-
                 const safeLabel =
-                  contentChildren
-                    .map((c) =>
-                      typeof c === 'string' || typeof c === 'number'
-                        ? String(c)
-                        : '',
-                    )
-                    .join('\n') ||
+                  textChildren.map((content) => content.text).join('\n') ||
                   child.props.label ||
                   '';
 
@@ -847,7 +821,7 @@ export default function Home() {
                     labelBold: child.props.labelBold || child.props.bold,
                     fill: child.props.fill,
                     stroke: child.props.stroke,
-                    icon: child.props.icon,
+                    icon,
                     // Semantic zoom bubble (from Node or child Markdown)
                     bubble: nodeBubble,
                   },
@@ -871,44 +845,24 @@ export default function Home() {
                 const nodeId = child.props.id || `node-${nodeIdCounter++}`;
 
                 // Separate node content from nested edges
-                const contentChildren: any[] = [];
                 const nestedEdges: RenderNode[] = [];
                 const ports: any[] = [];
 
                 // Check render output children first (from renderer.ts)
                 const rendererChildren = child.children || [];
+                const {
+                  label: parsedLabel,
+                  icon,
+                  parsedChildren,
+                } = extractNodeContent(rendererChildren, child.props.children);
 
                 rendererChildren.forEach((grandChild: RenderNode) => {
                   if (grandChild.type === 'graph-edge') {
                     nestedEdges.push(grandChild);
                   } else if (grandChild.type === 'graph-port') {
                     ports.push(grandChild.props);
-                  } else if (grandChild.type === 'text') {
-                    // Extract text from text node
-                    contentChildren.push(grandChild.props.text);
-                  } else if (grandChild.type === 'graph-markdown') {
-                    // Handle graph-markdown children - extract content prop
-                    if (grandChild.props.content) {
-                      contentChildren.push(grandChild.props.content);
-                    }
-                  } else {
-                    // Other content
-                    contentChildren.push(grandChild);
                   }
                 });
-
-                // Fallback: if no renderer children found, try props.children (e.g. simple string)
-                if (rendererChildren.length === 0 && child.props.children) {
-                  const propsChildren = Array.isArray(child.props.children)
-                    ? child.props.children
-                    : [child.props.children];
-
-                  propsChildren.forEach((c: any) => {
-                    if (typeof c === 'string' || typeof c === 'number') {
-                      contentChildren.push(c);
-                    }
-                  });
-                }
 
                 // Process nested edges: source is implicitly the parent node
                 nestedEdges.forEach(
@@ -946,13 +900,7 @@ export default function Home() {
 
                 // Extract primitive content (strings/numbers) key for label
                 const safeLabel =
-                  contentChildren
-                    .map((c) =>
-                      typeof c === 'string' || typeof c === 'number'
-                        ? String(c)
-                        : '',
-                    )
-                    .join('') ||
+                  parsedLabel ||
                   child.props.label ||
                   child.props.title ||
                   child.props.text ||
@@ -1001,7 +949,8 @@ export default function Home() {
                     labelBold: child.props.labelBold || child.props.bold,
                     fill: child.props.fill,
                     stroke: child.props.stroke,
-                    icon: child.props.icon,
+                    icon,
+                    children: parsedChildren,
                     imageSrc: child.props.imageSrc,
                     imageFit: child.props.imageFit,
                     ports: ports, // Inject ports
