@@ -13,7 +13,9 @@
     "build": "bun run --filter '*' build",
     "test": "bun test",
     "test:e2e": "playwright test",
-    "chat:smoke": "bun run scripts/chat-smoke.ts"
+    "chat:smoke": "bun run scripts/chat-smoke.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
   },
   "private": true,
   "devDependencies": {
@@ -31,6 +33,7 @@
     "@vitest/ui": "^4.0.0",
     "autoprefixer": "10.4.13",
     "copy-webpack-plugin": "^13.0.1",
+    "drizzle-kit": "^0.31.4",
     "eslint": "^9.8.0",
     "eslint-config-prettier": "^10.0.0",
     "eslint-plugin-import": "2.31.0",
@@ -74,6 +77,7 @@
     "axios": "^1.6.0",
     "chokidar": "^5.0.0",
     "clsx": "^2.1.1",
+    "drizzle-orm": "^0.44.5",
     "elkjs": "^0.11.0",
     "esbuild": "^0.27.2",
     "lucide-react": "^0.563.0",
