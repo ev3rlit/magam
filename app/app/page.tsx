@@ -21,7 +21,7 @@ import { IconPickerPanel } from '@/components/ui/IconPickerPanel';
 import { useChatStore } from '@/store/chat';
 import { TabState, useGraphStore } from '@/store/graph';
 import type { LucideIconName } from '@/utils/lucideRegistry';
-import { parseRenderableChildren } from '@/utils/childComposition';
+import { extractNodeContent } from '@/utils/nodeContent';
 
 interface RenderNode {
   type: string;
@@ -861,11 +861,6 @@ export default function Home() {
                   (content): content is { type: 'text'; text: string } =>
                     content.type === 'text',
                 );
-                const iconChild = parsedChildren.find(
-                  (content): content is { type: 'lucide-icon'; name: string } =>
-                    content.type === 'lucide-icon',
-                );
-
                 rendererChildren.forEach((grandChild: RenderNode) => {
                   if (grandChild.type === 'graph-edge') {
                     nestedEdges.push(grandChild);
@@ -959,7 +954,7 @@ export default function Home() {
                     labelBold: child.props.labelBold || child.props.bold,
                     fill: child.props.fill,
                     stroke: child.props.stroke,
-                    icon: iconChild?.name || child.props.icon,
+                    children: parsedChildren,
                     imageSrc: child.props.imageSrc,
                     imageFit: child.props.imageFit,
                     ports: ports, // Inject ports
