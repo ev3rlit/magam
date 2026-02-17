@@ -64,8 +64,6 @@ export async function patchFile(
 
             // Update or add props
             Object.entries(props).forEach(([propName, propValue]) => {
-                if (propValue === undefined) return;
-
                 // Find existing attribute
                 const existingAttrIndex = path.node.attributes.findIndex(
                     (attr: t.JSXAttribute | t.JSXSpreadAttribute): attr is t.JSXAttribute =>
@@ -74,11 +72,22 @@ export async function patchFile(
                         attr.name.name === propName
                 );
 
-                const newValue = t.jsxExpressionContainer(
+                // null/undefined means "unset": remove attribute to keep serialized output clean
+                if (propValue === undefined || propValue === null) {
+                    if (existingAttrIndex >= 0) {
+                        path.node.attributes.splice(existingAttrIndex, 1);
+                    }
+                    return;
+                }
+
+                const expression =
                     typeof propValue === 'number'
                         ? t.numericLiteral(propValue)
-                        : t.stringLiteral(String(propValue))
-                );
+                        : typeof propValue === 'boolean'
+                            ? t.booleanLiteral(propValue)
+                            : t.stringLiteral(String(propValue));
+
+                const newValue = t.jsxExpressionContainer(expression);
 
                 if (existingAttrIndex >= 0) {
                     // Update existing attribute

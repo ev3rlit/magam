@@ -8,6 +8,7 @@ import { CodeBlock } from '../ui/CodeBlock';
 import { useNodeNavigation } from '@/contexts/NavigationContext';
 import { toAssetApiUrl } from '@/utils/imageSource';
 import { useGraphStore } from '@/store/graph';
+import { getLucideIconByName } from '@/utils/lucideRegistry';
 
 interface MarkdownNodeData {
     label: string;
@@ -15,10 +16,12 @@ interface MarkdownNodeData {
     bubble?: boolean;
     className?: string;
     variant?: 'default' | 'minimal';
+    icon?: string;
 }
 
 const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
     const { navigateToNode } = useNodeNavigation();
+    const Icon = getLucideIconByName(data.icon);
 
     const handleLinkClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
         e.preventDefault();
@@ -104,6 +107,12 @@ const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
             bubble={data.bubble}
             label={data.label}
         >
+            {Icon && (
+                <div className="mb-3 flex items-center gap-2 text-slate-500">
+                    <Icon className="w-4 h-4" />
+                    <span className="text-xs">{data.icon}</span>
+                </div>
+            )}
             {markdownContent}
         </BaseNode>
     );

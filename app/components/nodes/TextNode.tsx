@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { NodeProps } from 'reactflow';
 import { twMerge } from 'tailwind-merge';
 import { BaseNode } from './BaseNode';
+import { getLucideIconByName } from '@/utils/lucideRegistry';
 
 interface TextNodeData {
     label: string;
@@ -10,9 +11,12 @@ interface TextNodeData {
     bold?: boolean;
     italic?: boolean;
     className?: string;
+    icon?: string;
 }
 
 const TextNode = ({ data, selected }: NodeProps<TextNodeData>) => {
+    const Icon = getLucideIconByName(data.icon);
+
     return (
         <BaseNode
             className={twMerge(
@@ -22,7 +26,7 @@ const TextNode = ({ data, selected }: NodeProps<TextNodeData>) => {
             )}
         >
             <div
-                className="text-center whitespace-pre-wrap leading-tight"
+                className="flex items-center justify-center gap-2 whitespace-pre-wrap leading-tight"
                 style={{
                     fontSize: data.fontSize || 16,
                     color: data.color || '#374151', // text-gray-700
@@ -30,6 +34,7 @@ const TextNode = ({ data, selected }: NodeProps<TextNodeData>) => {
                     fontStyle: data.italic ? 'italic' : 'normal',
                 }}
             >
+                {Icon && <Icon className="w-4 h-4 shrink-0" />}
                 {data.label || 'Text'}
             </div>
         </BaseNode>
