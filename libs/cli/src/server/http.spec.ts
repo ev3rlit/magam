@@ -90,6 +90,7 @@ describe('HTTP Render Server', () => {
     });
 
     mockChatStop.mockImplementation(() => ({ stopped: false }));
+    mockReadFileSync.mockReturnValue('export default function Test() { return null; }');
 
     serverResult = await startHttpServer({ targetDir, port });
   });
@@ -171,7 +172,9 @@ describe('HTTP Render Server', () => {
       const body = await response.json();
 
       expect(response.status).toBe(200);
-      expect(body).toEqual({ graph: {} });
+      expect(body.graph).toEqual({});
+      expect(typeof body.sourceVersion).toBe('string');
+      expect(body.sourceVersion.startsWith('sha256:')).toBe(true);
       // expect valid args
       expect(mockTranspile).toHaveBeenCalledWith(expect.stringContaining('exists.tsx'));
       expect(mockExecute).toHaveBeenCalledWith('transpiled code');

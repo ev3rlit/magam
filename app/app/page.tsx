@@ -75,6 +75,11 @@ interface RenderNode {
     // Sequence diagram specific
     participantSpacing?: number;
     messageSpacing?: number;
+    sourceMeta?: {
+      sourceId: string;
+      kind: 'canvas' | 'mindmap';
+      scopeId?: string;
+    };
     children?: any; // Keep children loosely typed for now as it can be strings/numbers/arrays
   };
   children?: RenderNode[];
@@ -178,7 +183,7 @@ export default function Home() {
   }, [setFiles]);
 
   // File sync with reload callback for file list changes
-  const { updateNode } = useFileSync(currentFile, handleFileChange, loadFiles);
+  const { updateNode, moveNode } = useFileSync(currentFile, handleFileChange, loadFiles);
 
   // Initial file load
   useEffect(() => {
@@ -729,6 +734,10 @@ export default function Home() {
                     anchor: child.props.anchor,
                     position: child.props.position,
                     gap: child.props.gap,
+                    sourceMeta: child.props.sourceMeta || {
+                      sourceId: seqId,
+                      kind: 'canvas',
+                    },
                   },
                 });
               } else if (child.type === 'graph-node') {
@@ -837,6 +846,11 @@ export default function Home() {
                     color: child.props.color || child.props.bg,
                     className: child.props.className, // Tailwind support
                     groupId: mindmapId, // For multi-MindMap layout grouping
+                    sourceMeta: child.props.sourceMeta || {
+                      sourceId: nodeId,
+                      kind: mindmapId ? 'mindmap' : 'canvas',
+                      scopeId: mindmapId,
+                    },
 
                     // Rich text props
                     fontSize: child.props.fontSize,
@@ -864,6 +878,10 @@ export default function Home() {
                     width: child.props.width,
                     height: child.props.height,
                     fit: child.props.fit,
+                    sourceMeta: child.props.sourceMeta || {
+                      sourceId: imageId,
+                      kind: 'canvas',
+                    },
                   },
                 });
               } else {
@@ -1017,6 +1035,11 @@ export default function Home() {
                     height: child.props.height,
                     // Semantic zoom bubble
                     bubble: child.props.bubble,
+                    sourceMeta: child.props.sourceMeta || {
+                      sourceId: nodeId,
+                      kind: mindmapId ? 'mindmap' : 'canvas',
+                      scopeId: mindmapId,
+                    },
                   },
                 });
               }
@@ -1041,6 +1064,7 @@ export default function Home() {
             layoutType,
             mindMapGroups,
             canvasBackground,
+            sourceVersion: data.sourceVersion ?? null,
           });
         }
       } catch (error) {
@@ -1069,7 +1093,7 @@ export default function Home() {
         <main className="flex-1 relative w-full h-full overflow-hidden">
           <ErrorOverlay />
           <SearchOverlay />
-          <GraphCanvas />
+          <GraphCanvas onNodeDragStop={moveNode} />
           <IconPickerPanel
             isOpen={
               !!selectedSingleNode &&

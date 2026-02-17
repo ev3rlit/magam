@@ -6,6 +6,8 @@
 
 import { watch } from 'chokidar';
 import { resolve } from 'path';
+import { readFile } from 'fs/promises';
+import { createHash } from 'crypto';
 import {
     createResponse,
     createErrorResponse,
@@ -21,6 +23,9 @@ const WATCH_DIR = process.env.MAGAM_TARGET_DIR || './examples';
 
 // Client connections with their subscriptions
 const clients = new Map<unknown, Set<string>>();
+
+const COMMAND_EVENT_TTL_MS = 3000;
+const recentCommandEvents = new Map<string, number>();
 
 console.log(`[WS] Starting JSON-RPC WebSocket server on port ${PORT}...`);
 
@@ -80,6 +85,7 @@ const server = Bun.serve({
             const ctx: RpcContext = {
                 ws,
                 subscriptions: clients.get(ws)!,
+                notifyFileChanged: broadcastFileChanged,
             };
 
             try {
@@ -136,8 +142,63 @@ function broadcastFileListUpdate(event: 'add' | 'unlink', filePath: string) {
     console.log(`[WS] Broadcasted files.changed: ${event} - ${relativePath}`);
 }
 
-watcher.on('change', (filePath) => {
+function broadcastFileChanged(payload: {
+    filePath: string;
+    version: string;
+    originId: string;
+    commandId: string;
+}) {
+    const now = Date.now();
+    recentCommandEvents.set(payload.filePath, now);
+
+    const notification = createNotification('file.changed', {
+        filePath: payload.filePath,
+        version: payload.version,
+        originId: payload.originId,
+        commandId: payload.commandId,
+        timestamp: now,
+    });
+    const message = JSON.stringify(notification);
+
+    clients.forEach((subscriptions, ws) => {
+        let matched = false;
+        for (const sub of subscriptions) {
+            if (
+                payload.filePath === sub ||
+                payload.filePath.endsWith(sub) ||
+                sub.endsWith(payload.filePath)
+            ) {
+                matched = true;
+                break;
+            }
+        }
+
+        if (matched) {
+            (ws as { send: (data: string) => void }).send(message);
+        }
+    });
+
+    console.log(`[WS] Broadcasted file.changed (command): ${payload.filePath}`);
+}
+
+watcher.on('change', async (filePath) => {
     console.log(`[WS] File changed: ${filePath}`);
+
+    const now = Date.now();
+    const lastCommandEventAt = recentCommandEvents.get(filePath);
+    if (lastCommandEventAt && now - lastCommandEventAt <= COMMAND_EVENT_TTL_MS) {
+        // Command path already emitted full payload; suppress duplicate watcher echo.
+        recentCommandEvents.delete(filePath);
+        return;
+    }
+
+    let version = 'sha256:unknown';
+    try {
+        const content = await readFile(filePath, 'utf-8');
+        version = `sha256:${createHash('sha256').update(content).digest('hex')}`;
+    } catch (error) {
+        console.warn('[WS] Failed to hash changed file:', filePath, error);
+    }
 
     // Broadcast to subscribed clients
     clients.forEach((subscriptions, ws) => {
@@ -155,7 +216,10 @@ watcher.on('change', (filePath) => {
         if (matchedSubscription) {
             const notification = createNotification('file.changed', {
                 filePath: matchedSubscription, // Send back the subscription path
-                timestamp: Date.now(),
+                version,
+                originId: 'external',
+                commandId: `watch:${now}`,
+                timestamp: now,
             });
             (ws as { send: (data: string) => void }).send(JSON.stringify(notification));
             console.log(`[WS] Notified client about: ${matchedSubscription}`);
