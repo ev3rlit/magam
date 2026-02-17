@@ -127,4 +127,22 @@ describe('filePatcher', () => {
 
     await expect(patchNodeReparent(filePath, 'a', 'c')).rejects.toThrow('MINDMAP_CYCLE');
   });
+
+  it('Shape에서도 icon 제거 시 다른 속성은 유지한다 (icon-prop 제거 회귀)', async () => {
+    const filePath = await makeTempTsx(`
+      export default function Sample() {
+        return <Shape id="s1" icon={"bug"} type={"rectangle"} label={"Auth"} />;
+      }
+    `);
+
+    await patchFile(filePath, 's1', {
+      icon: null,
+      label: 'Auth Service',
+    });
+
+    const patched = await readFile(filePath, 'utf-8');
+    expect(patched.includes('icon=')).toBe(false);
+    expect(patched.includes('type={"rectangle"}')).toBe(true);
+    expect(patched.includes('label={"Auth Service"}')).toBe(true);
+  });
 });

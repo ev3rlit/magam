@@ -1,0 +1,59 @@
+import { describe, expect, it } from 'vitest';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { renderNodeContent } from './renderableContent';
+
+describe('renderNodeContent', () => {
+  it('renders lucide + text children in order', () => {
+    const html = renderToStaticMarkup(
+      <>
+        {renderNodeContent({
+          children: [
+            { type: 'lucide-icon', name: 'rocket' },
+            { type: 'text', text: 'Deploy' },
+          ],
+          fallbackLabel: 'Ignored',
+          iconClassName: 'icon-class',
+          textClassName: 'text-class',
+        })}
+      </>,
+    );
+
+    expect(html).toContain('icon-class');
+    expect(html).toContain('Deploy');
+    expect(html.indexOf('icon-class')).toBeLessThan(html.indexOf('Deploy'));
+  });
+
+  it('falls back to label when children are missing', () => {
+    const html = renderToStaticMarkup(
+      <>
+        {renderNodeContent({
+          children: [],
+          fallbackLabel: 'Sticky note',
+          iconClassName: 'icon-class',
+          textClassName: 'text-class',
+        })}
+      </>,
+    );
+
+    expect(html).toContain('Sticky note');
+  });
+
+  it('skips unknown lucide icon names and still renders text children', () => {
+    const html = renderToStaticMarkup(
+      <>
+        {renderNodeContent({
+          children: [
+            { type: 'lucide-icon', name: 'not-registered-icon' as any },
+            { type: 'text', text: 'Fallback text' },
+          ],
+          fallbackLabel: 'Ignored',
+          iconClassName: 'icon-class',
+          textClassName: 'text-class',
+        })}
+      </>,
+    );
+
+    expect(html).not.toContain('icon-class');
+    expect(html).toContain('Fallback text');
+  });
+});

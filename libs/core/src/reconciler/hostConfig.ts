@@ -1,3 +1,4 @@
+import { MagamError } from '../errors';
 export type Type = string;
 export type Props = Record<string, any>;
 export type CustomBackground = { type: 'custom'; svg: string; gap: number };
@@ -16,6 +17,24 @@ export type HostContext = Record<string, any>;
 export type UpdatePayload = any;
 
 export const supportsMutation = true;
+
+const ICON_PROP_REMOVED_TYPES = new Set(['graph-shape', 'graph-sticky', 'graph-node', 'graph-text']);
+
+function assertNoLegacyIconProp(type: Type, props: Props): void {
+  if (!ICON_PROP_REMOVED_TYPES.has(type)) return;
+  if (!Object.prototype.hasOwnProperty.call(props, 'icon')) return;
+
+  const migrationHint =
+    'Migration: remove icon=... and declare a Lucide icon as a child, e.g. <Shape><Rocket />Service</Shape>.';
+
+  throw new MagamError(
+    `The "icon" prop is no longer supported on <${type.replace('graph-', '')}>. ${migrationHint}`,
+    'props',
+    'ICON_PROP_REMOVED',
+    migrationHint,
+  );
+}
+
 export const supportsPersistence = false;
 export const supportsHydration = false;
 export const supportsMicrotasks = true;
@@ -29,6 +48,7 @@ export function createInstance(
 ): Instance {
   console.log('[HostConfig] createInstance', type);
   try {
+    assertNoLegacyIconProp(type, props);
     const { children, ...safeProps } = props;
     return {
       type,

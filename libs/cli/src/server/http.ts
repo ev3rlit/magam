@@ -6,7 +6,7 @@ import glob from 'fast-glob';
 import { transpile } from '../core/transpiler';
 import { execute } from '../core/executor';
 import { ChatHandler } from '../chat/handler';
-import type { ChatPermissionMode, SendChatRequest, StopChatRequest } from '@magam/shared';
+import type { ChatPermissionMode, ProviderId, SendChatRequest, StopChatRequest } from '@magam/shared';
 
 const DEFAULT_PORT = 3002;
 
@@ -37,7 +37,7 @@ export async function startHttpServer(config: HttpServerConfig): Promise<HttpSer
   const server = http.createServer(async (req, res) => {
     // CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
     if (req.method === 'OPTIONS') {
@@ -47,6 +47,9 @@ export async function startHttpServer(config: HttpServerConfig): Promise<HttpSer
     }
 
     const url = new URL(req.url!, `http://localhost:${port}`);
+    const sessionIdMatch = url.pathname.match(/^\/chat\/sessions\/([^/]+)$/);
+    const sessionMessagesMatch = url.pathname.match(/^\/chat\/sessions\/([^/]+)\/messages$/);
+    const groupIdMatch = url.pathname.match(/^\/chat\/groups\/([^/]+)$/);
 
     try {
       if (req.method === 'POST' && url.pathname === '/render') {
@@ -57,6 +60,26 @@ export async function startHttpServer(config: HttpServerConfig): Promise<HttpSer
         await handleFileTree(req, res, config.targetDir);
       } else if (req.method === 'GET' && url.pathname === '/chat/providers') {
         await handleChatProviders(res, chatHandler);
+      } else if (req.method === 'GET' && url.pathname === '/chat/sessions') {
+        await handleChatSessionsList(url, res, chatHandler);
+      } else if (req.method === 'POST' && url.pathname === '/chat/sessions') {
+        await handleChatSessionsCreate(req, res, chatHandler);
+      } else if (req.method === 'GET' && sessionIdMatch) {
+        await handleChatSessionGet(res, chatHandler, decodeURIComponent(sessionIdMatch[1]));
+      } else if (req.method === 'PATCH' && sessionIdMatch) {
+        await handleChatSessionPatch(req, res, chatHandler, decodeURIComponent(sessionIdMatch[1]));
+      } else if (req.method === 'DELETE' && sessionIdMatch) {
+        await handleChatSessionDelete(res, chatHandler, decodeURIComponent(sessionIdMatch[1]));
+      } else if (req.method === 'GET' && sessionMessagesMatch) {
+        await handleChatSessionMessages(url, res, chatHandler, decodeURIComponent(sessionMessagesMatch[1]));
+      } else if (req.method === 'GET' && url.pathname === '/chat/groups') {
+        await handleChatGroupsList(res, chatHandler);
+      } else if (req.method === 'POST' && url.pathname === '/chat/groups') {
+        await handleChatGroupsCreate(req, res, chatHandler);
+      } else if (req.method === 'PATCH' && groupIdMatch) {
+        await handleChatGroupPatch(req, res, chatHandler, decodeURIComponent(groupIdMatch[1]));
+      } else if (req.method === 'DELETE' && groupIdMatch) {
+        await handleChatGroupDelete(res, chatHandler, decodeURIComponent(groupIdMatch[1]));
       } else if (req.method === 'POST' && url.pathname === '/chat/send') {
         await handleChatSend(req, res, chatHandler);
       } else if (req.method === 'POST' && url.pathname === '/chat/stop') {
@@ -293,9 +316,175 @@ async function handleChatProviders(res: http.ServerResponse, chatHandler: ChatHa
   res.end(JSON.stringify({ providers }));
 }
 
+async function handleChatSessionsList(url: URL, res: http.ServerResponse, chatHandler: ChatHandler) {
+  const limit = Number(url.searchParams.get('limit') || '50');
+  const sessions = await chatHandler.listSessions({
+    groupId: url.searchParams.get('groupId') || undefined,
+    providerId: normalizeProviderId(url.searchParams.get('providerId')),
+    q: url.searchParams.get('q') || undefined,
+    limit: Number.isFinite(limit) ? limit : 50,
+  });
+
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ sessions }));
+}
+
+async function handleChatSessionsCreate(req: http.IncomingMessage, res: http.ServerResponse, chatHandler: ChatHandler) {
+  const body = await parseBody(req);
+  const providerId = normalizeProviderId(body.providerId);
+  if (!providerId) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'providerId is required', type: 'VALIDATION_ERROR' }));
+    return;
+  }
+
+  const session = await chatHandler.createSession({
+    title: typeof body.title === 'string' ? body.title : undefined,
+    providerId,
+    groupId: body.groupId ?? null,
+  });
+
+  res.writeHead(201, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ session }));
+}
+
+async function handleChatSessionGet(res: http.ServerResponse, chatHandler: ChatHandler, sessionId: string) {
+  const session = await chatHandler.getSession(sessionId);
+  if (!session) {
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Session not found', type: 'NOT_FOUND' }));
+    return;
+  }
+
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ session }));
+}
+
+async function handleChatSessionPatch(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  chatHandler: ChatHandler,
+  sessionId: string,
+) {
+  const body = await parseBody(req);
+  const before = await chatHandler.getSession(sessionId);
+  if (!before) {
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Session not found', type: 'NOT_FOUND' }));
+    return;
+  }
+
+  const nextProviderId = normalizeProviderId(body.providerId);
+
+  const session = await chatHandler.updateSession(sessionId, {
+    title: typeof body.title === 'string' ? body.title : undefined,
+    providerId: nextProviderId,
+    groupId: 'groupId' in body ? body.groupId : undefined,
+  });
+
+  if (nextProviderId && nextProviderId !== before.providerId) {
+    await chatHandler.appendSystemMessage(
+      sessionId,
+      `Provider switched from ${before.providerId} to ${nextProviderId}`,
+      { type: 'provider_switched', from: before.providerId, to: nextProviderId },
+    );
+  }
+
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ session }));
+}
+
+async function handleChatSessionDelete(res: http.ServerResponse, chatHandler: ChatHandler, sessionId: string) {
+  const deleted = await chatHandler.deleteSession(sessionId);
+  if (!deleted) {
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Session not found', type: 'NOT_FOUND' }));
+    return;
+  }
+
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ deleted: true }));
+}
+
+async function handleChatSessionMessages(url: URL, res: http.ServerResponse, chatHandler: ChatHandler, sessionId: string) {
+  const limit = Number(url.searchParams.get('limit') || '50');
+  const result = await chatHandler.listMessages(
+    sessionId,
+    url.searchParams.get('cursor') || undefined,
+    Number.isFinite(limit) ? limit : 50,
+  );
+
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(result));
+}
+
+async function handleChatGroupsList(res: http.ServerResponse, chatHandler: ChatHandler) {
+  const groups = await chatHandler.listGroups();
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ groups }));
+}
+
+async function handleChatGroupsCreate(req: http.IncomingMessage, res: http.ServerResponse, chatHandler: ChatHandler) {
+  const body = await parseBody(req);
+  if (!body?.name || typeof body.name !== 'string') {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'name is required', type: 'VALIDATION_ERROR' }));
+    return;
+  }
+
+  const group = await chatHandler.createGroup({
+    name: body.name,
+    color: typeof body.color === 'string' ? body.color : undefined,
+    sortOrder: typeof body.sortOrder === 'number' ? body.sortOrder : undefined,
+  });
+
+  res.writeHead(201, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ group }));
+}
+
+async function handleChatGroupPatch(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  chatHandler: ChatHandler,
+  groupId: string,
+) {
+  const body = await parseBody(req);
+  const group = await chatHandler.updateGroup(groupId, {
+    name: typeof body.name === 'string' ? body.name : undefined,
+    color: body.color === null || typeof body.color === 'string' ? body.color : undefined,
+    sortOrder: typeof body.sortOrder === 'number' ? body.sortOrder : undefined,
+  });
+
+  if (!group) {
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Group not found', type: 'NOT_FOUND' }));
+    return;
+  }
+
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ group }));
+}
+
+async function handleChatGroupDelete(res: http.ServerResponse, chatHandler: ChatHandler, groupId: string) {
+  const deleted = await chatHandler.deleteGroup(groupId);
+  if (!deleted) {
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Group not found', type: 'NOT_FOUND' }));
+    return;
+  }
+
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ deleted: true, fallbackGroupId: null }));
+}
+
 
 function normalizePermissionMode(raw: unknown): ChatPermissionMode {
   return raw === 'interactive' ? 'interactive' : 'auto';
+}
+
+function normalizeProviderId(raw: unknown): ProviderId | undefined {
+  if (raw === 'claude' || raw === 'gemini' || raw === 'codex') return raw;
+  return undefined;
 }
 
 function normalizeModel(raw: unknown): string | undefined {
@@ -384,7 +573,8 @@ async function handleChatSend(req: http.IncomingMessage, res: http.ServerRespons
     return;
   }
 
-  if (!body.message || !body.providerId) {
+  const providerId = normalizeProviderId(body.providerId);
+  if (!body.message || !providerId) {
     res.writeHead(400, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Missing message/providerId in body', type: 'VALIDATION_ERROR' }));
     return;
@@ -397,7 +587,7 @@ async function handleChatSend(req: http.IncomingMessage, res: http.ServerRespons
 
   const request: SendChatRequest = {
     message: body.message,
-    providerId: body.providerId,
+    providerId,
     sessionId: body.sessionId,
     currentFile: body.currentFile,
     permissionMode: normalizePermissionMode(body.permissionMode),

@@ -1,31 +1,16 @@
-# Lucide 아이콘 v1 릴리스 체크리스트
+# Lucide 아이콘 릴리스 체크리스트 (v2: Shape + children 선언형)
 
-## 기능
-- [x] 아이콘 레지스트리(subset) 도입
-- [x] 아이콘 검색(prefix > includes > alphabetical)
-- [x] 최근 사용 아이콘(localStorage, 최대 8)
-- [x] 노드 아이콘 적용/제거
-- [x] 노드 렌더 반영(Shape/Sticky/Text/Markdown)
+## Breaking Change 커뮤니케이션
+- [x] 릴리스 노트에 **`icon` prop 제거** 명시
+- [x] 문서에 children 선언형만 표준으로 안내
+- [x] 마이그레이션 Before/After 스니펫 제공
 
-## 저장/호환성
-- [x] NodeData icon 로드 반영
-- [x] patch 시 `icon: null` => attribute 제거(omit)
-- [x] 기존 문서(icon 없음) 호환
+## 문서/예제
+- [x] Shape+Lucide PRD에 breaking change 섹션 추가
+- [x] 구현 계획서의 마이그레이션 예시를 children 선언형 중심으로 정리
+- [x] examples/icons.tsx를 Lucide children 선언 예시로 갱신
+- [x] examples/text_usage.tsx의 label 중심 예시를 children 중심 예시로 갱신
 
-## 접근성
-- [x] 키보드 탐색(↑/↓/Enter/Esc)
-- [x] listbox/option role
-- [x] aria-selected, aria-controls, aria-activedescendant 적용
-
-## 품질
-- [x] 유틸 테스트(lucideRegistry/iconSearch/iconRecent)
-- [x] filePatcher 테스트(icon omit 정책 포함)
-- [ ] 통합/E2E 시나리오 수동 점검
-
-## Telemetry
-- [x] icon_picker_opened
-- [x] icon_applied
-- [x] icon_removed
-- [x] icon_search_used
-- [x] icon_render_fallback
-- [x] payload 스키마(icon_name/source/success/duration_ms) 반영
+## 품질 확인
+- [ ] 문서 링크/코드 스니펫 렌더 확인
+- [ ] examples 실행 시 import 오류 확인
