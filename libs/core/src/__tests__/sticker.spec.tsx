@@ -47,37 +47,43 @@ describe('Sticker component', () => {
     expect(result.isOk()).toBe(true);
   });
 
-  it('preserves sticker style fields for image/svg pipelines', async () => {
-    const element = (
-      <canvas>
-        <Sticker
-          id="svg-1"
-          kind="image"
-          src="./assets/logo.svg"
-          x={0}
-          y={0}
-          width={180}
-          height={120}
-          outlineWidth={8}
-          outlineColor="#fff"
-          shadow="lg"
-          padding={12}
-        />
-      </canvas>
-    );
+  it('preserves sticker style fields for PNG/JPG/SVG/PDF export pipelines', async () => {
+    const exportTargets = ['png', 'jpg', 'svg', 'pdf'];
 
-    const result = await renderToGraph(element);
-    expect(result.isOk()).toBe(true);
+    for (const exportTarget of exportTargets) {
+      const element = (
+        <canvas>
+          <Sticker
+            id={`svg-1-${exportTarget}`}
+            kind="image"
+            src="./assets/logo.svg"
+            x={0}
+            y={0}
+            width={180}
+            height={120}
+            outlineWidth={8}
+            outlineColor="#fff"
+            shadow="lg"
+            padding={12}
+            dataExportTarget={exportTarget}
+          />
+        </canvas>
+      );
 
-    result.map((graph) => {
-      const canvas = graph.children[0];
-      const sticker = canvas?.children?.[0];
-      expect(sticker?.props?.src).toBe('./assets/logo.svg');
-      expect(sticker?.props?.outlineWidth).toBe(8);
-      expect(sticker?.props?.outlineColor).toBe('#fff');
-      expect(sticker?.props?.shadow).toBe('lg');
-      expect(sticker?.props?.padding).toBe(12);
-      return graph;
-    });
+      const result = await renderToGraph(element);
+      expect(result.isOk()).toBe(true);
+
+      result.map((graph) => {
+        const canvas = graph.children[0];
+        const sticker = canvas?.children?.[0];
+        expect(sticker?.props?.src).toBe('./assets/logo.svg');
+        expect(sticker?.props?.outlineWidth).toBe(8);
+        expect(sticker?.props?.outlineColor).toBe('#fff');
+        expect(sticker?.props?.shadow).toBe('lg');
+        expect(sticker?.props?.padding).toBe(12);
+        expect(sticker?.props?.dataExportTarget).toBe(exportTarget);
+        return graph;
+      });
+    }
   });
 });
