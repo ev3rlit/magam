@@ -75,12 +75,13 @@ export async function GET(request: Request) {
 
     const buffer = await readFile(absPath);
     const mimeType = getMimeType(extension);
+    const body = new Uint8Array(buffer);
 
-    return new Response(buffer, {
+    return new Response(body, {
       status: 200,
       headers: {
         'Content-Type': mimeType,
-        'Content-Length': buffer.length.toString(),
+        'Content-Length': body.byteLength.toString(),
         'Cache-Control': 'public, max-age=31536000, immutable',
         'X-Content-Hash': createHash('sha256').update(buffer).digest('hex'),
       },

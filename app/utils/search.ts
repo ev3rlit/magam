@@ -94,7 +94,7 @@ export const getMatchKind = (text: string, query: string): MatchKind | undefined
   return undefined;
 };
 
-export const buildSearchIndex = (nodes: Node[], currentFile: string | null): SearchIndexItem[] => {
+export const buildSearchIndex = (nodes: Node[], currentFile: string | null): SearchIndexElementItem[] => {
   const nodeItems: SearchIndexElementItem[] = nodes.map((node) => {
     const data = (node as Node<Record<string, unknown>>).data || {};
     const filePath = toText((data as { filePath?: string }).filePath) || currentFile || 'untitled';
