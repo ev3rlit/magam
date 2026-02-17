@@ -128,7 +128,7 @@
 
 ```tsx
 // ❌ 제거됨
-<Shape id="auth" icon="bug" label="Auth Service" />
+<Shape id="auth"><Bug />Auth Service</Shape>
 
 // ✅ 신규 표준
 <Shape id="auth">
@@ -208,7 +208,7 @@ import { Bug, Rocket, Cloud } from 'lucide-react';
 ### 스니펫 A: Shape
 ```tsx
 // Before
-<Shape id="svc" icon="cloud" label="Service" />
+<Shape id="svc"><Cloud />Service</Shape>
 
 // After
 <Shape id="svc">
@@ -220,7 +220,7 @@ import { Bug, Rocket, Cloud } from 'lucide-react';
 ### 스니펫 B: Sticky
 ```tsx
 // Before
-<Sticky id="todo" icon="rocket">Deploy</Sticky>
+<Sticky id="todo"><Rocket />Deploy</Sticky>
 
 // After
 <Sticky id="todo">
@@ -232,7 +232,7 @@ import { Bug, Rocket, Cloud } from 'lucide-react';
 ### 스니펫 C: MindMap Node
 ```tsx
 // Before
-<Node id="backend" from="stack" icon="cpu">Backend</Node>
+<Node id="backend" from="stack"><Cpu />Backend</Node>
 
 // After
 <Node id="backend" from="stack">

@@ -6,7 +6,6 @@ export function extractNodeContent(
   options?: { textJoiner?: string },
 ): {
   label: string;
-  icon?: string;
   parsedChildren: ReturnType<typeof parseRenderableChildren>;
 } {
   const parsedChildren = parseRenderableChildren(rendererChildren, fallbackChildren);
@@ -19,10 +18,5 @@ export function extractNodeContent(
     .map((content) => content.text)
     .join(textJoiner);
 
-  const icon = parsedChildren.find(
-    (content): content is { type: 'lucide-icon'; name: string } =>
-      content.type === 'lucide-icon',
-  )?.name;
-
-  return { label, icon, parsedChildren };
+  return { label, parsedChildren };
 }

@@ -3,7 +3,7 @@ import { extractNodeContent } from './nodeContent';
 import type { RenderChildNode } from './childComposition';
 
 describe('extractNodeContent', () => {
-  it('extracts mindmap node label with newline join and lucide icon from children', () => {
+  it('extracts mindmap node label with newline join and renderable children from children', () => {
     const children: RenderChildNode[] = [
       { type: 'text', props: { text: 'Root' }, children: [] },
       { type: 'text', props: { text: 'Details' }, children: [] },
@@ -16,7 +16,6 @@ describe('extractNodeContent', () => {
 
     expect(extractNodeContent(children, undefined, { textJoiner: '\n' })).toEqual({
       label: 'Root\nDetails',
-      icon: 'network',
       parsedChildren: [
         { type: 'text', text: 'Root' },
         { type: 'text', text: 'Details' },
@@ -25,7 +24,7 @@ describe('extractNodeContent', () => {
     });
   });
 
-  it('extracts sticker(sticky) label and icon from lucide child declarations', () => {
+  it('extracts sticker(sticky) label and renderable children from lucide child declarations', () => {
     const children: RenderChildNode[] = [
       {
         type: 'svg',
@@ -37,11 +36,19 @@ describe('extractNodeContent', () => {
 
     expect(extractNodeContent(children, undefined)).toEqual({
       label: 'Wake up',
-      icon: 'alarmClock',
       parsedChildren: [
         { type: 'lucide-icon', name: 'alarmClock' },
         { type: 'text', text: 'Wake up' },
       ],
+    });
+  });
+
+  it('does not recover icon from deprecated icon prop when render children are empty', () => {
+    expect(
+      extractNodeContent([], { icon: 'rocket', children: ['Legacy'] }),
+    ).toEqual({
+      label: '',
+      parsedChildren: [],
     });
   });
 });

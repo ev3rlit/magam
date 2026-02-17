@@ -143,9 +143,9 @@ v2에서 최소 로깅:
 
 ### 제거 대상(이전 구문)
 ```tsx
-<Shape id="s1" icon="bug" />
-<Sticky id="m1" icon="rocket">Deploy</Sticky>
-<Node id="backend" from="stack" icon="cpu">Backend</Node>
+<Shape id="s1"><Bug /></Shape>
+<Sticky id="m1"><Rocket />Deploy</Sticky>
+<Node id="backend" from="stack"><Cpu />Backend</Node>
 ```
 
 ### 권장(신규 표준)

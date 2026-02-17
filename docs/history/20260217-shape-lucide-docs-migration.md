@@ -20,9 +20,9 @@
 
 ### Before
 ```tsx
-<Shape id="auth" icon="bug" />
-<Sticky id="todo" icon="rocket">Deploy</Sticky>
-<Node id="backend" from="stack" icon="cpu">Backend</Node>
+<Shape id="auth"><Bug /></Shape>
+<Sticky id="todo"><Rocket />Deploy</Sticky>
+<Node id="backend" from="stack"><Cpu />Backend</Node>
 ```
 
 ### After
