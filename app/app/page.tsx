@@ -757,18 +757,15 @@ export default function Home() {
                 }
 
                 const rendererChildren = child.children || [];
-                const parsedChildren = parseRenderableChildren(
+                const { label: baseLabel, icon } = extractNodeContent(
                   rendererChildren,
                   child.props.children,
+                  { textJoiner: '\n' },
                 );
-                const textChildren = parsedChildren.filter(
-                  (content): content is { type: 'text'; text: string } =>
-                    content.type === 'text',
-                );
-                const iconChild = parsedChildren.find(
-                  (content): content is { type: 'lucide-icon'; name: string } =>
-                    content.type === 'lucide-icon',
-                );
+
+                const textChildren = baseLabel
+                  ? [{ type: 'text' as const, text: baseLabel }]
+                  : [];
 
                 // Track bubble from children (Markdown may have bubble prop)
                 let childBubble = false;
@@ -824,7 +821,7 @@ export default function Home() {
                     labelBold: child.props.labelBold || child.props.bold,
                     fill: child.props.fill,
                     stroke: child.props.stroke,
-                    icon: iconChild?.name || child.props.icon,
+                    icon,
                     // Semantic zoom bubble (from Node or child Markdown)
                     bubble: nodeBubble,
                   },
@@ -853,14 +850,12 @@ export default function Home() {
 
                 // Check render output children first (from renderer.ts)
                 const rendererChildren = child.children || [];
-                const parsedChildren = parseRenderableChildren(
-                  rendererChildren,
-                  child.props.children,
-                );
-                const textChildren = parsedChildren.filter(
-                  (content): content is { type: 'text'; text: string } =>
-                    content.type === 'text',
-                );
+                const {
+                  label: parsedLabel,
+                  icon,
+                  parsedChildren,
+                } = extractNodeContent(rendererChildren, child.props.children);
+
                 rendererChildren.forEach((grandChild: RenderNode) => {
                   if (grandChild.type === 'graph-edge') {
                     nestedEdges.push(grandChild);
@@ -905,7 +900,7 @@ export default function Home() {
 
                 // Extract primitive content (strings/numbers) key for label
                 const safeLabel =
-                  textChildren.map((content) => content.text).join('') ||
+                  parsedLabel ||
                   child.props.label ||
                   child.props.title ||
                   child.props.text ||
@@ -954,6 +949,7 @@ export default function Home() {
                     labelBold: child.props.labelBold || child.props.bold,
                     fill: child.props.fill,
                     stroke: child.props.stroke,
+                    icon,
                     children: parsedChildren,
                     imageSrc: child.props.imageSrc,
                     imageFit: child.props.imageFit,
