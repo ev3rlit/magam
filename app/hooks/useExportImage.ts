@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react';
 import { getNodesBounds, getViewportForBounds, Node, useReactFlow, useStoreApi } from 'reactflow';
 import { toPng, toJpeg, toSvg } from 'html-to-image';
+import { jsPDF } from 'jspdf';
 
-export type ExportFormat = 'png' | 'jpg' | 'svg';
+export type ExportFormat = 'png' | 'jpg' | 'svg' | 'pdf';
 export type ExportBackground = 'grid' | 'transparent' | 'solid';
 export type ExportArea = 'selection' | 'full';
 
@@ -460,7 +461,19 @@ export function useExportImage(): ExportReturn {
         return await toJpeg(captureTarget, jpegOptions);
       }
 
-      return await toSvg(captureTarget, captureOptions);
+      if (options.format === 'svg') {
+        return await toSvg(captureTarget, captureOptions);
+      }
+
+      const pngDataUrl = await toPng(captureTarget, captureOptions);
+      const orientation = captureWidth >= captureHeight ? 'landscape' : 'portrait';
+      const pdf = new jsPDF({
+        orientation,
+        unit: 'px',
+        format: [captureWidth, captureHeight],
+      });
+      pdf.addImage(pngDataUrl, 'PNG', 0, 0, captureWidth, captureHeight, undefined, 'FAST');
+      return pdf.output('blob');
     } finally {
       restoreSelectionStyles();
     }
