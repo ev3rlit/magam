@@ -44,4 +44,14 @@ describe('extractNodeContent', () => {
       ],
     });
   });
+
+  it('does not recover icon from deprecated icon prop when render children are empty', () => {
+    expect(
+      extractNodeContent([], { icon: 'rocket', children: ['Legacy'] }),
+    ).toEqual({
+      label: '',
+      icon: undefined,
+      parsedChildren: [],
+    });
+  });
 });

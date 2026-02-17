@@ -251,3 +251,10 @@ import { Bug, Rocket, Cloud } from 'lucide-react';
 1. `Text` child 컴포넌트를 권장 표준으로 둘지, 문자열 child를 기본으로 둘지?
 2. Sticker 타입을 Shape 변형(alias)으로 통합할지?
 3. 제거 이후 구문 오류 메시지 형식(친절한 migration hint 포함)을 어떻게 표준화할지?
+## 14) QA 회귀 체크리스트 (#68)
+
+- [ ] `extractNodeContent`가 children 기반으로 label/icon을 안정적으로 파싱한다.
+- [ ] legacy `icon` prop payload가 들어와도 children 파싱 결과를 오염시키지 않는다.
+- [ ] `renderNodeContent`가 Lucide + text 순서를 유지하고 unknown icon은 안전하게 무시한다.
+- [ ] `patchFile`에서 `icon: null` 업데이트 시 JSX `icon` attribute가 제거된다.
+- [ ] focused test suite(`nodeContent`, `renderableContent`, `filePatcher`)가 모두 통과한다.
