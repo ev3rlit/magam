@@ -242,3 +242,21 @@ Magam 캔버스는 현재 이미지/텍스트/도형을 개별 오브젝트로 �
 - 1차 릴리스에서 스티커 회전 범위를 자유(0~360)로 열지, 스냅 각도(예: 15도) 중심으로 제한할지?
 - 텍스트 스티커의 기본 폰트 정책(제품 기본 폰트 vs 스티커 전용 스타일)을 분리할지?
 - 이미지 스티커 아웃라인 알고리즘을 클라이언트 실시간 계산으로 할지, 자산 저장 시 프리프로세싱할지?
+
+## 13) 구현 체크리스트 / 실행 로그 (TASK-STK)
+
+- [x] TASK-STK-13(부분): 복사 시 선택 노드 JSON payload에 sticker 필드(kind/src/text/emoji/style) 보존
+- [x] TASK-STK-14/15: sticker id 스코프 반영 + anchor 스코프 해석 회귀 테스트 추가
+- [ ] TASK-STK-16/17(부분): SVG 입력 host props 보존 테스트 추가 (내보내기 시각 parity는 추가 검증 필요)
+- [ ] TASK-STK-18/19: Inspector UI 및 삽입 프리셋 엔트리 미구현
+- [ ] TASK-STK-20(진행): 본 섹션에 구현/테스트 로그 지속 업데이트
+
+### 테스트 로그 (AC 매핑)
+
+- AC-12/13: `libs/core/src/__tests__/embedScope.spec.tsx`
+  - Sticker anchor scope 해석 케이스 추가
+- AC-16: `libs/core/src/__tests__/sticker.spec.tsx`
+  - SVG src + outline/shadow/padding props 보존 케이스 추가
+- AC-11: `app/utils/stickerDefaults.test.ts`
+  - sticker 스타일 필드 정규화/보존 케이스 추가
+

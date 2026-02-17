@@ -14,6 +14,7 @@ import StickyNode from './nodes/StickyNode';
 import ShapeNode from './nodes/ShapeNode';
 import TextNode from './nodes/TextNode';
 import ImageNode from './nodes/ImageNode';
+import StickerNode from './nodes/StickerNode';
 import MarkdownNode from './nodes/MarkdownNode';
 import SequenceDiagramNode from './nodes/SequenceDiagramNode';
 import FloatingEdge from './edges/FloatingEdge';
@@ -38,6 +39,7 @@ function GraphCanvasContent() {
       shape: ShapeNode,
       text: TextNode,
       image: ImageNode,
+      sticker: StickerNode,
       markdown: MarkdownNode,
       'sequence-diagram': SequenceDiagramNode,
     }),
@@ -272,20 +274,16 @@ function GraphCanvasContent() {
         let dataToCopy;
 
         if (selectedNodeIds.length > 0) {
-          // Copy Logic Changed: Copy "mindmap.{nodeId}" to clipboard
-          const selectedIdStrings = selectedNodeIds.map(id => `mindmap.${id}`).join('\n');
+          const selectedNodeIdSet = new Set(selectedNodeIds);
+          const selectedNodes = nodes.filter((node) => selectedNodeIdSet.has(node.id));
+          const relatedEdges = edges.filter(
+            (edge) => selectedNodeIdSet.has(edge.source) && selectedNodeIdSet.has(edge.target),
+          );
 
-          navigator.clipboard
-            .writeText(selectedIdStrings)
-            .then(() => {
-              console.log('Copied IDs to clipboard:', selectedIdStrings);
-              showToast('노드 ID 복사됨');
-            })
-            .catch((err) => {
-              console.error('Failed to copy:', err);
-            });
-
-          return;
+          dataToCopy = {
+            nodes: selectedNodes,
+            edges: relatedEdges,
+          };
         } else {
           dataToCopy = { nodes, edges };
         }
