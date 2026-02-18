@@ -79,6 +79,26 @@ describe('RPC editing methods', () => {
     expect(patched.includes('id={"child"}')).toBe(true);
   });
 
+  it('node.create: sticker 타입을 허용하고 Sticky로 생성한다', async () => {
+    const filePath = await makeTempTsx(`export default function Sample(){ return <Canvas><Node id="root" /></Canvas>; }`);
+    const original = await readFile(filePath, 'utf-8');
+
+    const result = await methods['node.create']({
+      filePath,
+      node: { id: 'st-1', type: 'sticker', props: { x: 12, y: 34, text: 'S', anchor: 'root', position: 'right' } },
+      baseVersion: sha(original),
+      originId: 'client-1',
+      commandId: 'cmd-2b',
+    }, { ws: {}, subscriptions: new Set() }) as { success: boolean };
+
+    expect(result.success).toBe(true);
+    const patched = await readFile(filePath, 'utf-8');
+    expect(patched.includes('<Sticky')).toBe(true);
+    expect(patched.includes('id={"st-1"}')).toBe(true);
+    expect(patched.includes('anchor={"root"}')).toBe(true);
+    expect(patched.includes('position={"right"}')).toBe(true);
+  });
+
   it('node.reparent: cycle이면 40902(MINDMAP_CYCLE)', async () => {
     const filePath = await makeTempTsx(`
       export default function Sample(){

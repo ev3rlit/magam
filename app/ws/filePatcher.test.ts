@@ -99,6 +99,28 @@ describe('filePatcher', () => {
     expect(patched.includes('hello')).toBe(true);
   });
 
+  it('create: sticker 타입은 Sticky JSX로 생성된다', async () => {
+    const filePath = await makeTempTsx(`
+      export default function Sample() {
+        return <Canvas><Node id="root" /></Canvas>;
+      }
+    `);
+
+    await patchNodeCreate(filePath, {
+      id: 's-new',
+      type: 'sticker',
+      props: { x: 10, y: 20, text: 'note', anchor: 'root', position: 'right', gap: 16 },
+    });
+
+    const patched = await readFile(filePath, 'utf-8');
+    expect(patched.includes('<Sticky')).toBe(true);
+    expect(patched.includes('id={"s-new"}')).toBe(true);
+    expect(patched.includes('text={"note"}')).toBe(true);
+    expect(patched.includes('anchor={"root"}')).toBe(true);
+    expect(patched.includes('position={"right"}')).toBe(true);
+    expect(patched.includes('gap={16}')).toBe(true);
+  });
+
   it('reparent: 부모 변경 성공', async () => {
     const filePath = await makeTempTsx(`
       export default function Sample() {

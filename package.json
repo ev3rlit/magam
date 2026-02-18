@@ -12,6 +12,7 @@
     "ws:dev": "bun run app/ws/server.ts",
     "build": "bun run --filter '*' build",
     "test": "bun test",
+    "test:pdf-golden": "bun test app/utils/pdfGolden.test.ts",
     "test:e2e": "playwright test",
     "chat:smoke": "bun run scripts/chat-smoke.ts",
     "db:generate": "drizzle-kit generate",

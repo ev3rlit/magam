@@ -25,7 +25,7 @@ export interface NodeProps {
 
 export interface CreateNodeInput {
     id: string;
-    type: 'shape' | 'text' | 'markdown' | 'mindmap';
+    type: 'shape' | 'text' | 'markdown' | 'mindmap' | 'sticker';
     props?: Record<string, unknown>;
 }
 
@@ -121,7 +121,11 @@ function toJsxChildren(type: CreateNodeInput['type'], props: Record<string, unkn
 }
 
 function buildNodeElement(input: CreateNodeInput): t.JSXElement {
-    const tag = input.type === 'mindmap' ? 'MindMap' : 'Node';
+    const tag = input.type === 'mindmap'
+        ? 'MindMap'
+        : input.type === 'sticker'
+            ? 'Sticky'
+            : 'Node';
     const props = { ...(input.props || {}), id: input.id };
     const attrs = Object.entries(props)
         .filter(([key, value]) => key !== 'content' && value !== undefined && value !== null)
