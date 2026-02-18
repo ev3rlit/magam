@@ -313,11 +313,6 @@ export default function Home() {
     [activeTabId, openTabs],
   );
 
-  const selectedSingleNode = useMemo(() => {
-    if (selectedNodeIds.length !== 1) return null;
-    return nodes.find((node) => node.id === selectedNodeIds[0]) ?? null;
-  }, [nodes, selectedNodeIds]);
-
   const pendingCloseTabInfos = useMemo(() => {
     if (!pendingCloseRequest) return null;
     const tabsToClose = openTabs.filter((tab) =>
@@ -1001,20 +996,6 @@ export default function Home() {
           <ErrorOverlay />
           <SearchOverlay />
           <GraphCanvas onNodeDragStop={moveNode} />
-          <IconPickerPanel
-            isOpen={
-              !!selectedSingleNode &&
-              iconPickerDismissedNodeId !== selectedSingleNode.id
-            }
-            selectedNodeId={selectedSingleNode?.id ?? null}
-            currentIconName={selectedNodeIcon}
-            onApplyIcon={applyNodeIcon}
-            onClearIcon={clearNodeIcon}
-            onClose={() => {
-              if (!selectedSingleNode) return;
-              setIconPickerDismissedNodeId(selectedSingleNode.id);
-            }}
-          />
         </main>
 
         <Footer />
