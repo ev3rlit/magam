@@ -1,6 +1,7 @@
 import * as http from 'http';
 import * as path from 'path';
 import * as fs from 'fs';
+import { createHash } from 'crypto';
 import glob from 'fast-glob';
 import { transpile } from '../core/transpiler';
 import { execute } from '../core/executor';
@@ -137,10 +138,16 @@ async function handleRender(req: http.IncomingMessage, res: http.ServerResponse,
     const result = await execute(transpiled);
 
     if (result.isOk()) {
-      const graph = result.value;
+      const graph = result.value as RenderLikeNode;
+      for (const child of graph.children ?? []) {
+        injectSourceMeta(child);
+      }
+
+      const fileContents = fs.readFileSync(absolutePath, 'utf-8');
+      const sourceVersion = `sha256:${createHash('sha256').update(fileContents).digest('hex')}`;
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ graph }));
+      res.end(JSON.stringify({ graph, sourceVersion }));
     } else {
       console.error('[HttpServer] Execution failed:', result.error);
       res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -158,6 +165,40 @@ async function handleRender(req: http.IncomingMessage, res: http.ServerResponse,
       type: 'RENDER_ERROR',
       details: error.stack
     }));
+  }
+}
+
+type RenderLikeNode = {
+  type: string;
+  props?: Record<string, any>;
+  children?: RenderLikeNode[];
+};
+
+function injectSourceMeta(node: RenderLikeNode, mindmapScopeId?: string): void {
+  if (!node || !node.props) return;
+
+  const isMindmap = node.type === 'graph-mindmap';
+  const nextScopeId = isMindmap ? (node.props.id as string | undefined) : mindmapScopeId;
+
+  const isRenderableNode =
+    node.type === 'graph-node' ||
+    node.type === 'graph-sticky' ||
+    node.type === 'graph-shape' ||
+    node.type === 'graph-text' ||
+    node.type === 'graph-image' ||
+    node.type === 'graph-sequence';
+
+  if (isRenderableNode) {
+    const sourceId = (node.props.id as string | undefined) ?? '';
+    node.props.sourceMeta = {
+      sourceId,
+      kind: nextScopeId ? 'mindmap' : 'canvas',
+      ...(nextScopeId ? { scopeId: nextScopeId } : {}),
+    };
+  }
+
+  for (const child of node.children ?? []) {
+    injectSourceMeta(child, nextScopeId);
   }
 }
 

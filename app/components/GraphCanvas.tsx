@@ -31,7 +31,11 @@ import { useContextMenu } from '@/hooks/useContextMenu';
 import { ExportDialog } from './ExportDialog';
 import { CustomBackground } from './CustomBackground';
 
-function GraphCanvasContent() {
+type GraphCanvasProps = {
+  onNodeDragStop?: (nodeId: string, x: number, y: number) => Promise<void> | void;
+};
+
+function GraphCanvasContent({ onNodeDragStop }: GraphCanvasProps) {
   const nodeTypes = useMemo(
     () => ({
       sticky: StickyNode,
@@ -83,6 +87,7 @@ function GraphCanvasContent() {
   const [interactionMode, setInteractionMode] = useState<InteractionMode>('pointer');
   const hasLayouted = useRef(false);
   const lastLayoutedGraphId = useRef<string | null>(null);
+  const dragOriginPositions = useRef<Map<string, { x: number; y: number }>>(new Map());
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -255,6 +260,38 @@ function GraphCanvasContent() {
     [setSelectedNodes],
   );
 
+  const onHandleNodeDragStart = useCallback(
+    (_event: React.MouseEvent, node: FlowNode) => {
+      dragOriginPositions.current.set(node.id, { x: node.position.x, y: node.position.y });
+    },
+    [],
+  );
+
+  const onHandleNodeDragStop = useCallback(
+    async (_event: React.MouseEvent, node: FlowNode) => {
+      if (!onNodeDragStop) return;
+
+      try {
+        await onNodeDragStop(node.id, node.position.x, node.position.y);
+      } catch (error) {
+        const original = dragOriginPositions.current.get(node.id);
+        if (original) {
+          setNodes((prev) => prev.map((n) => (n.id === node.id ? { ...n, position: original } : n)));
+        }
+
+        const code = (error as { code?: number })?.code;
+        if (code === 40901) {
+          showToast('외부 수정 감지: 최신 상태로 다시 동기화합니다.');
+        } else {
+          showToast('편집 실패: 이전 상태로 롤백되었습니다.');
+        }
+      } finally {
+        dragOriginPositions.current.delete(node.id);
+      }
+    },
+    [onNodeDragStop, setNodes],
+  );
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
@@ -330,12 +367,14 @@ function GraphCanvasContent() {
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
+          onNodeDragStart={onHandleNodeDragStart}
+          onNodeDragStop={onHandleNodeDragStop}
           onNodeContextMenu={onNodeContextMenu}
           onPaneContextMenu={onPaneContextMenu}
           onSelectionChange={onSelectionChange}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
-          nodesDraggable={false}
+          nodesDraggable={true}
           nodesConnectable={false}
           zoomOnScroll={true}
           panOnScroll={true}
@@ -407,14 +446,14 @@ function GraphCanvasContent() {
   );
 }
 
-export function GraphCanvas() {
+export function GraphCanvas({ onNodeDragStop }: GraphCanvasProps) {
   return (
     <div className="w-full h-full min-h-[500px] flex-1 relative">
       <ReactFlowProvider>
         <NavigationProvider>
           <ZoomProvider>
             <BubbleProvider>
-              <GraphCanvasContent />
+              <GraphCanvasContent onNodeDragStop={onNodeDragStop} />
             </BubbleProvider>
           </ZoomProvider>
         </NavigationProvider>
