@@ -409,18 +409,8 @@ export function resolveAnchors(nodes: Node[]): Node[] {
             return node;
         }
 
-        // Case 2: Has anchor but also has explicit non-zero coordinates - keep them
-        if (node.position.x !== 0 || node.position.y !== 0) {
-            resolvedPositions.set(node.id, {
-                x: node.position.x,
-                y: node.position.y,
-                width,
-                height,
-            });
-            return node;
-        }
-
-        // If anchor is specified, calculate position
+        // If anchor is specified, always derive the position from current anchor geometry.
+        // This keeps relative placement stable when the anchor target moves between layouts.
         if (anchor && position) {
             const anchorRect = resolvedPositions.get(anchor);
 
