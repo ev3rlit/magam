@@ -16,9 +16,11 @@ import { TabBar } from '@/components/ui/TabBar';
 import { QuickOpenDialog } from '@/components/ui/QuickOpenDialog';
 import { ErrorOverlay } from '@/components/ui/ErrorOverlay';
 import { SearchOverlay } from '@/components/ui/SearchOverlay';
+import { StickerInspector } from '@/components/ui/StickerInspector';
 import { ChatPanel } from '@/components/chat/ChatPanel';
 import { useChatStore } from '@/store/chat';
 import { TabState, useGraphStore } from '@/store/graph';
+import { normalizeStickerData } from '@/utils/stickerDefaults';
 import { extractNodeContent } from '@/utils/nodeContent';
 
 interface RenderNode {
@@ -68,6 +70,17 @@ interface RenderNode {
     // MindMap container specific
     layout?: 'tree' | 'bidirectional' | 'radial';
     spacing?: number;
+    // Sticker specific
+    kind?: 'image' | 'text' | 'emoji';
+    outlineWidth?: number;
+    outlineColor?: string;
+    shadow?: 'none' | 'sm' | 'md' | 'lg';
+    bgColor?: string;
+    textColor?: string;
+    fontWeight?: number;
+    padding?: number;
+    emoji?: string;
+    rotation?: number;
     // Semantic zoom
     bubble?: boolean;
     // Sequence diagram specific
@@ -813,6 +826,39 @@ export default function Home() {
                     },
                   },
                 });
+              } else if (child.type === 'graph-sticker') {
+                const rawStickerId = child.props.id || `sticker-${nodeIdCounter++}`;
+                const stickerId = resolveNodeId(rawStickerId, mindmapId);
+                const normalized = normalizeStickerData(child.props);
+                nodes.push({
+                  id: stickerId,
+                  type: 'sticker',
+                  position: { x: child.props.x || 0, y: child.props.y || 0 },
+                  data: {
+                    kind: normalized.kind,
+                    src: child.props.src,
+                    alt: child.props.alt,
+                    text: child.props.text,
+                    emoji: child.props.emoji,
+                    width: child.props.width,
+                    height: child.props.height,
+                    rotation: child.props.rotation,
+                    outlineWidth: normalized.outlineWidth,
+                    outlineColor: normalized.outlineColor,
+                    shadow: normalized.shadow,
+                    bgColor: normalized.bgColor,
+                    textColor: normalized.textColor,
+                    fontSize: normalized.fontSize,
+                    fontWeight: normalized.fontWeight,
+                    padding: normalized.padding,
+
+                    // Anchor positioning props
+                    anchor: child.props.anchor,
+                    position: child.props.position,
+                    gap: child.props.gap,
+                    align: child.props.align,
+                  },
+                });
               } else {
                 // It's a Node (Sticky, Shape, Text)
                 const nodeId = child.props.id || `node-${nodeIdCounter++}`;
@@ -996,6 +1042,7 @@ export default function Home() {
           <ErrorOverlay />
           <SearchOverlay />
           <GraphCanvas onNodeDragStop={moveNode} />
+          <StickerInspector />
         </main>
 
         <Footer />

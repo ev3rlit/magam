@@ -8,6 +8,7 @@ import { Edge } from '../components/Edge';
 import { Group } from '../components/Group';
 import { MindMap } from '../components/MindMap';
 import { Node } from '../components/Node';
+import { Sticker } from '../components/Sticker';
 import { EmbedScope } from '../components/EmbedScope';
 
 async function render(element: React.ReactNode) {
@@ -256,5 +257,23 @@ describe('EmbedScope', () => {
     const lb = children.find((c: any) => c.props.id === 'auth.lb');
     // "external" → "auth.external" does NOT exist → kept as-is
     expect(lb.props.anchor).toBe('external');
+  });
+
+  it('should scope Sticker ID and resolve Sticker anchor in scope', async () => {
+    const element = (
+      <canvas>
+        <EmbedScope id="auth">
+          <Shape id="target" x={0} y={0} width={100} height={50} />
+          <Sticker id="badge" kind="emoji" emoji="✅" anchor="target" position="right" gap={16} />
+        </EmbedScope>
+      </canvas>
+    );
+
+    const result = await render(element);
+    const children = result.children[0].children;
+    const sticker = children.find((c: any) => c.type === 'graph-sticker');
+
+    expect(sticker.props.id).toBe('auth.badge');
+    expect(sticker.props.anchor).toBe('auth.target');
   });
 });

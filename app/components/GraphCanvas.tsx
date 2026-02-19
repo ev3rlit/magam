@@ -14,6 +14,7 @@ import StickyNode from './nodes/StickyNode';
 import ShapeNode from './nodes/ShapeNode';
 import TextNode from './nodes/TextNode';
 import ImageNode from './nodes/ImageNode';
+import StickerNode from './nodes/StickerNode';
 import MarkdownNode from './nodes/MarkdownNode';
 import SequenceDiagramNode from './nodes/SequenceDiagramNode';
 import FloatingEdge from './edges/FloatingEdge';
@@ -30,6 +31,13 @@ import { ContextMenu } from './ContextMenu';
 import { useContextMenu } from '@/hooks/useContextMenu';
 import { ExportDialog } from './ExportDialog';
 import { CustomBackground } from './CustomBackground';
+import {
+  applyGraphSnapshot,
+  createPastedGraphState,
+  isGraphClipboardPayload,
+  snapshotGraphState,
+  type GraphSnapshot,
+} from '@/utils/clipboardGraph';
 
 type GraphCanvasProps = {
   onNodeDragStop?: (nodeId: string, x: number, y: number) => Promise<void> | void;
@@ -42,6 +50,7 @@ function GraphCanvasContent({ onNodeDragStop }: GraphCanvasProps) {
       shape: ShapeNode,
       text: TextNode,
       image: ImageNode,
+      sticker: StickerNode,
       markdown: MarkdownNode,
       'sequence-diagram': SequenceDiagramNode,
     }),
@@ -87,6 +96,10 @@ function GraphCanvasContent({ onNodeDragStop }: GraphCanvasProps) {
   const [interactionMode, setInteractionMode] = useState<InteractionMode>('pointer');
   const hasLayouted = useRef(false);
   const lastLayoutedGraphId = useRef<string | null>(null);
+  const clipboardHistory = useRef<{ past: GraphSnapshot[]; future: GraphSnapshot[] }>({
+    past: [],
+    future: [],
+  });
   const dragOriginPositions = useRef<Map<string, { x: number; y: number }>>(new Map());
 
   const showToast = (message: string) => {
@@ -293,36 +306,47 @@ function GraphCanvasContent({ onNodeDragStop }: GraphCanvasProps) {
   );
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
-        if (
-          document.activeElement instanceof HTMLInputElement ||
-          document.activeElement instanceof HTMLTextAreaElement ||
-          (document.activeElement as HTMLElement)?.isContentEditable
-        ) {
-          return;
-        }
+    const isTextInputFocused = () => (
+      document.activeElement instanceof HTMLInputElement
+      || document.activeElement instanceof HTMLTextAreaElement
+      || (document.activeElement as HTMLElement)?.isContentEditable
+    );
 
+    const pushHistory = (snapshot: GraphSnapshot) => {
+      const history = clipboardHistory.current;
+      history.past.push(snapshot);
+      if (history.past.length > 50) {
+        history.past.shift();
+      }
+      history.future = [];
+    };
+
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      if (isTextInputFocused()) return;
+
+      const isCopy = (e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'c';
+      const isPaste = (e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'v';
+      const isUndo = (e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'z';
+      const isRedo = (e.metaKey || e.ctrlKey)
+        && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'));
+
+      if (isCopy) {
         e.preventDefault();
 
         const { nodes, edges, selectedNodeIds } = useGraphStore.getState();
         let dataToCopy;
 
         if (selectedNodeIds.length > 0) {
-          // Copy Logic Changed: Copy "mindmap.{nodeId}" to clipboard
-          const selectedIdStrings = selectedNodeIds.map(id => `mindmap.${id}`).join('\n');
+          const selectedNodeIdSet = new Set(selectedNodeIds);
+          const selectedNodes = nodes.filter((node) => selectedNodeIdSet.has(node.id));
+          const relatedEdges = edges.filter(
+            (edge) => selectedNodeIdSet.has(edge.source) && selectedNodeIdSet.has(edge.target),
+          );
 
-          navigator.clipboard
-            .writeText(selectedIdStrings)
-            .then(() => {
-              console.log('Copied IDs to clipboard:', selectedIdStrings);
-              showToast('노드 ID 복사됨');
-            })
-            .catch((err) => {
-              console.error('Failed to copy:', err);
-            });
-
-          return;
+          dataToCopy = {
+            nodes: selectedNodes,
+            edges: relatedEdges,
+          };
         } else {
           dataToCopy = { nodes, edges };
         }
@@ -336,6 +360,56 @@ function GraphCanvasContent({ onNodeDragStop }: GraphCanvasProps) {
           .catch((err) => {
             console.error('Failed to copy:', err);
           });
+        return;
+      }
+
+      if (isPaste) {
+        if (typeof navigator.clipboard?.readText !== 'function') return;
+        e.preventDefault();
+
+        try {
+          const text = await navigator.clipboard.readText();
+          const parsed = JSON.parse(text);
+          if (!isGraphClipboardPayload(parsed)) return;
+
+          const { nodes, edges } = useGraphStore.getState();
+          pushHistory(snapshotGraphState(nodes, edges));
+
+          const next = createPastedGraphState(parsed, nodes, edges);
+          useGraphStore.setState({
+            nodes: next.nodes,
+            edges: next.edges,
+            selectedNodeIds: next.selectedNodeIds,
+          });
+        } catch (error) {
+          console.debug('Paste skipped: invalid clipboard graph payload', error);
+        }
+        return;
+      }
+
+      if (isUndo) {
+        const history = clipboardHistory.current;
+        const previous = history.past.pop();
+        if (!previous) return;
+
+        e.preventDefault();
+        const { nodes, edges } = useGraphStore.getState();
+        history.future.push(snapshotGraphState(nodes, edges));
+        const restored = applyGraphSnapshot(previous);
+        useGraphStore.setState(restored);
+        return;
+      }
+
+      if (isRedo) {
+        const history = clipboardHistory.current;
+        const nextSnapshot = history.future.pop();
+        if (!nextSnapshot) return;
+
+        e.preventDefault();
+        const { nodes, edges } = useGraphStore.getState();
+        history.past.push(snapshotGraphState(nodes, edges));
+        const restored = applyGraphSnapshot(nextSnapshot);
+        useGraphStore.setState(restored);
       }
     };
 

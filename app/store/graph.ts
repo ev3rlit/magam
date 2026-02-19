@@ -122,6 +122,7 @@ export interface GraphState {
   setStatus: (status: GraphState['status']) => void;
   setError: (error: AppError | null) => void;
   setSelectedNodes: (selectedNodeIds: string[]) => void;
+  updateNodeData: (nodeId: string, partialData: Record<string, unknown>) => void;
   canvasBackground: CanvasBackgroundStyle;
   setCanvasBackground: (style: CanvasBackgroundStyle) => void;
   onNodesChange: OnNodesChange;
@@ -206,6 +207,20 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   setError: (error) => set({ error }),
   setCanvasBackground: (canvasBackground) => set({ canvasBackground }),
   setSelectedNodes: (selectedNodeIds) => set({ selectedNodeIds }),
+  updateNodeData: (nodeId, partialData) => set((state) => ({
+    nodes: state.nodes.map((node) => {
+      if (node.id !== nodeId) {
+        return node;
+      }
+      return {
+        ...node,
+        data: {
+          ...(node.data || {}),
+          ...partialData,
+        },
+      };
+    }),
+  })),
   onNodesChange: (changes) => {
     set({
       nodes: applyNodeChanges(changes, get().nodes),

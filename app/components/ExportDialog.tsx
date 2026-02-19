@@ -52,8 +52,8 @@ function FormatSelector({ value, onChange }: FormatSelectorProps) {
   return (
     <div className="space-y-2">
       <p className="text-sm text-slate-600 dark:text-slate-300">파일 유형</p>
-      <div className="grid grid-cols-3 gap-2">
-        {(['png', 'jpg', 'svg'] as const).map((format) => (
+      <div className="grid grid-cols-4 gap-2">
+        {(['png', 'jpg', 'svg', 'pdf'] as const).map((format) => (
           <button
             type="button"
             key={format}
