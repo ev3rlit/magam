@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useMemo } from 'react';
+import React, { isValidElement, memo, useCallback, useMemo } from 'react';
 import { NodeProps } from 'reactflow';
 import ReactMarkdown from 'react-markdown';
 import { twMerge } from 'tailwind-merge';
@@ -34,7 +34,25 @@ const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
     }, [navigateToNode]);
 
     const components = useMemo(() => ({
-        pre: ({ children }: any) => <>{children}</>,
+        pre: ({ children }: any) => {
+            const codeChild = Array.isArray(children) ? children[0] : children;
+            if (!isValidElement(codeChild)) {
+                return <>{children}</>;
+            }
+
+            const codeProps = (codeChild as React.ReactElement<{ className?: string; children?: React.ReactNode }>).props;
+            const className = codeProps?.className ?? '';
+            const match = /language-(\w+)/.exec(className);
+            const value = React.Children.toArray(codeProps?.children).join('').replace(/\n$/, '');
+
+            return (
+                <CodeBlock
+                    language={match?.[1] ?? ''}
+                    value={value}
+                    className="not-prose"
+                />
+            );
+        },
         a: ({ node, href, children, ...props }: any) => {
             const actualHref = href || (node as any)?.properties?.href || '';
             const isNodeLink = actualHref?.startsWith('node:');
@@ -55,17 +73,8 @@ const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
                 </a>
             );
         },
-        code: ({ node, className, children, ...props }: any) => {
-            const match = /language-(\w+)/.exec(className || '');
-            const { inline } = props;
-
-            return !inline ? (
-                <CodeBlock
-                    language={match?.[1] ?? ''}
-                    value={String(children).replace(/\n$/, '')}
-                    className="not-prose"
-                />
-            ) : (
+        code: ({ children, ...props }: any) => {
+            return (
                 <code className="bg-slate-100 rounded px-1.5 py-0.5 text-[0.9em] font-mono text-pink-600 border border-slate-200" {...props}>
                     {children}
                 </code>
