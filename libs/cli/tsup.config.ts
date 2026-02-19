@@ -11,5 +11,8 @@ export default defineConfig({
     'react',
     'esbuild',
     '@modelcontextprotocol/sdk',
+    'drizzle-orm',
+    'drizzle-orm/*',
+    'bun:sqlite',
   ],
 });

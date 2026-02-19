@@ -1,24 +1,24 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-const {
-  mockGlob,
-  mockTranspile,
-  mockExecute,
-  mockExistsSync,
-  mockReadFileSync,
-  mockChatGetProviders,
-  mockChatSend,
-  mockChatStop,
-} = vi.hoisted(() => ({
-  mockGlob: vi.fn(),
-  mockTranspile: vi.fn(),
-  mockExecute: vi.fn(),
-  mockExistsSync: vi.fn(),
-  mockReadFileSync: vi.fn(),
-  mockChatGetProviders: vi.fn(),
-  mockChatSend: vi.fn(),
-  mockChatStop: vi.fn(),
-}));
+const mockGlob = vi.fn();
+const mockTranspile = vi.fn();
+const mockExecute = vi.fn();
+const mockExistsSync = vi.fn();
+const mockReadFileSync = vi.fn();
+const mockChatGetProviders = vi.fn();
+const mockChatSend = vi.fn();
+const mockChatStop = vi.fn();
+const mockChatListSessions = vi.fn();
+const mockChatGetSession = vi.fn();
+const mockChatCreateSession = vi.fn();
+const mockChatUpdateSession = vi.fn();
+const mockChatDeleteSession = vi.fn();
+const mockChatListMessages = vi.fn();
+const mockChatListGroups = vi.fn();
+const mockChatCreateGroup = vi.fn();
+const mockChatUpdateGroup = vi.fn();
+const mockChatDeleteGroup = vi.fn();
+const mockChatAppendSystemMessage = vi.fn();
 
 // Mock fast-glob
 vi.mock('fast-glob', () => ({
@@ -44,6 +44,39 @@ vi.mock('../chat/handler', () => ({
     constructor(_config: unknown) {}
     getProviders() {
       return mockChatGetProviders();
+    }
+    listSessions(query: unknown) {
+      return mockChatListSessions(query);
+    }
+    getSession(sessionId: string) {
+      return mockChatGetSession(sessionId);
+    }
+    createSession(input: unknown) {
+      return mockChatCreateSession(input);
+    }
+    updateSession(sessionId: string, patch: unknown) {
+      return mockChatUpdateSession(sessionId, patch);
+    }
+    deleteSession(sessionId: string) {
+      return mockChatDeleteSession(sessionId);
+    }
+    listMessages(sessionId: string, cursor?: string, limit?: number) {
+      return mockChatListMessages(sessionId, cursor, limit);
+    }
+    listGroups() {
+      return mockChatListGroups();
+    }
+    createGroup(input: unknown) {
+      return mockChatCreateGroup(input);
+    }
+    updateGroup(groupId: string, patch: unknown) {
+      return mockChatUpdateGroup(groupId, patch);
+    }
+    deleteGroup(groupId: string) {
+      return mockChatDeleteGroup(groupId);
+    }
+    appendSystemMessage(sessionId: string, content: string, metadata?: Record<string, unknown>) {
+      return mockChatAppendSystemMessage(sessionId, content, metadata);
     }
     send(request: unknown) {
       return mockChatSend(request);
@@ -90,6 +123,18 @@ describe('HTTP Render Server', () => {
     });
 
     mockChatStop.mockImplementation(() => ({ stopped: false }));
+    mockReadFileSync.mockReturnValue('export default function Test() { return null; }');
+    mockChatListSessions.mockResolvedValue([]);
+    mockChatGetSession.mockResolvedValue(undefined);
+    mockChatCreateSession.mockResolvedValue({ id: 's-new', providerId: 'claude', title: 'New Chat', createdAt: Date.now(), updatedAt: Date.now(), groupId: null, archivedAt: null });
+    mockChatUpdateSession.mockResolvedValue({ id: 's-new', providerId: 'claude', title: 'Updated', createdAt: Date.now(), updatedAt: Date.now(), groupId: null, archivedAt: null });
+    mockChatDeleteSession.mockResolvedValue(true);
+    mockChatListMessages.mockResolvedValue({ items: [], nextCursor: null });
+    mockChatListGroups.mockResolvedValue([]);
+    mockChatCreateGroup.mockResolvedValue({ id: 'g-new', name: 'G', sortOrder: 0, createdAt: Date.now(), updatedAt: Date.now(), color: null });
+    mockChatUpdateGroup.mockResolvedValue({ id: 'g-new', name: 'G2', sortOrder: 0, createdAt: Date.now(), updatedAt: Date.now(), color: null });
+    mockChatDeleteGroup.mockResolvedValue(true);
+    mockChatAppendSystemMessage.mockResolvedValue({ id: 'm1' });
 
     serverResult = await startHttpServer({ targetDir, port });
   });
@@ -171,7 +216,9 @@ describe('HTTP Render Server', () => {
       const body = await response.json();
 
       expect(response.status).toBe(200);
-      expect(body).toEqual({ graph: {} });
+      expect(body.graph).toEqual({});
+      expect(typeof body.sourceVersion).toBe('string');
+      expect(body.sourceVersion.startsWith('sha256:')).toBe(true);
       // expect valid args
       expect(mockTranspile).toHaveBeenCalledWith(expect.stringContaining('exists.tsx'));
       expect(mockExecute).toHaveBeenCalledWith('transpiled code');
@@ -411,6 +458,73 @@ describe('HTTP Render Server', () => {
       expect(streamText).toContain('"stopped":true');
       expect(streamText).toContain('"code":"ABORTED"');
       expect(streamText).not.toContain('event: error');
+    });
+  });
+
+  describe('Chat session/group APIs', () => {
+    it('lists sessions with filters', async () => {
+      mockChatListSessions.mockResolvedValueOnce([{ id: 's1', title: 'A' }]);
+      const response = await fetch(`${baseUrl}/chat/sessions?groupId=g1&q=abc&limit=20`);
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body.sessions).toHaveLength(1);
+      expect(mockChatListSessions).toHaveBeenCalledWith(
+        expect.objectContaining({ groupId: 'g1', q: 'abc', limit: 20 }),
+      );
+    });
+
+    it('creates and updates a session', async () => {
+      const createResponse = await fetch(`${baseUrl}/chat/sessions`, {
+        method: 'POST',
+        body: JSON.stringify({ providerId: 'claude', title: 'S' }),
+      });
+      expect(createResponse.status).toBe(201);
+
+      mockChatGetSession.mockResolvedValueOnce({ id: 's1', providerId: 'claude', title: 'S' });
+      mockChatUpdateSession.mockResolvedValueOnce({ id: 's1', providerId: 'codex', title: 'S2' });
+
+      const patchResponse = await fetch(`${baseUrl}/chat/sessions/s1`, {
+        method: 'PATCH',
+        body: JSON.stringify({ providerId: 'codex', title: 'S2' }),
+      });
+
+      expect(patchResponse.status).toBe(200);
+      expect(mockChatAppendSystemMessage).toHaveBeenCalled();
+    });
+
+    it('lists session messages with cursor', async () => {
+      mockChatListMessages.mockResolvedValueOnce({
+        items: [{ id: 'm1', content: 'hello' }],
+        nextCursor: '100:m1',
+      });
+
+      const response = await fetch(`${baseUrl}/chat/sessions/s1/messages?cursor=1:m0&limit=10`);
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body.nextCursor).toBe('100:m1');
+      expect(mockChatListMessages).toHaveBeenCalledWith('s1', '1:m0', 10);
+    });
+
+    it('handles groups CRUD', async () => {
+      const listRes = await fetch(`${baseUrl}/chat/groups`);
+      expect(listRes.status).toBe(200);
+
+      const createRes = await fetch(`${baseUrl}/chat/groups`, {
+        method: 'POST',
+        body: JSON.stringify({ name: 'A' }),
+      });
+      expect(createRes.status).toBe(201);
+
+      const patchRes = await fetch(`${baseUrl}/chat/groups/g1`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name: 'A2' }),
+      });
+      expect(patchRes.status).toBe(200);
+
+      const delRes = await fetch(`${baseUrl}/chat/groups/g1`, { method: 'DELETE' });
+      expect(delRes.status).toBe(200);
     });
   });
 

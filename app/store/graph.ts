@@ -93,6 +93,9 @@ export interface GraphState {
   expandedFolders: Set<string>;
   currentFile: string | null;
   graphId: string; // Unique ID for the current graph data version
+  sourceVersion: string | null;
+  clientId: string;
+  lastAppliedCommandId?: string;
   status: 'idle' | 'loading' | 'error' | 'success' | 'connected';
   error: AppError | null;
   selectedNodeIds: string[];
@@ -109,7 +112,9 @@ export interface GraphState {
   activeResultIndex: number;
   highlightElementIds: string[];
   lastExecutedSearch?: SearchResult;
-  setGraph: (graph: { nodes: Node[]; edges: Edge[]; needsAutoLayout?: boolean; layoutType?: 'tree' | 'bidirectional' | 'radial'; mindMapGroups?: MindMapGroup[]; canvasBackground?: CanvasBackgroundStyle }) => void;
+  setGraph: (graph: { nodes: Node[]; edges: Edge[]; needsAutoLayout?: boolean; layoutType?: 'tree' | 'bidirectional' | 'radial'; mindMapGroups?: MindMapGroup[]; canvasBackground?: CanvasBackgroundStyle; sourceVersion?: string | null }) => void;
+  setSourceVersion: (version: string | null) => void;
+  setLastAppliedCommandId: (commandId?: string) => void;
   setFiles: (files: string[]) => void;
   setFileTree: (tree: FileTreeNode | null) => void;
   toggleFolder: (path: string) => void;
@@ -164,6 +169,9 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   expandedFolders: new Set<string>(),
   currentFile: null,
   graphId: uuidv4(),
+  sourceVersion: null,
+  clientId: uuidv4(),
+  lastAppliedCommandId: undefined,
   status: 'idle',
   error: null,
   selectedNodeIds: [],
@@ -180,7 +188,9 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   searchResults: [],
   activeResultIndex: -1,
   highlightElementIds: [],
-  setGraph: ({ nodes, edges, needsAutoLayout = false, layoutType = 'tree', mindMapGroups = [], canvasBackground }) => set({ nodes, edges, needsAutoLayout, layoutType, mindMapGroups, graphId: uuidv4(), ...(canvasBackground ? { canvasBackground } : {}) }),
+  setGraph: ({ nodes, edges, needsAutoLayout = false, layoutType = 'tree', mindMapGroups = [], canvasBackground, sourceVersion }) => set({ nodes, edges, needsAutoLayout, layoutType, mindMapGroups, graphId: uuidv4(), ...(canvasBackground ? { canvasBackground } : {}), ...(sourceVersion !== undefined ? { sourceVersion } : {}) }),
+  setSourceVersion: (sourceVersion) => set({ sourceVersion }),
+  setLastAppliedCommandId: (lastAppliedCommandId) => set({ lastAppliedCommandId }),
   setFiles: (files) => set({ files }),
   setFileTree: (fileTree) => set({ fileTree }),
   toggleFolder: (path) => set((state) => {

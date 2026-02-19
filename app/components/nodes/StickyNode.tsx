@@ -3,11 +3,14 @@ import { NodeProps } from 'reactflow';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { BaseNode } from './BaseNode';
+import type { RenderableChild } from '@/utils/childComposition';
+import { renderNodeContent } from './renderableContent';
 
 interface StickyNodeData {
   label: string;
   color?: string;
   className?: string; // Support custom Tailwind classes
+  children?: RenderableChild[];
 }
 
 const StickyNode = ({ data, selected }: NodeProps<StickyNodeData>) => {
@@ -29,9 +32,14 @@ const StickyNode = ({ data, selected }: NodeProps<StickyNodeData>) => {
       )}
     >
       <div className="w-full h-full flex items-center justify-center text-center break-words overflow-hidden pointer-events-none select-none">
-        <span className="text-base leading-relaxed font-medium text-slate-800">
-          {data.label}
-        </span>
+        <div className="flex items-center gap-2">
+          {renderNodeContent({
+            children: data.children,
+            fallbackLabel: data.label,
+            iconClassName: 'w-4 h-4 text-slate-600 shrink-0',
+            textClassName: 'text-base leading-relaxed font-medium text-slate-800',
+          })}
+        </div>
       </div>
     </BaseNode>
   );

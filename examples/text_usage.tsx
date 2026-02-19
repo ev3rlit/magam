@@ -16,11 +16,11 @@ export default function TextUsageExample() {
                 Styled with className
             </Text>
 
-            {/* ===== 2. Shape with label prop ===== */}
-            <Text id="section-2" x={50} y={170}>2. Shape with label prop</Text>
+            {/* ===== 2. Shape with text children ===== */}
+            <Text id="section-2" x={50} y={170}>2. Shape with text children</Text>
 
-            <Shape id="label-1" x={50} y={210} label="Using label prop" />
-            <Shape id="label-2" x={250} y={210} label="Multi-line\nWith \\n" />
+            <Shape id="label-1" x={50} y={210}>Using text child</Shape>
+            <Shape id="label-2" x={250} y={210}>{`Multi-line\nWith \\n`}</Shape>
 
             {/* ===== 3. Shape with plain text child ===== */}
             <Text id="section-3" x={50} y={330}>3. Shape with plain text child</Text>

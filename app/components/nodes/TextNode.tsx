@@ -2,6 +2,8 @@ import React, { memo } from 'react';
 import { NodeProps } from 'reactflow';
 import { twMerge } from 'tailwind-merge';
 import { BaseNode } from './BaseNode';
+import type { RenderableChild } from '@/utils/childComposition';
+import { renderNodeContent } from './renderableContent';
 
 interface TextNodeData {
     label: string;
@@ -10,6 +12,7 @@ interface TextNodeData {
     bold?: boolean;
     italic?: boolean;
     className?: string;
+    children?: RenderableChild[];
 }
 
 const TextNode = ({ data, selected }: NodeProps<TextNodeData>) => {
@@ -22,7 +25,7 @@ const TextNode = ({ data, selected }: NodeProps<TextNodeData>) => {
             )}
         >
             <div
-                className="text-center whitespace-pre-wrap leading-tight"
+                className="flex items-center justify-center gap-2 whitespace-pre-wrap leading-tight"
                 style={{
                     fontSize: data.fontSize || 16,
                     color: data.color || '#374151', // text-gray-700
@@ -30,7 +33,12 @@ const TextNode = ({ data, selected }: NodeProps<TextNodeData>) => {
                     fontStyle: data.italic ? 'italic' : 'normal',
                 }}
             >
-                {data.label || 'Text'}
+                {renderNodeContent({
+                    children: data.children,
+                    fallbackLabel: data.label || 'Text',
+                    iconClassName: 'w-4 h-4 shrink-0',
+                    textClassName: 'whitespace-pre-wrap leading-tight',
+                })}
             </div>
         </BaseNode>
     );

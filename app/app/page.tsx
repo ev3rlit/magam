@@ -21,6 +21,7 @@ import { ChatPanel } from '@/components/chat/ChatPanel';
 import { useChatStore } from '@/store/chat';
 import { TabState, useGraphStore } from '@/store/graph';
 import { normalizeStickerData } from '@/utils/stickerDefaults';
+import { extractNodeContent } from '@/utils/nodeContent';
 
 interface RenderNode {
   type: string;
@@ -85,6 +86,11 @@ interface RenderNode {
     // Sequence diagram specific
     participantSpacing?: number;
     messageSpacing?: number;
+    sourceMeta?: {
+      sourceId: string;
+      kind: 'canvas' | 'mindmap';
+      scopeId?: string;
+    };
     children?: any; // Keep children loosely typed for now as it can be strings/numbers/arrays
   };
   children?: RenderNode[];
@@ -122,6 +128,8 @@ export default function Home() {
     setGraph,
     currentFile,
     files,
+    nodes,
+    selectedNodeIds,
     openTabs,
     activeTabId,
     openTab,
@@ -184,7 +192,7 @@ export default function Home() {
   }, [setFiles]);
 
   // File sync with reload callback for file list changes
-  const { updateNode } = useFileSync(currentFile, handleFileChange, loadFiles);
+  const { updateNode, moveNode } = useFileSync(currentFile, handleFileChange, loadFiles);
 
   // Initial file load
   useEffect(() => {
@@ -695,6 +703,10 @@ export default function Home() {
                     anchor: child.props.anchor,
                     position: child.props.position,
                     gap: child.props.gap,
+                    sourceMeta: child.props.sourceMeta || {
+                      sourceId: seqId,
+                      kind: 'canvas',
+                    },
                   },
                 });
               } else if (child.type === 'graph-node') {
@@ -721,31 +733,22 @@ export default function Home() {
                   });
                 }
 
-                // Extract content from children
-                const contentChildren: any[] = [];
                 const rendererChildren = child.children || [];
+                const { label: baseLabel, parsedChildren } = extractNodeContent(
+                  rendererChildren,
+                  child.props.children,
+                  { textJoiner: '\n' },
+                );
+
+                const textChildren = baseLabel
+                  ? [{ type: 'text' as const, text: baseLabel }]
+                  : [];
 
                 // Track bubble from children (Markdown may have bubble prop)
                 let childBubble = false;
 
                 rendererChildren.forEach((grandChild: RenderNode) => {
-                  if (grandChild.type === 'text') {
-                    contentChildren.push(grandChild.props.text);
-                  } else if (grandChild.type === 'graph-text') {
-                    // Also handle graph-text children
-                    const textContent = grandChild.children?.find(
-                      (c: any) => c.type === 'text',
-                    );
-                    if (textContent) {
-                      contentChildren.push(textContent.props.text);
-                    } else if (grandChild.props.children) {
-                      contentChildren.push(grandChild.props.children);
-                    }
-                  } else if (grandChild.type === 'graph-markdown') {
-                    // Handle graph-markdown children - extract content prop
-                    if (grandChild.props.content) {
-                      contentChildren.push(grandChild.props.content);
-                    }
+                  if (grandChild.type === 'graph-markdown') {
                     // Extract bubble from Markdown child
                     if (grandChild.props.bubble) {
                       childBubble = true;
@@ -755,31 +758,13 @@ export default function Home() {
                     const imageAlt = grandChild.props.alt || '';
                     if (imageSrc) {
                       const markdownToken = `![${imageAlt}](${imageSrc})`;
-                      contentChildren.push(markdownToken);
+                      textChildren.push({ type: 'text', text: markdownToken });
                     }
                   }
                 });
 
-                // Fallback to props.children
-                if (rendererChildren.length === 0 && child.props.children) {
-                  const propsChildren = Array.isArray(child.props.children)
-                    ? child.props.children
-                    : [child.props.children];
-                  propsChildren.forEach((c: any) => {
-                    if (typeof c === 'string' || typeof c === 'number') {
-                      contentChildren.push(c);
-                    }
-                  });
-                }
-
                 const safeLabel =
-                  contentChildren
-                    .map((c) =>
-                      typeof c === 'string' || typeof c === 'number'
-                        ? String(c)
-                        : '',
-                    )
-                    .join('\n') ||
+                  textChildren.map((content) => content.text).join('\n') ||
                   child.props.label ||
                   '';
 
@@ -803,6 +788,11 @@ export default function Home() {
                     color: child.props.color || child.props.bg,
                     className: child.props.className, // Tailwind support
                     groupId: mindmapId, // For multi-MindMap layout grouping
+                    sourceMeta: child.props.sourceMeta || {
+                      sourceId: nodeId,
+                      kind: mindmapId ? 'mindmap' : 'canvas',
+                      scopeId: mindmapId,
+                    },
 
                     // Rich text props
                     fontSize: child.props.fontSize,
@@ -813,6 +803,7 @@ export default function Home() {
                     labelBold: child.props.labelBold || child.props.bold,
                     fill: child.props.fill,
                     stroke: child.props.stroke,
+                    children: parsedChildren,
                     // Semantic zoom bubble (from Node or child Markdown)
                     bubble: nodeBubble,
                   },
@@ -829,6 +820,10 @@ export default function Home() {
                     width: child.props.width,
                     height: child.props.height,
                     fit: child.props.fit,
+                    sourceMeta: child.props.sourceMeta || {
+                      sourceId: imageId,
+                      kind: 'canvas',
+                    },
                   },
                 });
               } else if (child.type === 'graph-sticker') {
@@ -869,44 +864,23 @@ export default function Home() {
                 const nodeId = child.props.id || `node-${nodeIdCounter++}`;
 
                 // Separate node content from nested edges
-                const contentChildren: any[] = [];
                 const nestedEdges: RenderNode[] = [];
                 const ports: any[] = [];
 
                 // Check render output children first (from renderer.ts)
                 const rendererChildren = child.children || [];
+                const {
+                  label: parsedLabel,
+                  parsedChildren,
+                } = extractNodeContent(rendererChildren, child.props.children);
 
                 rendererChildren.forEach((grandChild: RenderNode) => {
                   if (grandChild.type === 'graph-edge') {
                     nestedEdges.push(grandChild);
                   } else if (grandChild.type === 'graph-port') {
                     ports.push(grandChild.props);
-                  } else if (grandChild.type === 'text') {
-                    // Extract text from text node
-                    contentChildren.push(grandChild.props.text);
-                  } else if (grandChild.type === 'graph-markdown') {
-                    // Handle graph-markdown children - extract content prop
-                    if (grandChild.props.content) {
-                      contentChildren.push(grandChild.props.content);
-                    }
-                  } else {
-                    // Other content
-                    contentChildren.push(grandChild);
                   }
                 });
-
-                // Fallback: if no renderer children found, try props.children (e.g. simple string)
-                if (rendererChildren.length === 0 && child.props.children) {
-                  const propsChildren = Array.isArray(child.props.children)
-                    ? child.props.children
-                    : [child.props.children];
-
-                  propsChildren.forEach((c: any) => {
-                    if (typeof c === 'string' || typeof c === 'number') {
-                      contentChildren.push(c);
-                    }
-                  });
-                }
 
                 // Process nested edges: source is implicitly the parent node
                 nestedEdges.forEach(
@@ -944,13 +918,7 @@ export default function Home() {
 
                 // Extract primitive content (strings/numbers) key for label
                 const safeLabel =
-                  contentChildren
-                    .map((c) =>
-                      typeof c === 'string' || typeof c === 'number'
-                        ? String(c)
-                        : '',
-                    )
-                    .join('') ||
+                  parsedLabel ||
                   child.props.label ||
                   child.props.title ||
                   child.props.text ||
@@ -999,6 +967,7 @@ export default function Home() {
                     labelBold: child.props.labelBold || child.props.bold,
                     fill: child.props.fill,
                     stroke: child.props.stroke,
+                    children: parsedChildren,
                     imageSrc: child.props.imageSrc,
                     imageFit: child.props.imageFit,
                     ports: ports, // Inject ports
@@ -1014,6 +983,11 @@ export default function Home() {
                     height: child.props.height,
                     // Semantic zoom bubble
                     bubble: child.props.bubble,
+                    sourceMeta: child.props.sourceMeta || {
+                      sourceId: nodeId,
+                      kind: mindmapId ? 'mindmap' : 'canvas',
+                      scopeId: mindmapId,
+                    },
                   },
                 });
               }
@@ -1038,6 +1012,7 @@ export default function Home() {
             layoutType,
             mindMapGroups,
             canvasBackground,
+            sourceVersion: data.sourceVersion ?? null,
           });
         }
       } catch (error) {
@@ -1066,7 +1041,7 @@ export default function Home() {
         <main className="flex-1 relative w-full h-full overflow-hidden">
           <ErrorOverlay />
           <SearchOverlay />
-          <GraphCanvas />
+          <GraphCanvas onNodeDragStop={moveNode} />
           <StickerInspector />
         </main>
 

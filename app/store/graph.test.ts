@@ -19,6 +19,21 @@ const resetSearchState = () => {
   }));
 };
 
+describe('graph metadata state', () => {
+  it('clientId는 초기화 후 고정되고 sourceVersion/lastAppliedCommandId를 저장할 수 있다', () => {
+    const firstClientId = useGraphStore.getState().clientId;
+    expect(typeof firstClientId).toBe('string');
+
+    useGraphStore.getState().setGraph({ nodes: [], edges: [], sourceVersion: 'sha256:v1' });
+    useGraphStore.getState().setLastAppliedCommandId('cmd-1');
+
+    const state = useGraphStore.getState();
+    expect(state.clientId).toBe(firstClientId);
+    expect(state.sourceVersion).toBe('sha256:v1');
+    expect(state.lastAppliedCommandId).toBe('cmd-1');
+  });
+});
+
 describe('search state', () => {
   beforeEach(() => {
     resetSearchState();

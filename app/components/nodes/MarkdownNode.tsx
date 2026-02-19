@@ -8,6 +8,7 @@ import { CodeBlock } from '../ui/CodeBlock';
 import { useNodeNavigation } from '@/contexts/NavigationContext';
 import { toAssetApiUrl } from '@/utils/imageSource';
 import { useGraphStore } from '@/store/graph';
+import type { RenderableChild } from '@/utils/childComposition';
 
 interface MarkdownNodeData {
     label: string;
@@ -15,11 +16,11 @@ interface MarkdownNodeData {
     bubble?: boolean;
     className?: string;
     variant?: 'default' | 'minimal';
+    children?: RenderableChild[];
 }
 
 const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
     const { navigateToNode } = useNodeNavigation();
-
     const handleLinkClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
         e.preventDefault();
         e.stopPropagation();
@@ -55,9 +56,7 @@ const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
             );
         },
         code: ({ node, className, children, ...props }: any) => {
-            // @ts-expect-error className shape comes from react-markdown internals
             const match = /language-(\w+)/.exec(className || '');
-            // @ts-expect-error inline prop comes from react-markdown internals
             const { inline } = props;
 
             return !inline ? (

@@ -33,12 +33,14 @@ export const RPC_ERRORS = {
     PARSE_ERROR: { code: -32700, message: 'Parse error' },
     INVALID_REQUEST: { code: -32600, message: 'Invalid Request' },
     METHOD_NOT_FOUND: { code: -32601, message: 'Method not found' },
-    INVALID_PARAMS: { code: -32602, message: 'Invalid params' },
+    INVALID_PARAMS: { code: 40001, message: 'INVALID_PARAMS' },
     INTERNAL_ERROR: { code: -32603, message: 'Internal error' },
-    // Custom errors
-    FILE_NOT_FOUND: { code: -32000, message: 'File not found' },
-    NODE_NOT_FOUND: { code: -32001, message: 'Node not found' },
-    PATCH_FAILED: { code: -32002, message: 'Patch failed' },
+    // Bidirectional-edit contract errors
+    FILE_NOT_FOUND: { code: 40401, message: 'FILE_NOT_FOUND' },
+    NODE_NOT_FOUND: { code: 40401, message: 'NODE_NOT_FOUND' },
+    VERSION_CONFLICT: { code: 40901, message: 'VERSION_CONFLICT' },
+    MINDMAP_CYCLE: { code: 40902, message: 'MINDMAP_CYCLE' },
+    PATCH_FAILED: { code: 50001, message: 'PATCH_FAILED' },
 } as const;
 
 export function createResponse(id: number | string, result: unknown): JsonRpcResponse {
