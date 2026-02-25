@@ -64,7 +64,7 @@ Multiple nodes can be selected and copied at once. Each ID is separated by a new
 All components are imported from `@magam/core`:
 
 ```tsx
-import { Canvas, Shape, Sticky, MindMap, Node, Edge, Text, Markdown, EmbedScope } from '@magam/core';
+import { Canvas, Shape, Sticky, Sticker, Image, MindMap, Node, Edge, Text, Markdown, EmbedScope } from '@magam/core';
 ```
 
 ### Canvas (Required Root)
@@ -127,6 +127,65 @@ Sticky note element, similar to Shape but styled as a sticky note.
   Glass Effect
 </Sticky>
 ```
+
+### Sticker
+
+Die-cut decoration element for practical visual styling (journal/deco/scrapbook style).  
+Use Sticker when the user asks to "decorate" rather than to model strict architecture.
+
+**Props:**
+- `id` (required): Unique identifier
+- Position: either `x` + `y`, or `anchor` + `position` (+ optional `gap`, `align`)
+- Size hints: `width`, `height`
+- Style: `outlineWidth`, `outlineColor`, `shadow`, `padding`
+- Rotation: `rotation` (optional)
+
+**Rotation policy:**
+- Default: omit `rotation` to use automatic deterministic jitter.
+- Use explicit `rotation` only for 1-2 highlight stickers as intentional accents.
+
+```tsx
+<Sticker id="title" x={120} y={80}>
+  2026 Diary
+</Sticker>
+
+{/* Explicit rotation only for a small accent */}
+<Sticker id="accent" x={320} y={82} rotation={-8}>
+  ✔ Done
+</Sticker>
+```
+
+### Sticker Content Patterns
+
+Sticker content should prioritize practical decoration content types:
+- `text` (plain text children)
+- `emoji` (emoji-only or text + emoji)
+- `Image` (`<Image ... />`)
+- inline SVG (`<svg>...</svg>`)
+
+```tsx
+{/* Text */}
+<Sticker id="s-text" x={80} y={80}>Top 3 goals today</Sticker>
+
+{/* Emoji */}
+<Sticker id="s-emoji" x={280} y={80}>🌼🫧🖇️🎀</Sticker>
+
+{/* Image */}
+<Sticker id="s-image" x={460} y={80}>
+  <Image src={photoDataUri} alt="Photo sticker" width={140} height={100} />
+</Sticker>
+
+{/* Inline SVG */}
+<Sticker id="s-svg" x={640} y={80}>
+  <svg viewBox="0 0 120 100" width="120" height="100">
+    <path d="M60 6 L74 38 L108 38 L81 58 L92 92 L60 72 L28 92 L39 58 L12 38 L46 38 Z" fill="#fde047" stroke="#1e3a8a" strokeWidth="6" />
+  </svg>
+</Sticker>
+```
+
+**Discouraged patterns for Sticker:**
+- Markdown inside Sticker (it usually looks like a card block, not a die-cut sticker)
+- Overusing explicit rotation on many stickers (causes visual noise)
 
 ### MindMap
 
@@ -446,6 +505,25 @@ All components support `className` prop for Tailwind CSS styling.
 
 ## Common Patterns
 
+### Decoration Intent Handling
+
+When user intent is decoration-oriented, switch from architecture/mind map defaults to Sticker-first composition.
+
+**Intent keywords (trigger examples):**
+- `꾸미기`, `다이어리`, `스티커`, `데코`, `감성`
+- `scrapbook`, `journal`, `decorate`, `deco`, `sticker`
+
+**Default behavior: Diary-deco preset**
+- Build a dense composition with multiple `Sticker` elements.
+- Mix practical sticker content types: text + emoji + inline SVG + `Image`.
+- Minimize or omit `Edge` connections unless the user explicitly asks for linked structure.
+- Exclude Markdown inside Sticker by default.
+
+**Output guidance**
+- Return immediately runnable TSX first.
+- Prefer direct `x`/`y` placement for decoration tasks (faster iteration and visual control).
+- Keep explicit `rotation` to 1-2 stickers max; rely on automatic jitter for the rest.
+
 ### Architecture Diagram
 
 ```tsx
@@ -589,6 +667,70 @@ export default function MultiDB() {
 </Canvas>
 ```
 
+### Diary Decoration with Stickers
+
+Use this when users ask for practical decoration (journal/scrapbook vibe) rather than strict diagram semantics.
+
+```tsx
+import { Canvas, Sticker, Image, Text } from '@magam/core';
+
+const photoDataUri =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="280" height="200" viewBox="0 0 280 200">
+      <defs>
+        <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stop-color="#f9a8d4" />
+          <stop offset="100%" stop-color="#93c5fd" />
+        </linearGradient>
+      </defs>
+      <rect width="280" height="200" rx="20" fill="url(#g)" />
+      <text x="140" y="108" text-anchor="middle" font-size="30" fill="#111827" font-family="Inter, sans-serif">
+        SNAP
+      </text>
+    </svg>
+  `);
+
+export default function DiaryDeco() {
+  return (
+    <Canvas>
+      <Text id="title" x={72} y={28} className="text-2xl font-semibold text-slate-800">
+        Weekend Journal
+      </Text>
+
+      <Sticker id="s-title" x={86} y={86}>Limited Edition</Sticker>
+      <Sticker id="s-emoji-1" x={384} y={92}>🔥</Sticker>
+      <Sticker id="s-emoji-2" x={448} y={132}>✨📌</Sticker>
+      <Sticker id="s-note-1" x={102} y={172}>Focus Mode</Sticker>
+      <Sticker id="s-note-2" x={264} y={214}>No Distractions</Sticker>
+      <Sticker id="s-note-3" x={516} y={236} rotation={-4}>Top Priority</Sticker>
+
+      <Sticker id="s-photo" x={640} y={86}>
+        <Image src={photoDataUri} alt="Deco photo" width={170} height={124} />
+      </Sticker>
+
+      <Sticker id="s-svg" x={646} y={244}>
+        <svg viewBox="0 0 120 100" width="120" height="100" aria-label="Inline badge">
+          <path
+            d="M60 6 L74 38 L108 38 L81 58 L92 92 L60 72 L28 92 L39 58 L12 38 L46 38 Z"
+            fill="#fde047"
+            stroke="#1e3a8a"
+            strokeWidth="6"
+          />
+        </svg>
+      </Sticker>
+
+      <Sticker id="s-tag-1" x={90} y={286}>#daily</Sticker>
+      <Sticker id="s-tag-2" x={202} y={304}>#routine</Sticker>
+      <Sticker id="s-tag-3" x={320} y={326} rotation={3}>#ship-it</Sticker>
+      <Sticker id="s-tag-4" x={432} y={292}>#focus</Sticker>
+      <Sticker id="s-tag-5" x={548} y={320}>#done</Sticker>
+      <Sticker id="s-tag-6" x={730} y={354}>💯</Sticker>
+    </Canvas>
+  );
+}
+```
+
 ## Best Practices
 
 1. **Always use unique IDs** for all elements with id prop
@@ -596,19 +738,23 @@ export default function MultiDB() {
 3. **Prefer relative positioning** with `anchor`/`position`/`gap` for maintainable layouts
 4. **Use Markdown** for rich content in mind map nodes
 5. **Do not add emojis** unless the user explicitly requests them
-6. **Group related content** using comments in JSX
-7. **Use consistent styling** with Tailwind utility classes
-8. **Keep node content concise** - use child nodes for detailed breakdowns
-9. **Split large MindMaps into multiple smaller ones** - Rather than cramming everything into one huge MindMap, separate by topic or section. This makes hierarchies clearer and improves readability. Use `anchor` positioning to arrange them spatially.
-10. **Use `bubble` for semantic zoom** - Add `bubble` prop to root nodes and level 1-2 children so section titles remain visible when zoomed out. Skip bubbles on level 4+ detail nodes to avoid visual clutter.
-11. **Use `EmbedScope` for reusable components** - When the same component pattern is used multiple times, wrap each instance in `<EmbedScope id="...">` to isolate IDs. Internal `anchor` references resolve automatically within the scope. Use dot notation (e.g., `"auth.app"`) for cross-scope references.
+6. **Emoji exception for Sticker decoration** - If the user intent is decoration (`꾸미기/deco/journal/scrapbook`), emoji use is allowed and recommended inside Sticker compositions
+7. **Sticker practical mix** - For usable decoration results, combine text + emoji + inline SVG/Image instead of relying on a single content type
+8. **Prefer Markdown outside Sticker** - Put rich markdown content in `Node`/`Markdown` components, not inside Sticker
+9. **Limit explicit Sticker rotation** - Keep explicit `rotation` on only 1-2 stickers; rely on auto jitter for the rest
+10. **Group related content** using comments in JSX
+11. **Use consistent styling** with Tailwind utility classes
+12. **Keep node content concise** - use child nodes for detailed breakdowns
+13. **Split large MindMaps into multiple smaller ones** - Rather than cramming everything into one huge MindMap, separate by topic or section. This makes hierarchies clearer and improves readability. Use `anchor` positioning to arrange them spatially.
+14. **Use `bubble` for semantic zoom** - Add `bubble` prop to root nodes and level 1-2 children so section titles remain visible when zoomed out. Skip bubbles on level 4+ detail nodes to avoid visual clutter.
+15. **Use `EmbedScope` for reusable components** - When the same component pattern is used multiple times, wrap each instance in `<EmbedScope id="...">` to isolate IDs. Internal `anchor` references resolve automatically within the scope. Use dot notation (e.g., `"auth.app"`) for cross-scope references.
 
 ## File Structure
 
 Magam files are TypeScript/TSX files that export a React component:
 
 ```tsx
-import { Canvas, MindMap, Node, Text, Markdown } from '@magam/core';
+import { Canvas, MindMap, Node, Text, Markdown, Sticker, Image } from '@magam/core';
 
 export default function MyDiagram() {
   return (
