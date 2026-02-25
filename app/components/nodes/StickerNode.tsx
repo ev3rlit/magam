@@ -61,7 +61,7 @@ class StickerNodeBoundary extends React.Component<StickerNodeBoundaryProps, Stic
           startHandle
           endHandle
         >
-          <span className="text-xs font-medium text-amber-800">스티커 렌더 오류</span>
+          <span className="text-xs font-medium text-amber-800">Sticker render error</span>
         </BaseNode>
       );
     }
