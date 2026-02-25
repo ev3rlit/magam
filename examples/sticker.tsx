@@ -62,7 +62,6 @@ export default function StickerExample() {
         id="sticker-title"
         x={80}
         y={64}
-        rotation={-4}
       >
         2026 Diary
       </Sticker>
@@ -71,7 +70,6 @@ export default function StickerExample() {
         id="sticker-mood"
         x={326}
         y={72}
-        rotation={5}
       >
         ☀️ Good Day
       </Sticker>
@@ -80,7 +78,6 @@ export default function StickerExample() {
         id="sticker-washi"
         x={90}
         y={176}
-        rotation={-8}
       >
         <Image src={washiTapeSticker} alt="Washi tape sticker" width={190} height={82} />
       </Sticker>
@@ -89,7 +86,6 @@ export default function StickerExample() {
         id="sticker-polaroid"
         x={332}
         y={156}
-        rotation={3}
       >
         <Image src={polaroidHeartSticker} alt="Polaroid heart sticker" width={132} height={132} />
       </Sticker>
@@ -98,7 +94,6 @@ export default function StickerExample() {
         id="sticker-star-svg"
         x={548}
         y={84}
-        rotation={-6}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -134,7 +129,6 @@ export default function StickerExample() {
         id="sticker-check"
         x={548}
         y={240}
-        rotation={4}
       >
         ✔ Done
       </Sticker>
@@ -150,49 +144,49 @@ export default function StickerExample() {
       <Sticker id="sticker-note-1" x={72} y={310} rotation={-7}>
         coffee + journaling
       </Sticker>
-      <Sticker id="sticker-note-2" x={280} y={304} rotation={6}>
+      <Sticker id="sticker-note-2" x={280} y={304}>
         playlist of the day 🎧
       </Sticker>
-      <Sticker id="sticker-note-3" x={564} y={334} rotation={-3}>
+      <Sticker id="sticker-note-3" x={564} y={334}>
         tiny wins matter
       </Sticker>
-      <Sticker id="sticker-note-4" x={856} y={92} rotation={8}>
+      <Sticker id="sticker-note-4" x={856} y={92}>
         📌 Top 3 goals today
       </Sticker>
-      <Sticker id="sticker-note-5" x={854} y={250} rotation={-6}>
+      <Sticker id="sticker-note-5" x={854} y={250}>
         stretch • water • walk
       </Sticker>
-      <Sticker id="sticker-note-6" x={1036} y={318} rotation={4}>
+      <Sticker id="sticker-note-6" x={1036} y={318}>
         22:30 lights off
       </Sticker>
 
-      <Sticker id="sticker-emoji-line-1" x={1004} y={92} rotation={-4}>
+      <Sticker id="sticker-emoji-line-1" x={1004} y={92}>
         🌼🫧🖇️🎀
       </Sticker>
-      <Sticker id="sticker-emoji-line-2" x={1164} y={178} rotation={5}>
+      <Sticker id="sticker-emoji-line-2" x={1164} y={178}>
         🍋☁️💛📝
       </Sticker>
-      <Sticker id="sticker-emoji-line-3" x={948} y={414} rotation={-5}>
+      <Sticker id="sticker-emoji-line-3" x={948} y={414}>
         🧃📚🪴✨
       </Sticker>
 
-      <Sticker id="sticker-washi-2" x={700} y={400} rotation={-11}>
+      <Sticker id="sticker-washi-2" x={700} y={400}>
         <Image src={washiTapeSticker} alt="Washi tape sticker 2" width={170} height={72} />
       </Sticker>
       <Sticker id="sticker-washi-3" x={1014} y={486} rotation={9}>
         <Image src={washiTapeSticker} alt="Washi tape sticker 3" width={190} height={80} />
       </Sticker>
-      <Sticker id="sticker-polaroid-2" x={188} y={432} rotation={-10}>
+      <Sticker id="sticker-polaroid-2" x={188} y={432}>
         <Image src={polaroidHeartSticker} alt="Polaroid heart sticker 2" width={118} height={118} />
       </Sticker>
-      <Sticker id="sticker-polaroid-3" x={450} y={474} rotation={8}>
+      <Sticker id="sticker-polaroid-3" x={450} y={474}>
         <Image src={pressedFlowerSticker} alt="Pressed flower card sticker" width={132} height={132} />
       </Sticker>
-      <Sticker id="sticker-ticket" x={754} y={520} rotation={-4}>
+      <Sticker id="sticker-ticket" x={754} y={520}>
         <Image src={ticketStubSticker} alt="Ticket stub sticker" width={210} height={92} />
       </Sticker>
 
-      <Sticker id="sticker-svg-heart" x={1128} y={72} rotation={-9}>
+      <Sticker id="sticker-svg-heart" x={1128} y={72}>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="132"
@@ -212,7 +206,7 @@ export default function StickerExample() {
         </svg>
       </Sticker>
 
-      <Sticker id="sticker-svg-lemon" x={1188} y={286} rotation={7}>
+      <Sticker id="sticker-svg-lemon" x={1188} y={286}>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="130"
@@ -227,7 +221,7 @@ export default function StickerExample() {
         </svg>
       </Sticker>
 
-      <Sticker id="sticker-svg-cloud" x={72} y={540} rotation={6}>
+      <Sticker id="sticker-svg-cloud" x={72} y={540}>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="190"
