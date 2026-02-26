@@ -37,6 +37,7 @@ Rules:
 | `overview.tsx` | Mixed layout: Sticky notes, Shapes, Text, Edges with absolute positioning |
 | `multiple_mindmaps.tsx` | Multiple independent MindMaps on one Canvas with different positions and layouts |
 | `text_usage.tsx` | Text content patterns: label prop, plain text children, Text component, Markdown inside nodes |
+| `font_hierarchy.tsx` | Font priority demo: global(default) inheritance, optional canvas-level override, object-level `fontFamily` override |
 | `icons.tsx` | Emoji usage in Shape and MindMap nodes |
 | `tinyurl_architecture.tsx` | System architecture diagram using Shapes with anchor positioning |
 | `TODO.tsx` | Complex roadmap: multiple anchored MindMaps, rich Markdown, `bubble` prop, Korean text |
