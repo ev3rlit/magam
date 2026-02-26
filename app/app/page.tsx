@@ -23,6 +23,8 @@ import { TabState, useGraphStore } from '@/store/graph';
 import { normalizeStickerData } from '@/utils/stickerDefaults';
 import { extractNodeContent, extractStickerContent } from '@/utils/nodeContent';
 import { stickerDebugLog } from '@/utils/stickerDebug';
+import type { FontFamilyPreset } from '@magam/core';
+import { isFontFamilyPreset } from '@/utils/fontHierarchy';
 
 interface RenderNode {
   type: string;
@@ -76,6 +78,7 @@ interface RenderNode {
     shadow?: 'none' | 'sm' | 'md' | 'lg';
     padding?: number;
     rotation?: number;
+    fontFamily?: FontFamilyPreset;
     // Semantic zoom
     bubble?: boolean;
     // Sequence diagram specific
@@ -532,6 +535,10 @@ export default function Home() {
             return {};
           };
 
+          const normalizeFontFamily = (value?: unknown): FontFamilyPreset | undefined => (
+            isFontFamilyPreset(value) ? value : undefined
+          );
+
           let nodeIdCounter = 0;
           let edgeIdCounter = 0;
           let mindmapIdCounter = 0;
@@ -591,6 +598,7 @@ export default function Home() {
 
                 const sourceMeta = parseEdgeEndpoint(child.props.from);
                 const targetMeta = parseEdgeEndpoint(child.props.to);
+                const edgeFontFamily = normalizeFontFamily(child.props.fontFamily);
 
                 // Determine edge type: if handles are specified, use traditional edge; otherwise use floating
                 const hasHandles = sourceMeta.handle || targetMeta.handle;
@@ -614,6 +622,7 @@ export default function Home() {
                     fill: child.props.labelTextColor,
                     fontSize: child.props.labelFontSize,
                     fontWeight: 700,
+                    fontFamily: edgeFontFamily,
                   },
                   labelBgStyle: child.props.labelBgColor
                     ? {
@@ -651,6 +660,7 @@ export default function Home() {
                 // Sequence diagram: single ReactFlow node containing the entire diagram
                 const seqId =
                   child.props.id || `sequence-${sequenceIdCounter++}`;
+                const sequenceFontFamily = normalizeFontFamily(child.props.fontFamily);
                 const participants: {
                   id: string;
                   label: string;
@@ -695,6 +705,7 @@ export default function Home() {
                     participantSpacing: child.props.participantSpacing ?? 200,
                     messageSpacing: child.props.messageSpacing ?? 60,
                     className: child.props.className,
+                    fontFamily: sequenceFontFamily,
                     anchor: child.props.anchor,
                     position: child.props.position,
                     gap: child.props.gap,
@@ -771,6 +782,7 @@ export default function Home() {
 
                 // Bubble comes from: 1) Node's bubble prop OR 2) child Markdown's bubble prop
                 const nodeBubble = child.props.bubble || childBubble;
+                const nodeFontFamily = normalizeFontFamily(child.props.fontFamily);
 
                 nodes.push({
                   id: nodeId,
@@ -798,6 +810,7 @@ export default function Home() {
                     labelBold: child.props.labelBold || child.props.bold,
                     fill: child.props.fill,
                     stroke: child.props.stroke,
+                    fontFamily: nodeFontFamily,
                     children: parsedChildren,
                     // Semantic zoom bubble (from Node or child Markdown)
                     bubble: nodeBubble,
@@ -824,6 +837,7 @@ export default function Home() {
               } else if (child.type === 'graph-sticker') {
                 const rawStickerId = child.props.id || `sticker-${nodeIdCounter++}`;
                 const stickerId = resolveNodeId(rawStickerId, mindmapId);
+                const stickerFontFamily = normalizeFontFamily(child.props.fontFamily);
                 const stickerRendererChildren = child.children || [];
                 const { label: stickerLabel, parsedChildren: stickerChildren } = extractStickerContent(
                   stickerRendererChildren,
@@ -854,6 +868,7 @@ export default function Home() {
                     width: child.props.width,
                     height: child.props.height,
                     rotation: child.props.rotation,
+                    fontFamily: stickerFontFamily,
                     children: stickerChildren,
                     outlineWidth: normalized.outlineWidth,
                     outlineColor: normalized.outlineColor,
@@ -870,6 +885,7 @@ export default function Home() {
               } else {
                 // It's a Node (Sticky, Shape, Text)
                 const nodeId = child.props.id || `node-${nodeIdCounter++}`;
+                const nodeFontFamily = normalizeFontFamily(child.props.fontFamily);
 
                 // Separate node content from nested edges
                 const nestedEdges: RenderNode[] = [];
@@ -895,6 +911,7 @@ export default function Home() {
                   (edgeChild: RenderNode, edgeIndex: number) => {
                     // If 'from' is missing, inject parent id
                     const sourceId = edgeChild.props.from || nodeId;
+                    const edgeFontFamily = normalizeFontFamily(edgeChild.props.fontFamily);
 
                     edges.push({
                       id:
@@ -912,6 +929,7 @@ export default function Home() {
                         fill: edgeChild.props.labelTextColor,
                         fontSize: edgeChild.props.labelFontSize,
                         fontWeight: 700,
+                        fontFamily: edgeFontFamily,
                       },
                       labelBgStyle: edgeChild.props.labelBgColor
                         ? {
@@ -975,6 +993,7 @@ export default function Home() {
                     labelBold: child.props.labelBold || child.props.bold,
                     fill: child.props.fill,
                     stroke: child.props.stroke,
+                    fontFamily: nodeFontFamily,
                     children: parsedChildren,
                     imageSrc: child.props.imageSrc,
                     imageFit: child.props.imageFit,
@@ -1012,6 +1031,7 @@ export default function Home() {
 
           // Extract canvas-level metadata (e.g. background style from code)
           const canvasBackground = data.graph.meta?.background;
+          const canvasFontFamily = normalizeFontFamily(data.graph.meta?.fontFamily);
 
           setGraph({
             nodes,
@@ -1020,6 +1040,7 @@ export default function Home() {
             layoutType,
             mindMapGroups,
             canvasBackground,
+            canvasFontFamily,
             sourceVersion: data.sourceVersion ?? null,
           });
         }

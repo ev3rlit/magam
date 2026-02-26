@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
 import type { SearchResult } from '../utils/search';
 import { useGraphStore } from './graph';
+import { GLOBAL_FONT_STORAGE_KEY } from '../utils/fontHierarchy';
 
 const getFixtureResults = (): SearchResult[] => ([
   { type: 'element', key: 'node-a', title: 'A', score: 100, matchKind: 'exact' },
@@ -31,6 +32,41 @@ describe('graph metadata state', () => {
     expect(state.clientId).toBe(firstClientId);
     expect(state.sourceVersion).toBe('sha256:v1');
     expect(state.lastAppliedCommandId).toBe('cmd-1');
+  });
+});
+
+describe('font hierarchy state', () => {
+  beforeEach(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(GLOBAL_FONT_STORAGE_KEY);
+    }
+
+    useGraphStore.setState((state) => ({
+      ...state,
+      globalFontFamily: 'hand-gaegu',
+      canvasFontFamily: undefined,
+    }));
+  });
+
+  it('setGlobalFontFamily stores value in state and localStorage', () => {
+    useGraphStore.getState().setGlobalFontFamily('hand-caveat');
+
+    const state = useGraphStore.getState();
+    expect(state.globalFontFamily).toBe('hand-caveat');
+
+    if (typeof window !== 'undefined') {
+      expect(window.localStorage.getItem(GLOBAL_FONT_STORAGE_KEY)).toBe('hand-caveat');
+    }
+  });
+
+  it('setGraph applies canvas-level fontFamily from parser meta', () => {
+    useGraphStore.getState().setGraph({
+      nodes: [],
+      edges: [],
+      canvasFontFamily: 'sans-inter',
+    });
+
+    expect(useGraphStore.getState().canvasFontFamily).toBe('sans-inter');
   });
 });
 

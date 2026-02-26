@@ -9,6 +9,12 @@ import {
   applyEdgeChanges,
 } from 'reactflow';
 import type { SearchMode, SearchResult } from '@/utils/search';
+import type { FontFamilyPreset } from '@magam/core';
+import {
+  getStoredGlobalFontFamily,
+  isFontFamilyPreset,
+  persistGlobalFontFamily,
+} from '@/utils/fontHierarchy';
 
 type SearchActionResult = {
   clearQuery?: boolean;
@@ -112,7 +118,7 @@ export interface GraphState {
   activeResultIndex: number;
   highlightElementIds: string[];
   lastExecutedSearch?: SearchResult;
-  setGraph: (graph: { nodes: Node[]; edges: Edge[]; needsAutoLayout?: boolean; layoutType?: 'tree' | 'bidirectional' | 'radial'; mindMapGroups?: MindMapGroup[]; canvasBackground?: CanvasBackgroundStyle; sourceVersion?: string | null }) => void;
+  setGraph: (graph: { nodes: Node[]; edges: Edge[]; needsAutoLayout?: boolean; layoutType?: 'tree' | 'bidirectional' | 'radial'; mindMapGroups?: MindMapGroup[]; canvasBackground?: CanvasBackgroundStyle; canvasFontFamily?: FontFamilyPreset; sourceVersion?: string | null }) => void;
   setSourceVersion: (version: string | null) => void;
   setLastAppliedCommandId: (commandId?: string) => void;
   setFiles: (files: string[]) => void;
@@ -125,6 +131,10 @@ export interface GraphState {
   updateNodeData: (nodeId: string, partialData: Record<string, unknown>) => void;
   canvasBackground: CanvasBackgroundStyle;
   setCanvasBackground: (style: CanvasBackgroundStyle) => void;
+  globalFontFamily: FontFamilyPreset;
+  canvasFontFamily?: FontFamilyPreset;
+  setGlobalFontFamily: (fontFamily: FontFamilyPreset) => void;
+  setCanvasFontFamily: (fontFamily?: FontFamilyPreset) => void;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   openTab: (pageId: string) => OpenTabResult;
@@ -178,6 +188,8 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   needsAutoLayout: false,
   layoutType: 'tree',
   canvasBackground: 'dots',
+  globalFontFamily: getStoredGlobalFontFamily(),
+  canvasFontFamily: undefined,
   mindMapGroups: [],
   openTabs: [],
   activeTabId: null,
@@ -188,7 +200,17 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   searchResults: [],
   activeResultIndex: -1,
   highlightElementIds: [],
-  setGraph: ({ nodes, edges, needsAutoLayout = false, layoutType = 'tree', mindMapGroups = [], canvasBackground, sourceVersion }) => set({ nodes, edges, needsAutoLayout, layoutType, mindMapGroups, graphId: uuidv4(), ...(canvasBackground ? { canvasBackground } : {}), ...(sourceVersion !== undefined ? { sourceVersion } : {}) }),
+  setGraph: ({ nodes, edges, needsAutoLayout = false, layoutType = 'tree', mindMapGroups = [], canvasBackground, canvasFontFamily, sourceVersion }) => set({
+    nodes,
+    edges,
+    needsAutoLayout,
+    layoutType,
+    mindMapGroups,
+    graphId: uuidv4(),
+    ...(canvasBackground ? { canvasBackground } : {}),
+    ...(isFontFamilyPreset(canvasFontFamily) ? { canvasFontFamily } : { canvasFontFamily: undefined }),
+    ...(sourceVersion !== undefined ? { sourceVersion } : {}),
+  }),
   setSourceVersion: (sourceVersion) => set({ sourceVersion }),
   setLastAppliedCommandId: (lastAppliedCommandId) => set({ lastAppliedCommandId }),
   setFiles: (files) => set({ files }),
@@ -206,6 +228,13 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   setStatus: (status) => set({ status }),
   setError: (error) => set({ error }),
   setCanvasBackground: (canvasBackground) => set({ canvasBackground }),
+  setGlobalFontFamily: (globalFontFamily) => {
+    persistGlobalFontFamily(globalFontFamily);
+    set({ globalFontFamily });
+  },
+  setCanvasFontFamily: (canvasFontFamily) => set({
+    canvasFontFamily: isFontFamilyPreset(canvasFontFamily) ? canvasFontFamily : undefined,
+  }),
   setSelectedNodes: (selectedNodeIds) => set({ selectedNodeIds }),
   updateNodeData: (nodeId, partialData) => set((state) => ({
     nodes: state.nodes.map((node) => {
