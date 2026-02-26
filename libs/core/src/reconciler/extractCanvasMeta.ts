@@ -1,4 +1,5 @@
 import { Container, CanvasMeta } from './hostConfig';
+import { isFontFamilyPreset } from '../types/font';
 
 /**
  * Extract canvas-level metadata from `graph-canvas` instances.
@@ -31,6 +32,11 @@ export function extractCanvasMeta(container: Container): Container {
     } else if (typeof bg === 'object' && bg.type === 'custom' && typeof bg.svg === 'string') {
       meta.background = { type: 'custom', svg: bg.svg, gap: bg.gap ?? 24 };
     }
+  }
+
+  const fontFamily = canvasInstance.props['fontFamily'];
+  if (isFontFamilyPreset(fontFamily)) {
+    meta.fontFamily = fontFamily;
   }
 
   // Remove graph-canvas and promote its children

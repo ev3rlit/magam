@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { MagamError } from '../errors';
 import { useNodeId } from '../hooks/useNodeId';
+import type { FontFamilyPreset } from '../types/font';
 
 export type AnchorPosition =
   | 'top' | 'bottom' | 'left' | 'right'
@@ -29,6 +30,7 @@ export interface ShapeProps {
   labelColor?: string;
   labelFontSize?: number;
   labelBold?: boolean;
+  fontFamily?: FontFamilyPreset;
   className?: string;
   children?: React.ReactNode;
   [key: string]: any;

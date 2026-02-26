@@ -24,3 +24,4 @@ export * from './errors';
 export * from './renderer';
 export * from './result';
 export * from './logger';
+export * from './types/font';

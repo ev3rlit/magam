@@ -1,9 +1,11 @@
 import { MagamError } from '../errors';
+import type { FontFamilyPreset } from '../types/font';
 export type Type = string;
 export type Props = Record<string, any>;
 export type CustomBackground = { type: 'custom'; svg: string; gap: number };
 export type CanvasMeta = {
   background?: 'dots' | 'lines' | 'solid' | CustomBackground;
+  fontFamily?: FontFamilyPreset;
 };
 export type Container = { type: 'root'; children: Instance[]; meta?: CanvasMeta };
 export type Instance = { type: string; props: Props; children: Instance[] };

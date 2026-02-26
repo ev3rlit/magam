@@ -1,5 +1,6 @@
 import * as React from 'react';
 import type { CustomBackground } from '../reconciler/hostConfig';
+import type { FontFamilyPreset } from '../types/font';
 
 export type BackgroundPreset = 'dots' | 'lines' | 'solid';
 export type BackgroundPatternFn = (ctx: { size: number }) => string;
@@ -12,6 +13,7 @@ export type BackgroundProp = BackgroundPreset | BackgroundPatternFn | Background
 
 export interface CanvasProps {
   background?: BackgroundProp;
+  fontFamily?: FontFamilyPreset;
   children?: React.ReactNode;
 }
 
@@ -37,7 +39,7 @@ function resolveBackground(
   return { type: 'custom', svg, gap };
 }
 
-export const Canvas: React.FC<CanvasProps> = ({ background, children }) => {
+export const Canvas: React.FC<CanvasProps> = ({ background, fontFamily, children }) => {
   const resolved = resolveBackground(background);
-  return React.createElement('graph-canvas', { background: resolved }, children);
+  return React.createElement('graph-canvas', { background: resolved, fontFamily }, children);
 };

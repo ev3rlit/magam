@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { MagamError } from '../errors';
 import { useNodeId } from '../hooks/useNodeId';
+import type { FontFamilyPreset } from '../types/font';
 
 export interface TextProps {
   id?: string;
@@ -19,6 +20,7 @@ export interface TextProps {
   // Style props
   fontSize?: number;
   color?: string;
+  fontFamily?: FontFamilyPreset;
   className?: string;
   children?: React.ReactNode;
   bold?: boolean;

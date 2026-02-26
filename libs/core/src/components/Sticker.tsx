@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { MagamError } from '../errors';
 import { useNodeId } from '../hooks/useNodeId';
+import type { FontFamilyPreset } from '../types/font';
 
 export interface StickerProps {
   id?: string;
@@ -31,6 +32,7 @@ export interface StickerProps {
   outlineColor?: string;
   shadow?: 'none' | 'sm' | 'md' | 'lg';
   padding?: number;
+  fontFamily?: FontFamilyPreset;
 
   className?: string;
   children?: React.ReactNode;

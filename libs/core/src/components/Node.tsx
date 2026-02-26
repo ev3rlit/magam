@@ -1,4 +1,5 @@
 import * as React from 'react';
+import type { FontFamilyPreset } from '../types/font';
 
 export interface NodeProps {
   /** 필수: 노드의 고유 식별자 */
@@ -11,6 +12,8 @@ export interface NodeProps {
   edgeClassName?: 'dashed' | 'dotted' | string;
   /** 노드 스타일 (Tailwind CSS) */
   className?: string;
+  /** 노드 폰트 프리셋 (global/canvas를 오버라이드) */
+  fontFamily?: FontFamilyPreset;
   /** 
    * 텍스트, <Text>, 또는 여러 요소의 조합. 빈 노드는 허용되지 않습니다.
    * 여러 Text 컴포넌트를 중첩하여 제목/설명 구조를 만들 수 있습니다.

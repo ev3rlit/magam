@@ -1,10 +1,13 @@
 import * as React from 'react';
+import type { FontFamilyPreset } from '../types/font';
 
 export interface MarkdownProps {
     /** 마크다운 문자열 */
     children: string;
     /** 추가 스타일 (Tailwind CSS, prose 수정자 사용 가능) */
     className?: string;
+    /** 폰트 프리셋 (global/canvas를 오버라이드) */
+    fontFamily?: FontFamilyPreset;
     /** 스타일 프리셋. 기본값 'default' */
     variant?: 'default' | 'minimal';
     [key: string]: any;
