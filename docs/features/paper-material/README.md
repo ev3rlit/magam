@@ -1,0 +1,513 @@
+# 종이류 & 소재 확장 PRD (Post-it Paper Material)
+
+## 1) 배경
+
+현재 포스트잇은 기본 종이 질감 중심으로 동작해 "메모의 맥락"을 시각적으로 구분하기 어렵습니다.  
+저널링 사용자는 메모 타입(아이디어, 할 일, 회고, 보관용)을 빠르게 구분하기 위해 종이 소재/패턴/모양 선택을 원합니다.
+
+`docs/concepts/journaling`에는 이미 라인 노트, 크래프트지, 포스트잇 질감 등 컨셉 에셋이 준비되어 있으며, 이를 제품 기능으로 정식화할 필요가 있습니다.
+
+## 2) 문제 정의
+
+- 현재 스타일 다양성이 낮아, 많은 메모가 같은 우선순위로 보입니다.
+- 소재 확장이 필요한데 속성 모델이 단일 타입에 가깝고 확장 규칙이 불명확합니다.
+- 프리셋/사용자 커스텀(SVG, 이미지, 단색) 입력 경로가 분리되어 있어 일관된 UX/데이터 모델이 없습니다.
+- 실험 단계에서 빠르게 변경 가능한 API 경계 규칙이 명확하지 않습니다.
+
+핵심 문제는 "소재 확장을 수용하는 안정적 props 계약이 없다"는 점입니다.
+
+## 3) 목표와 비목표
+
+### 목표
+
+- 포스트잇 기본값을 "종이 질감 포스트잇"으로 유지한다.
+- 소재 소스를 4가지로 표준화한다.
+  - 사전 제공 프리셋
+  - 사용자 커스텀 SVG 패턴
+  - 이미지 패턴
+  - 단색 패턴
+- 다양한 종이류/소재(메모지, 트레이싱지, 크래프트지, 색지, 레이스 페이퍼, 봉투형, 콜라주, 필름 스트립)를 프리셋 카탈로그로 제공한다.
+- 포스트잇 다양한 모양(하트, 구름, 말풍선)을 소재와 조합 가능하게 한다.
+- `Discriminated Union` 기반 props로 타입 안정성과 확장성을 확보한다.
+
+### 비목표
+
+- Inspector 패널 / UI 기반 소재 편집: 소재 적용은 TSX 코드로만 수행한다. 캔버스 위 시각적 편집 UI(인스펙터, 사이드바, 드롭다운 등)는 제공하지 않는다.
+- 포토샵 수준의 텍스처 편집기 제공
+- AI 기반 자동 패턴 생성
+- 에셋 마켓/구매 시스템
+- 실시간 협업 편집 충돌 해결
+
+## 4) 사용자 시나리오
+
+1. 사용자는 포스트잇을 추가하면 기본 포스트잇 종이 질감으로 즉시 생성된다.
+2. 사용자는 프리셋에서 `라인 노트` 또는 `크래프트지`를 선택해 메모 성격을 구분한다.
+3. 사용자는 하트/구름/말풍선 모양 포스트잇을 선택해 감정/코멘트 메모를 강조한다.
+4. 사용자는 커스텀 SVG 패턴을 업로드해 브랜드/테마 일관성을 맞춘다.
+5. 사용자는 이미지 패턴(빈티지 신문, 지도, 티켓 느낌)을 적용해 콜라주 메모를 만든다.
+6. 사용자는 트레이싱지(반투명) 소재를 겹쳐서 배경을 일부 보여주며 주석을 남긴다.
+
+## 5) 프리셋 카탈로그 (v1)
+
+| 그룹 | 프리셋 ID 예시 | 설명 |
+|---|---|---|
+| 메모지 | `memo-pattern`, `memo-letter`, `memo-pad` | 패턴 메모지, 레터 메모지, 떡메모지 |
+| 노트/기본 | `postit-paper`, `note-lined` | 기본 포스트잇 종이질감, 줄 노트 |
+| 질감 종이 | `paper-kraft`, `paper-color` | 크래프트지, 색지 |
+| 특수 소재 | `paper-tracing`, `paper-lace` | 반투명 트레이싱지, 레이스 페이퍼 |
+| 와시 테이프 | `washi-stripe`, `washi-dot`, `washi-floral` | 줄무늬 테이프, 도트 테이프, 플로럴 테이프 |
+| 오브젝트형 | `memo-envelope`, `paper-collage`, `paper-filmstrip` | 봉투형 메모지, 콜라주 페이퍼, 필름 스트립 |
+
+## 6) 기능 요구사항
+
+### FR-1. 소재 소스 타입 표준화
+
+- 포스트잇 소재는 `preset`, `svg`, `image`, `solid` 4가지 타입으로 제공한다.
+- 기본값은 `preset: postit-paper`로 고정한다.
+
+수용 기준
+
+- [AC-01] 소재 타입을 선택하지 않아도 포스트잇은 항상 `postit-paper`로 렌더링된다.
+- [AC-02] 저장/재로드 후 소재 타입과 값이 유지된다.
+
+### FR-2. 프리셋 소재 제공
+
+- v1 프리셋 카탈로그를 기본 제공한다.
+- 프리셋은 패턴 소스(ID)만 정의하고, `patternOpacity`/`patternScale`은 Sticky 공통 props로 제어한다.
+
+수용 기준
+
+- [AC-03] 카탈로그의 각 프리셋을 선택하면 즉시 미리보기가 반영된다.
+- [AC-04] 트레이싱지/레이스 등 반투명 프리셋은 배경 오브젝트가 비쳐 보인다.
+
+### FR-3. 사용자 커스텀 SVG 패턴
+
+- 문자열 또는 에셋 파일 기반 SVG 패턴 입력을 지원한다.
+- 안전하지 않은 태그/속성은 제거하거나 명시적 오류를 반환한다.
+
+수용 기준
+
+- [AC-05] 유효한 SVG 패턴은 타일 렌더링으로 적용된다.
+- [AC-06] 무효/위험 SVG 입력은 오류 메시지와 함께 저장이 차단된다.
+
+### FR-4. 이미지 패턴 지원
+
+- 로컬/프로젝트 에셋 이미지를 패턴 소스로 사용할 수 있다.
+- `tile`, `cover`, `contain` 모드를 제공한다.
+
+수용 기준
+
+- [AC-07] 이미지 패턴 적용 시 모드 변경이 즉시 반영된다.
+- [AC-08] 내보내기 결과(PNG/SVG/PDF)에서 화면과 동일한 패턴이 유지된다.
+
+### FR-5. 단색 패턴 지원
+
+- 포스트잇에 최적화된 단색 모드(`color`, `noise`, `grain`)를 지원한다.
+- 단색은 텍스트 대비를 유지하도록 최소 대비 규칙을 적용한다.
+
+수용 기준
+
+- [AC-09] 단색 변경 시 텍스트 가독성 기준(대비) 미달 시 경고가 노출된다.
+- [AC-10] 단색 + 기본 종이 질감 오버레이 조합을 선택할 수 있다.
+
+### FR-6. 모양(Shape) 조합
+
+- 기본 직사각형 외 `heart`, `cloud`, `speech` 모양을 지원한다.
+- 모양과 소재는 독립 조합 가능해야 한다.
+
+수용 기준
+
+- [AC-11] 같은 소재를 서로 다른 모양에 적용해도 렌더 결과가 일관된다.
+- [AC-12] 모양 변경 시 텍스트 영역(패딩/줄바꿈)이 자동 보정된다.
+
+### FR-7. Discriminated Union props 계약
+
+- 소재 타입에 따라 필요한 속성만 허용하는 Union 계약을 도입한다.
+- 포스트잇 컴포넌트의 공개 API는 `pattern` 프롭으로 통일한다.
+- `pattern`은 helper 함수(`preset`, `svg`, `image`, `solid`)로 생성해 전달한다.
+- 내부 도메인 모델은 `presetId`를 문자열 리터럴 유니온 강타입으로 관리한다.
+- 외부 입력(API, 파일, 사용자 입력)은 `string`으로 수신 후 파싱/검증 단계에서 강타입으로 변환한다.
+- 런타임 검증 스키마(예: Zod 등)와 직렬화 포맷을 동일 구조로 유지한다.
+
+수용 기준
+
+- [AC-13] 잘못된 조합(예: `type='solid'`인데 `src`만 전달)은 타입/검증 단계에서 차단된다.
+- [AC-14] 내부 코드에서 잘못된 프리셋 ID 문자열은 컴파일 타임에 오류로 검출된다.
+- [AC-15] 외부 입력의 미등록 프리셋 ID는 명시적 검증 오류를 반환하고 저장하지 않는다.
+- [AC-16] `preset/svg/image/solid` helper 사용 시 IDE 자동완성과 타입 추론이 동작한다.
+
+## 7) 제안 Props 모델 (Discriminated Union)
+
+### 공유 소재 모듈 구조
+
+소재 시스템은 컴포넌트에 종속되지 않는 공유 모듈로 분리한다. `Sticky`, `WashiTape` 등 소재를 사용하는 모든 컴포넌트가 동일한 `PaperMaterial` 타입과 헬퍼 함수를 공유한다.
+
+```
+@magam/core
+├── material/
+│   ├── types.ts          # PaperMaterial union 타입 정의
+│   ├── presets.ts         # PRESET_REGISTRY (전체 프리셋 통합)
+│   └── helpers.ts         # preset(), svg(), image(), solid(), parsePresetId()
+├── components/
+│   ├── Sticky.tsx         # pattern?: PaperMaterial
+│   └── WashiTape.tsx      # pattern?: PaperMaterial
+└── index.ts               # 컴포넌트 + 헬퍼 모두 re-export
+```
+
+- **헬퍼 함수 한 벌**: `preset()`, `svg()`, `image()`, `solid()`는 컴포넌트와 무관하게 `PaperMaterial` 객체를 생성한다.
+- **프리셋 통합 관리**: 모든 프리셋 ID는 `PRESET_REGISTRY` 하나에서 관리하며, ID prefix(`postit-*`, `washi-*`, `paper-*`)로 계열을 구분한다.
+- **교차 적용 허용**: `washi-stripe`를 Sticky에 적용하는 등 자유로운 조합을 허용한다. 컴포넌트별 제한이 필요하면 런타임 경고로 처리한다.
+
+### 타입 정의
+
+```ts
+const PRESET_REGISTRY = {
+  'postit-paper': { label: '기본 포스트잇' },
+  'memo-pattern': { label: '패턴 메모지' },
+  'memo-letter': { label: '레터 메모지' },
+  'memo-pad': { label: '떡메모지' },
+  'note-lined': { label: '줄 노트' },
+  'paper-kraft': { label: '크래프트지' },
+  'paper-color': { label: '색지' },
+  'paper-tracing': { label: '트레이싱지' },
+  'paper-lace': { label: '레이스 페이퍼' },
+  'memo-envelope': { label: '봉투형 메모지' },
+  'paper-collage': { label: '콜라주 페이퍼' },
+  'paper-filmstrip': { label: '필름 스트립' },
+  // WashiTape 계열
+  'washi-stripe': { label: '줄무늬 테이프' },
+  'washi-dot': { label: '도트 테이프' },
+  'washi-floral': { label: '플로럴 테이프' },
+} as const;
+
+type BuiltinPresetId = keyof typeof PRESET_REGISTRY;
+type ExternalPresetId = string;
+
+function parsePresetId(input: ExternalPresetId): BuiltinPresetId | null {
+  return Object.prototype.hasOwnProperty.call(PRESET_REGISTRY, input)
+    ? (input as BuiltinPresetId)
+    : null;
+}
+
+type PaperMaterialPreset = {
+  type: 'preset';
+  presetId: BuiltinPresetId;
+};
+
+type PaperMaterialSvg = {
+  type: 'svg';
+  svg: string;
+  tileSize?: number;
+};
+
+type PaperMaterialImage = {
+  type: 'image';
+  src: string;
+  fit?: 'tile' | 'cover' | 'contain';
+};
+
+type PaperMaterialSolid = {
+  type: 'solid';
+  color: string;
+  texture?: 'none' | 'paper-grain';
+};
+
+type PaperMaterial =
+  | PaperMaterialPreset
+  | PaperMaterialSvg
+  | PaperMaterialImage
+  | PaperMaterialSolid;
+
+// --- 헬퍼 함수 (material/helpers.ts) ---
+
+const preset = (
+  presetId: BuiltinPresetId,
+): PaperMaterialPreset => ({ type: 'preset', presetId });
+
+const svg = (
+  svg: string,
+  opts?: Pick<PaperMaterialSvg, 'tileSize'>,
+): PaperMaterialSvg => ({ type: 'svg', svg, ...opts });
+
+const image = (
+  src: string,
+  opts?: Pick<PaperMaterialImage, 'fit'>,
+): PaperMaterialImage => ({ type: 'image', src, ...opts });
+
+const solid = (
+  color: string,
+  opts?: Pick<PaperMaterialSolid, 'texture'>,
+): PaperMaterialSolid => ({ type: 'solid', color, ...opts });
+
+// --- 컴포넌트별 Props (components/) ---
+
+type StickyShape = 'rect' | 'heart' | 'cloud' | 'speech';
+
+type StickyProps = {
+  id: string;
+  text: string;
+  x?: number;
+  y?: number;
+  anchor?: string;
+  position?: 'top' | 'bottom' | 'left' | 'right' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  gap?: number;
+  shape?: StickyShape; // default: 'rect'
+  pattern?: PaperMaterial; // default: preset('postit-paper')
+  patternOpacity?: number; // default: 1
+  patternScale?: number; // default: 1
+};
+
+type WashiTapeProps = {
+  id: string;
+  x?: number;
+  y?: number;
+  width?: number;
+  rotation?: number;
+  pattern?: PaperMaterial; // default: preset('washi-stripe')
+  patternOpacity?: number;
+  patternScale?: number;
+};
+```
+
+### 사용 예시
+
+```tsx
+import { Sticky, WashiTape, preset, svg, image, solid } from "@magam/core"
+
+// 1) 기본값 사용: pattern 미지정 -> postit-paper 자동 적용
+<Sticky id="memo-1" text="오늘 회고 정리" x={120} y={90} />
+
+// 2) 프리셋 패턴
+<Sticky
+  id="memo-2"
+  text="회의 액션 아이템"
+  shape="speech"
+  pattern={preset('note-lined')}
+  patternOpacity={0.95}
+  patternScale={1}
+/>
+
+// 3) 커스텀 SVG 패턴
+<Sticky
+  id="memo-3"
+  text="브랜드 테마 메모"
+  pattern={svg('<svg>...</svg>', { tileSize: 24 })}
+  patternOpacity={0.9}
+/>
+
+// 4) 이미지 패턴
+<Sticky
+  id="memo-4"
+  text="빈티지 콜라주"
+  shape="cloud"
+  pattern={image('./assets/papers/vintage-map.png', { fit: 'tile' })}
+  patternOpacity={0.85}
+/>
+
+// 5) 단색 패턴
+<Sticky
+  id="memo-5"
+  text="중요 TODO"
+  pattern={solid('#ffe27a', { texture: 'paper-grain' })}
+/>
+
+// 6) WashiTape — 같은 헬퍼, 같은 PaperMaterial 타입
+<WashiTape id="tape-1" x={100} y={50} width={200} pattern={preset('washi-dot')} />
+<WashiTape id="tape-2" x={100} y={80} width={150} pattern={svg('<svg>...</svg>')} rotation={-3} />
+
+// 7) 교차 적용 — washi 프리셋을 Sticky에, sticky 프리셋을 WashiTape에 사용 가능
+<Sticky id="memo-6" text="테이프 질감 메모" pattern={preset('washi-floral')} x={200} y={200} />
+<WashiTape id="tape-3" x={200} y={300} width={180} pattern={preset('paper-kraft')} />
+
+// 8) 외부 입력(string) -> 파싱 후 안전 적용
+const externalPresetId: string = query.presetId;
+const parsed = parsePresetId(externalPresetId);
+
+<Sticky
+  id="memo-7"
+  text="외부 설정 기반"
+  pattern={parsed ? preset(parsed) : preset('postit-paper')}
+  patternOpacity={0.9}
+/>
+```
+
+가이드
+
+- 신규 API는 `pattern` 사용을 기본으로 한다.
+- 외부 시스템 연동 시에는 `parsePresetId` 검증을 거쳐 적용한다.
+
+설계 원칙
+
+- 소재 독립: 소재 시스템(`PaperMaterial`, 헬퍼, 레지스트리)은 컴포넌트에 종속되지 않는 공유 모듈로 분리
+- 기본값 우선: `pattern`이 없으면 컴포넌트별 기본 프리셋 적용 (Sticky→`postit-paper`, WashiTape→`washi-stripe`)
+- API 명확성: 컴포넌트 외부에서는 `pattern` 프롭만 사용하도록 가이드
+- helper 우선: 수동 객체 리터럴 대신 `preset/svg/image/solid` helper로 오타/누락 방지
+- 책임 분리: 패턴 소스(`pattern`)와 표현 제어(`patternOpacity`, `patternScale`)를 분리
+- 단일 소스: 프리셋 목록/타입/검증 기준은 `PRESET_REGISTRY` 한 곳에서 파생
+- 타입 안전성: 내부에서는 `BuiltinPresetId`로 컴파일 타임 오타 방지
+- 경계 유연성: 외부에서는 `string` 입력을 허용하고 파싱으로 안전하게 강타입 변환
+- 확장성: 신규 소재 타입 추가 시 분기만 확장
+- 실험 민첩성: 하위 호환 제약 없이 API를 빠르게 변경 가능
+
+### 마이그레이션 전략
+
+#### 원칙
+
+- **소스 호환성 우선**: 기존 TSX 코드의 `<Sticky color="..." />`는 수정 없이 동작해야 한다.
+- **점진적 전환**: `color` prop은 deprecated하지 않고 유지하되, 신규 코드는 `pattern` 사용을 권장한다.
+- **무중단**: 기존 그래프 AST(JSON)에 `pattern` 필드가 없어도 클라이언트가 기본값으로 정상 렌더링한다.
+
+#### `color` → `pattern` 내부 변환 규칙
+
+클라이언트 렌더러에서 다음 우선순위로 소재를 결정한다:
+
+| 조건 | 적용 결과 |
+|------|-----------|
+| `pattern` 지정됨 | `pattern` 사용 (`color` 무시) |
+| `pattern` 없음 + `color` 지정됨 | `solid(color, { texture: 'paper-grain' })` 변환 |
+| `pattern` + `color` 모두 없음 | 컴포넌트별 기본 프리셋 적용 |
+
+#### 기존 코드 시나리오
+
+```tsx
+// 기존 코드 — 수정 없이 그대로 동작
+<Sticky id="m1" text="메모" x={10} y={10} color="#fce588" />
+// → 내부에서 solid('#fce588', { texture: 'paper-grain' })으로 처리
+
+// 신규 코드 — pattern 사용 권장
+<Sticky id="m2" text="메모" x={10} y={10} pattern={solid('#fce588')} />
+```
+
+#### AST 호환성
+
+- Reconciler는 `color`, `pattern` 모두 pass-through한다. 정규화는 클라이언트에서 수행한다.
+- 기존 AST: `{ props: { color: '#fce588' } }` → 클라이언트가 solid로 변환
+- 신규 AST: `{ props: { pattern: { type: 'solid', color: '#fce588' } } }` → 그대로 사용
+
+#### WashiTape
+
+WashiTape은 신규 컴포넌트이므로 마이그레이션 불필요. `pattern`이 첫 번째이자 유일한 소재 API이다.
+
+## 8) 렌더링 아키텍처
+
+### 데이터 흐름
+
+```
+사용자 TSX (<Sticky pattern={preset('note-lined')} />)
+  → esbuild 트랜스파일
+  → Node.js 실행 → React Element
+  → Custom Reconciler → Graph AST (JSON)
+    { type: 'graph-sticky', props: { pattern: { type: 'preset', presetId: 'note-lined' }, ... } }
+  → HTTP JSON 응답 → 클라이언트
+  → ReactFlow 노드 렌더링
+    → pattern.type별 CSS/SVG 분기 적용
+```
+
+### 서버 사이드 (Reconciler → AST)
+
+- `pattern` 객체는 JSON-직렬화 가능하며, Reconciler가 `graph-sticky` 인스턴스의 props로 그대로 전달한다.
+- Reconciler는 `pattern` 값을 검증하지 않는다 (기존 `[key: string]: any` pass-through 패턴 유지).
+- 타입 검증은 컴파일 타임(TypeScript) + 선택적 런타임 스키마(Zod)에서 수행한다.
+
+### 클라이언트 사이드 (ReactFlow 노드)
+
+패턴 타입별 렌더링 전략:
+
+| 타입 | 렌더링 방식 |
+|------|------------|
+| `preset` | 프리셋 ID → 사전 정의된 CSS background (gradient, SVG data URI, feTurbulence 등) |
+| `svg` | SVG 문자열 → data URI 인코딩 → `background-image` + `background-repeat: repeat` |
+| `image` | 이미지 URL → `background-image` + `background-size` (tile→repeat, cover→cover, contain→contain) |
+| `solid` | `background-color` + 선택적 `paper-grain` noise 오버레이 |
+
+### 프리셋 렌더 정의 분리
+
+`PRESET_REGISTRY`는 메타데이터(ID, 라벨)만 관리한다. 실제 시각 정의는 클라이언트 렌더 모듈에서 별도 관리한다:
+
+```ts
+// 클라이언트: app/components/nodes/material/presetStyles.ts
+// 공유 모듈 — Sticky, WashiTape 등 모든 컴포넌트가 참조
+const PRESET_STYLES: Record<BuiltinPresetId, CSSProperties> = {
+  'postit-paper': { background: '...' },
+  'note-lined':   { backgroundImage: '...', backgroundSize: '...' },
+  'paper-kraft':  { background: '...', filter: '...' },
+  'washi-stripe': { backgroundImage: '...', backgroundSize: '...' },
+  // ...
+};
+```
+
+컨셉 에셋(`docs/concepts/journaling/components/*.html`)의 CSS/SVG 구현을 이 모듈로 포팅한다.
+
+## 9) 개발자 경험 (DX)
+
+Magam은 코드가 소스 오브 트루스인 프로그래매틱 화이트보드다. 소재 적용은 **TSX 코드 작성으로만** 수행하며, 캔버스 위 시각적 편집 UI는 제공하지 않는다.
+
+### 소재 적용 방식
+
+사용자 또는 AI가 TSX 파일에서 `pattern` prop과 헬퍼 함수를 사용해 소재를 지정한다:
+
+```tsx
+import { Sticky, WashiTape, preset, solid } from "@magam/core"
+
+<Sticky id="m" text="메모" x={10} y={10} pattern={preset('note-lined')} />
+<WashiTape id="t" x={10} y={50} width={200} pattern={preset('washi-dot')} />
+```
+
+### DX 설계 목표
+
+- **IDE 자동완성**: `preset('` 입력 시 등록된 프리셋 ID 목록이 자동완성된다.
+- **컴파일 타임 검증**: 미등록 프리셋 ID, 잘못된 타입 조합은 TypeScript 오류로 즉시 검출된다.
+- **헬퍼 함수 가이드**: `preset()`, `svg()`, `image()`, `solid()` 4가지 헬퍼만 기억하면 모든 소재를 적용할 수 있다.
+- **기본값 생략**: `pattern` 미지정 시 컴포넌트별 기본 프리셋이 자동 적용되므로, 소재가 불필요한 경우 prop을 생략하면 된다.
+
+### 에러 처리
+
+| 상황 | 동작 |
+|------|------|
+| 미등록 프리셋 ID (내부) | TypeScript 컴파일 오류 |
+| 미등록 프리셋 ID (외부) | `parsePresetId` → null, 기본 프리셋 fallback |
+| 무효 SVG 문자열 | 렌더 시 `MagamError` throw, 콘솔 경고 |
+| 이미지 로드 실패 | 클라이언트에서 기본 프리셋으로 fallback |
+
+## 10) 비기능 요구사항
+
+- 성능: 동일 화면에 포스트잇 100개 배치 시 기본 이동/편집이 체감 지연 없이 동작
+- 안정성: undo/redo에서 소재 타입 전환 이력 정확히 복원
+- 변경 유연성: 실험 단계에서 패턴 API 변경을 빠르게 반영 가능
+- 품질: 내보내기 PNG/SVG/PDF의 시각 일관성 유지
+
+## 11) 컨셉 에셋 레퍼런스
+
+- 컨셉 문서: `docs/concepts/journaling/README.md`
+- 컴포넌트 기준:
+  - `docs/concepts/journaling/components/postit.html`
+  - `docs/concepts/journaling/components/lined-paper.html`
+  - `docs/concepts/journaling/components/kraft-paper.html`
+- 이미지 레퍼런스:
+  - `docs/concepts/journaling/images/postit1.png`
+  - `docs/concepts/journaling/images/postit2.png`
+  - `docs/concepts/journaling/images/postit3.png`
+  - `docs/concepts/journaling/images/postit4.png`
+  - `docs/concepts/journaling/images/linenote.png`
+  - `docs/concepts/journaling/images/gridnote.png`
+  - `docs/concepts/journaling/images/craft.png`
+
+## 12) 단계별 구현 계획
+
+1. 데이터 모델/타입 계약
+- `PaperMaterial` Union 타입, `pattern` 프롭 계약, helper 함수 API 정의
+
+2. 렌더링 계층 확장
+- `preset/svg/image/solid` 분기 렌더 구현
+- 모양(heart/cloud/speech) 마스크와 텍스트 레이아웃 보정
+
+3. 품질 검증
+- PNG/SVG/PDF 결과 비교
+- 성능/회귀 테스트 추가
+
+## 13) 성공 지표
+
+- 소재 프리셋 사용률: 포스트잇 생성 중 기본 외 소재 선택 비율 40% 이상
+- 사용자 작업 시간: "메모 강조 스타일 적용" 평균 시간 30% 단축
+- 시각 만족도: 내부 QA/사용자 피드백에서 소재 다양성 만족도 4.0/5 이상
+- 회귀 안정성: 패턴/모양 조합 렌더 오류 0건
