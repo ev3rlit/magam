@@ -53,28 +53,28 @@
 
 **기존 (구현 완료)**
 
-| 프리셋 ID | 라벨 | 설명 |
-|---|---|---|
-| `postit` | Post-it | 포스트잇 형태 (135° 3-stop 그라데이션 + 글로스 + 코너 컬). 기본색 버터 옐로(#fce588). `color` 옵션으로 자유롭게 변경 가능 |
-| `pastel-dots` | Pastel Dots | 파스텔 핑크 배경 + 도트 패턴 |
-| `kraft-grid` | Kraft Grid | 크래프트 갈색 배경 + 격자 패턴 |
-| `masking-solid` | Masking Solid | 마스킹 테이프 노란색 단색 |
-| `neon-stripe` | Neon Stripe | 연두 배경 + 대각선 스트라이프 |
-| `vintage-paper` | Vintage Paper | 오프화이트 배경 + 미세 대각 그라데이션 |
+| 프리셋 ID       | 라벨          | 설명                                                                                                                      |
+| --------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `postit`        | Post-it       | 포스트잇 형태 (135° 3-stop 그라데이션 + 글로스 + 코너 컬). 기본색 버터 옐로(#fce588). `color` 옵션으로 자유롭게 변경 가능 |
+| `pastel-dots`   | Pastel Dots   | 파스텔 핑크 배경 + 도트 패턴                                                                                              |
+| `kraft-grid`    | Kraft Grid    | 크래프트 갈색 배경 + 격자 패턴                                                                                            |
+| `masking-solid` | Masking Solid | 마스킹 테이프 노란색 단색                                                                                                 |
+| `neon-stripe`   | Neon Stripe   | 연두 배경 + 대각선 스트라이프                                                                                             |
+| `vintage-paper` | Vintage Paper | 오프화이트 배경 + 미세 대각 그라데이션                                                                                    |
 
 **추가 예정 — 노트 4종** (컨셉: `lined-paper.html`, `grid-paper.html`)
 
-| 프리셋 ID | 라벨 | 설명 | CSS 기법 |
-|---|---|---|---|
-| `lined-warm` | Lined Warm | 따뜻한 크림색 줄 노트 (28px 간격) | `linear-gradient(transparent 27px, #dcd0c0 28px)` background-size 100% 28px |
-| `grid-standard` | Grid Standard | 20px 표준 격자 | dual `linear-gradient` 1px lines at 20px |
-| `grid-fine` | Grid Fine | 10px 미세 격자 | dual `linear-gradient` 1px lines at 10px |
-| `dot-grid` | Dot Grid | 20px 도트 그리드 (불렛저널) | `radial-gradient(circle 1px)` at 20px spacing |
+| 프리셋 ID       | 라벨          | 설명                              | CSS 기법                                                                    |
+| --------------- | ------------- | --------------------------------- | --------------------------------------------------------------------------- |
+| `lined-warm`    | Lined Warm    | 따뜻한 크림색 줄 노트 (28px 간격) | `linear-gradient(transparent 27px, #dcd0c0 28px)` background-size 100% 28px |
+| `grid-standard` | Grid Standard | 20px 표준 격자                    | dual `linear-gradient` 1px lines at 20px                                    |
+| `grid-fine`     | Grid Fine     | 10px 미세 격자                    | dual `linear-gradient` 1px lines at 10px                                    |
+| `dot-grid`      | Dot Grid      | 20px 도트 그리드 (불렛저널)       | `radial-gradient(circle 1px)` at 20px spacing                               |
 
 **추가 예정 — 크래프트 1종** (컨셉: `kraft-paper.html`)
 
-| 프리셋 ID | 라벨 | 설명 | CSS 기법 |
-|---|---|---|---|
+| 프리셋 ID       | 라벨          | 설명                 | CSS 기법                                                  |
+| --------------- | ------------- | -------------------- | --------------------------------------------------------- |
 | `kraft-natural` | Kraft Natural | 자연 크래프트지 질감 | 145° multi-stop gradient + feTurbulence SVG grain overlay |
 
 공통 속성: `backgroundColor` #fefcf7 (노트류), #e8d5a8 (크래프트), `textColor` #5a3e28 (갈색 잉크)
@@ -243,24 +243,24 @@ interface MaterialPresetMeta {
   label: string;
   backgroundColor: string;
   backgroundImage?: string;
-  backgroundSize?: string;       // 격자/줄 노트 프리셋에 필요
+  backgroundSize?: string; // 격자/줄 노트 프리셋에 필요
   textColor: string;
 }
 
 const MATERIAL_PRESET_REGISTRY = {
-  'postit':         { label: 'Post-it',        backgroundColor: '#fce588', backgroundImage: 'linear-gradient(135deg, ...)', textColor: '#5a3e28' },
-  'pastel-dots':    { label: 'Pastel Dots',    backgroundColor: '#fdf2f8', backgroundImage: 'radial-gradient(...)', textColor: '#7f1d1d' },
-  'kraft-grid':     { label: 'Kraft Grid',     backgroundColor: '#f5deb3', backgroundImage: 'linear-gradient(...)', textColor: '#78350f' },
-  'masking-solid':  { label: 'Masking Solid',  backgroundColor: '#fde68a', backgroundImage: undefined,              textColor: '#713f12' },
-  'neon-stripe':    { label: 'Neon Stripe',    backgroundColor: '#d9f99d', backgroundImage: 'repeating-linear-gradient(...)', textColor: '#14532d' },
-  'vintage-paper':  { label: 'Vintage Paper',  backgroundColor: '#f8fafc', backgroundImage: 'linear-gradient(...)', textColor: '#1e293b' },
+  postit: { label: 'Post-it', backgroundColor: '#fce588', backgroundImage: 'linear-gradient(135deg, ...)', textColor: '#5a3e28' },
+  'pastel-dots': { label: 'Pastel Dots', backgroundColor: '#fdf2f8', backgroundImage: 'radial-gradient(...)', textColor: '#7f1d1d' },
+  'kraft-grid': { label: 'Kraft Grid', backgroundColor: '#f5deb3', backgroundImage: 'linear-gradient(...)', textColor: '#78350f' },
+  'masking-solid': { label: 'Masking Solid', backgroundColor: '#fde68a', backgroundImage: undefined, textColor: '#713f12' },
+  'neon-stripe': { label: 'Neon Stripe', backgroundColor: '#d9f99d', backgroundImage: 'repeating-linear-gradient(...)', textColor: '#14532d' },
+  'vintage-paper': { label: 'Vintage Paper', backgroundColor: '#f8fafc', backgroundImage: 'linear-gradient(...)', textColor: '#1e293b' },
   // 노트 4종
-  'lined-warm':     { label: 'Lined Warm',     backgroundColor: '#fefcf7', backgroundImage: 'linear-gradient(transparent 27px, #dcd0c0 28px)', backgroundSize: '100% 28px', textColor: '#5a3e28' },
-  'grid-standard':  { label: 'Grid Standard',  backgroundColor: '#fefcf7', backgroundImage: 'linear-gradient(rgba(180,170,155,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(180,170,155,0.2) 1px, transparent 1px)', backgroundSize: '20px 20px', textColor: '#5a3e28' },
-  'grid-fine':      { label: 'Grid Fine',      backgroundColor: '#fefcf7', backgroundImage: 'linear-gradient(rgba(180,170,155,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(180,170,155,0.2) 1px, transparent 1px)', backgroundSize: '10px 10px', textColor: '#5a3e28' },
-  'dot-grid':       { label: 'Dot Grid',       backgroundColor: '#fefcf7', backgroundImage: 'radial-gradient(circle 1px, rgba(160,150,135,0.35) 1px, transparent 1px)', backgroundSize: '20px 20px', textColor: '#5a3e28' },
+  'lined-warm': { label: 'Lined Warm', backgroundColor: '#fefcf7', backgroundImage: 'linear-gradient(transparent 27px, #dcd0c0 28px)', backgroundSize: '100% 28px', textColor: '#5a3e28' },
+  'grid-standard': { label: 'Grid Standard', backgroundColor: '#fefcf7', backgroundImage: 'linear-gradient(rgba(180,170,155,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(180,170,155,0.2) 1px, transparent 1px)', backgroundSize: '20px 20px', textColor: '#5a3e28' },
+  'grid-fine': { label: 'Grid Fine', backgroundColor: '#fefcf7', backgroundImage: 'linear-gradient(rgba(180,170,155,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(180,170,155,0.2) 1px, transparent 1px)', backgroundSize: '10px 10px', textColor: '#5a3e28' },
+  'dot-grid': { label: 'Dot Grid', backgroundColor: '#fefcf7', backgroundImage: 'radial-gradient(circle 1px, rgba(160,150,135,0.35) 1px, transparent 1px)', backgroundSize: '20px 20px', textColor: '#5a3e28' },
   // 크래프트 1종
-  'kraft-natural':  { label: 'Kraft Natural',  backgroundColor: '#e8d5a8', backgroundImage: 'linear-gradient(145deg, #e8d5a8 0%, #dcc590 40%, #e8d5a8 70%, #d8c088 100%)', textColor: '#5a3e28' },
+  'kraft-natural': { label: 'Kraft Natural', backgroundColor: '#e8d5a8', backgroundImage: 'linear-gradient(145deg, #e8d5a8 0%, #dcc590 40%, #e8d5a8 70%, #d8c088 100%)', textColor: '#5a3e28' },
 } as const;
 
 // --- 소재 타입 (material/types.ts) ---
@@ -270,7 +270,7 @@ type MaterialRepeat = 'repeat-x' | 'repeat' | 'stretch';
 interface PresetMaterialDef {
   type: 'preset';
   id: MaterialPresetId;
-  color?: string;           // 프리셋 기본색 오버라이드 (postit 등 형태 프리셋에서 사용)
+  color?: string; // 프리셋 기본색 오버라이드 (postit 등 형태 프리셋에서 사용)
 }
 
 interface SolidMaterialDef {
@@ -280,22 +280,18 @@ interface SolidMaterialDef {
 
 interface SvgMaterialDef {
   type: 'svg';
-  src?: string;     // 외부 SVG URL
-  markup?: string;  // 인라인 SVG 문자열
+  src?: string; // 외부 SVG URL
+  markup?: string; // 인라인 SVG 문자열
 }
 
 interface ImageMaterialDef {
   type: 'image';
   src: string;
-  scale?: number;            // 0.25~4
-  repeat?: MaterialRepeat;   // default: 'repeat-x'
+  scale?: number; // 0.25~4
+  repeat?: MaterialRepeat; // default: 'repeat-x'
 }
 
-type PaperMaterial =
-  | PresetMaterialDef
-  | SolidMaterialDef
-  | SvgMaterialDef
-  | ImageMaterialDef;
+type PaperMaterial = PresetMaterialDef | SolidMaterialDef | SvgMaterialDef | ImageMaterialDef;
 
 // --- 헬퍼 함수 (material/helpers.ts) ---
 
@@ -303,35 +299,34 @@ function preset(id: MaterialPresetId, opts?: { color?: string }): PresetMaterial
 function solid(color: string): SolidMaterialDef;
 function svg(opts: { src?: string; markup?: string }): SvgMaterialDef;
 function image(src: string, opts?: { scale?: number; repeat?: MaterialRepeat }): ImageMaterialDef;
-function definePattern<T extends PaperMaterial>(def: T): T;  // 타입 어서션 유틸리티
+function definePattern<T extends PaperMaterial>(def: T): T; // 타입 어서션 유틸리티
 
 // --- 위치 지정 타입 (at/types.ts) ---
 
-type AnchorPosition =
-  | 'top' | 'bottom' | 'left' | 'right'
-  | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+type AnchorPosition = 'top' | 'bottom' | 'left' | 'right' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
 interface AnchorAt {
   type: 'anchor';
-  target: string;                    // 기준 노드 ID (EmbedScope 스코프 해석 대상)
-  position?: AnchorPosition;         // default: 'bottom'
-  gap?: number;                      // 기준 노드와의 간격 (default: 40)
+  target: string; // 기준 노드 ID (EmbedScope 스코프 해석 대상)
+  position?: AnchorPosition; // default: 'bottom'
+  gap?: number; // 기준 노드와의 간격 (default: 40)
   align?: 'start' | 'center' | 'end'; // default: 'center'
 }
 
 interface AttachAt {
   type: 'attach';
-  target: string;                    // 부착 대상 노드 ID
+  target: string; // 부착 대상 노드 ID
   placement?: 'top' | 'bottom' | 'left' | 'right' | 'center';
-  span?: number;                     // 대상 크기 대비 비율
-  align?: number;                    // 정렬 오프셋
-  offset?: number;                   // 대상으로부터의 거리
-  followRotation?: boolean;          // 대상 회전 추종
+  span?: number; // 대상 크기 대비 비율
+  align?: number; // 정렬 오프셋
+  offset?: number; // 대상으로부터의 거리
+  followRotation?: boolean; // 대상 회전 추종
 }
 
 interface PolarAt {
   type: 'polar';
-  x: number; y: number;
+  x: number;
+  y: number;
   length: number;
   angle?: number;
   thickness?: number;
@@ -362,10 +357,10 @@ interface StickyProps {
   y?: number;
   width?: number;
   height?: number;
-  at?: AtDef;                         // 위치 지정 (anchor | attach). x,y 보다 우선
-  color?: string;                     // 레거시 호환
+  at?: AtDef; // 위치 지정 (anchor | attach). x,y 보다 우선
+  color?: string; // 레거시 호환
   fontFamily?: FontFamilyPreset;
-  pattern?: PaperMaterial;            // 소재 지정
+  pattern?: PaperMaterial; // 소재 지정
   className?: string;
 }
 
@@ -375,10 +370,10 @@ interface WashiTapeProps {
   y?: number;
   width?: number;
   height?: number;
-  at?: AtDef;                         // 배치 (anchor | attach | segment | polar)
-  pattern?: PaperMaterial;            // 소재 지정
-  edge?: EdgeDef;                     // 테두리 (smooth | torn)
-  texture?: TextureDef;               // 텍스처 (opacity, blendMode)
+  at?: AtDef; // 배치 (anchor | attach | segment | polar)
+  pattern?: PaperMaterial; // 소재 지정
+  edge?: EdgeDef; // 테두리 (smooth | torn)
+  texture?: TextureDef; // 텍스처 (opacity, blendMode)
   seed?: string | number;
   opacity?: number;
   className?: string;
@@ -496,11 +491,11 @@ const myPattern = definePattern({ type: 'solid', color: '#fce588' });
 
 클라이언트 렌더러에서 다음 우선순위로 소재를 결정한다:
 
-| 조건 | 적용 결과 |
-|------|-----------|
-| `pattern` 지정됨 | `pattern` 사용 (`color` 무시) |
-| `pattern` 없음 + `color` 지정됨 | `solid(color)` 변환 |
-| `pattern` + `color` 모두 없음 | 컴포넌트별 기본 프리셋 적용 (Sticky → `preset('postit')`) |
+| 조건                            | 적용 결과                                                 |
+| ------------------------------- | --------------------------------------------------------- |
+| `pattern` 지정됨                | `pattern` 사용 (`color` 무시)                             |
+| `pattern` 없음 + `color` 지정됨 | `solid(color)` 변환                                       |
+| `pattern` + `color` 모두 없음   | 컴포넌트별 기본 프리셋 적용 (Sticky → `preset('postit')`) |
 
 #### 기존 코드 시나리오
 
@@ -565,18 +560,19 @@ WashiTape은 신규 컴포넌트이므로 소재 마이그레이션 불필요. `
 
 패턴 타입별 렌더링 전략:
 
-| 타입 | 렌더링 방식 |
-|------|------------|
+| 타입     | 렌더링 방식                                                                                                                |
+| -------- | -------------------------------------------------------------------------------------------------------------------------- |
 | `preset` | 프리셋 ID → 레지스트리 CSS background 적용. `color` 지정 시 `backgroundColor`를 오버라이드하고 light/dark 파생색 자동 계산 |
-| `svg` | `markup` → sanitize → data URI 인코딩 → `background-image`, 또는 `src` → URL 직접 사용 |
-| `image` | `src` → `background-image` + `scale`/`repeat` 기반 `background-size`/`background-repeat` |
-| `solid` | `color` → `background-color` |
+| `svg`    | `markup` → sanitize → data URI 인코딩 → `background-image`, 또는 `src` → URL 직접 사용                                     |
+| `image`  | `src` → `background-image` + `scale`/`repeat` 기반 `background-size`/`background-repeat`                                   |
+| `solid`  | `color` → `background-color`                                                                                               |
 
 ### 프리셋 렌더 정의
 
 `MATERIAL_PRESET_REGISTRY`가 렌더 정보(`backgroundColor`, `backgroundImage`, `textColor`)를 직접 포함하므로, 별도의 클라이언트 스타일 매핑이 불필요하다. 클라이언트의 `resolveWashiPattern()`이 레지스트리에서 CSS 속성을 직접 추출한다.
 
 SVG sanitization (`sanitizeInlineSvgMarkup`)은 인라인 SVG 마크업에 대해:
+
 - 16KB 크기 제한
 - `<script>`, `<style>`, `<foreignObject>` 태그 제거
 - `on*` 이벤트 핸들러 속성 제거
@@ -611,14 +607,14 @@ import { Sticky, WashiTape, preset, solid, anchor, attach } from "@magam/core"
 
 ### 에러 처리
 
-| 상황 | 동작 |
-|------|------|
-| 미등록 프리셋 ID (내부) | TypeScript 컴파일 오류 |
-| 미등록 프리셋 ID (외부) | `resolveWashiPattern` → 기본 프리셋 fallback + `debugReason` 설정 |
-| 무효 SVG 문자열 | 렌더 시 `MagamError` throw, 콘솔 경고 |
-| 이미지 로드 실패 | 클라이언트에서 기본 프리셋으로 fallback |
-| `at` target 미존재 | `resolveTreeAnchors`에서 미해석 → 클라이언트에서 `x, y` fallback 또는 기본 위치 |
-| `at`, `x, y` 모두 없음 | `MagamError` throw (위치 필수) |
+| 상황                    | 동작                                                                            |
+| ----------------------- | ------------------------------------------------------------------------------- |
+| 미등록 프리셋 ID (내부) | TypeScript 컴파일 오류                                                          |
+| 미등록 프리셋 ID (외부) | `resolveWashiPattern` → 기본 프리셋 fallback + `debugReason` 설정               |
+| 무효 SVG 문자열         | 렌더 시 `MagamError` throw, 콘솔 경고                                           |
+| 이미지 로드 실패        | 클라이언트에서 기본 프리셋으로 fallback                                         |
+| `at` target 미존재      | `resolveTreeAnchors`에서 미해석 → 클라이언트에서 `x, y` fallback 또는 기본 위치 |
+| `at`, `x, y` 모두 없음  | `MagamError` throw (위치 필수)                                                  |
 
 ## 10) 비기능 요구사항
 
@@ -646,20 +642,24 @@ import { Sticky, WashiTape, preset, solid, anchor, attach } from "@magam/core"
 ## 12) 단계별 구현 계획
 
 1. 데이터 모델/타입 계약
+
 - `PaperMaterial` Union 타입, `pattern` 프롭 계약, 소재 helper 함수 API 정의
 - `AtDef` Union 타입 (`AnchorAt`, `AttachAt` 등), `at` 프롭 계약, 위치 helper 함수 정의
 
 2. 위치 지정 시스템
+
 - Sticky에 `at` prop 추가, `anchor()`/`attach()` 모드 구현
 - `resolveTreeAnchors` 확장: `at.target` 스코프 해석 지원
 - Shape/Text의 기존 `anchor` prop → `at` 내부 변환 브릿지
 
 3. 렌더링 계층 확장
+
 - `preset/svg/image/solid` 분기 렌더 구현
 - `at` 모드별 위치 계산 로직 (anchor: 상대 배치, attach: 부착 좌표)
 - 모양(heart/cloud/speech) 마스크와 텍스트 레이아웃 보정
 
 4. 품질 검증
+
 - PNG/SVG/PDF 결과 비교
 - 성능/회귀 테스트 추가
 
