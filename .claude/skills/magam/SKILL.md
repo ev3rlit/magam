@@ -1,6 +1,6 @@
 ---
 name: magam
-description: This skill should be used when creating visual diagrams, mind maps, flowcharts, architecture diagrams, washi tape overlays, or any code-based visual representation using the Magam library. Triggers on tasks involving diagram creation, mind map generation, visual documentation, system architecture visualization, or when users mention "magam", "mindmap", "diagram", "flowchart", "washi tape", or "canvas".
+description: This skill should be used when creating visual diagrams, mind maps, flowcharts, architecture diagrams, sticky note compositions, washi tape overlays, or any code-based visual representation using the Magam library. Triggers on tasks involving diagram creation, mind map generation, visual documentation, system architecture visualization, sticky/paper-material styling, or when users mention "magam", "mindmap", "diagram", "flowchart", "sticky", "washi tape", or "canvas".
 ---
 
 # Magam
@@ -21,6 +21,7 @@ Magam is a React-based library for creating visual diagrams through code. It ena
 
 ## References
 
+- `reference/sticky.md`: Sticky patterns, shapes, sizing modes, and `at` placement workflows.
 - `reference/washi_tape.md`: WashiTape patterns, placement modes, and sticker-mix layout examples.
 
 ## Editing Nodes with Copy Node ID
@@ -119,19 +120,51 @@ Rectangle/box element for architecture diagrams and flowcharts.
 
 ### Sticky
 
-Sticky note element, similar to Shape but styled as a sticky note.
+Sticky note element for memo-centric layouts.  
+Use Sticky for "idea cards", "action notes", "context labels", and diary note blocks.
+
+**Core props (improved):**
+- `id` (required): Unique node ID
+- Placement: either `x` + `y`, or `at` (`anchor` / `attach`)
+- Material: `pattern` (`preset` / `solid` / `svg` / `image`)
+- Shape: `shape` (`rectangle` | `heart` | `cloud` | `speech`)
+- Sizing: auto, width-only, or fixed frame (`width` + `height`)
+- Legacy bridge: old `color` still works (internally normalized to `solid(color)`)
 
 ```tsx
+{/* Default postit preset (pattern omitted) */}
 <Sticky id="idea" x={100} y={100}>
-  My Idea
+  Core Idea
   <Edge to="target" />
 </Sticky>
 
-{/* With glass effect */}
-<Sticky id="glass" className="bg-white/50 backdrop-blur-sm border-white/30">
-  Glass Effect
+{/* Preset + shape + fixed frame */}
+<Sticky
+  id="retro-note"
+  x={340}
+  y={90}
+  width={220}
+  height={140}
+  shape="cloud"
+  pattern={{ type: 'preset', id: 'lined-warm' }}
+>
+  Retro Actions
+</Sticky>
+
+{/* Relative placement with at={anchor(...)} */}
+<Sticky
+  id="follow-up"
+  at={{ type: 'anchor', target: 'retro-note', position: 'right', gap: 24 }}
+  pattern={{ type: 'preset', id: 'kraft-natural' }}
+>
+  Follow-up
 </Sticky>
 ```
+
+**Behavior notes:**
+- If both `at` and `x`/`y` exist, `at` wins.
+- Invalid or unknown pattern input falls back to the default Sticky preset (`postit`) without throwing.
+- For full examples and migration guidance, see `reference/sticky.md`.
 
 ### Sticker
 
