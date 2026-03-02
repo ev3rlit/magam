@@ -42,7 +42,7 @@ Rules:
 | `tinyurl_architecture.tsx` | System architecture diagram using Shapes with anchor positioning |
 | `TODO.tsx` | Complex roadmap: multiple anchored MindMaps, rich Markdown, `bubble` prop, Korean text |
 | `readme.tsx` | Project philosophy, AI-first workflow, code-based diagram concept |
-| `washi_tape.tsx` | Washi tape object patterns and placements: preset/solid/svg/image + polar/segment/attach |
+| `washi_tape.tsx` | Stationery-store tape collection: all 11 presets + solid/svg/image custom patterns lined up in rows, with torn edges, texture overlay, and polar/segment featured picks |
 
 ## Positioning Approaches
 
