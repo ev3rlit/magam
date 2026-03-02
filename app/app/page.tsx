@@ -35,6 +35,15 @@ import {
 } from '@/utils/washiTapeGeometry';
 import { extractNodeContent, extractStickerContent } from '@/utils/nodeContent';
 import { stickerDebugLog } from '@/utils/stickerDebug';
+import {
+  assertMindMapTopology,
+  buildMindMapEdge,
+  fromToEndpointValue,
+  isMindMapTopologyError,
+  parseEdgeEndpoint,
+  resolveNodeId,
+  type FromProp,
+} from './mindmapParser';
 import type { FontFamilyPreset } from '@magam/core';
 import { isFontFamilyPreset } from '@/utils/fontHierarchy';
 
@@ -42,7 +51,7 @@ interface RenderNode {
   type: string;
   props: {
     id?: string;
-    from?: string;
+    from?: FromProp;
     to?: string;
     label?: string;
     text?: string;
@@ -656,6 +665,22 @@ export default function Home() {
             isFontFamilyPreset(value) ? value : undefined
           );
 
+          const createMindMapEdge = (
+            child: RenderNode,
+            params: { nodeId: string; mindmapId: string },
+          ) => {
+            edges.push(buildMindMapEdge({
+              nodeId: params.nodeId,
+              mindmapId: params.mindmapId,
+              edgeId: `edge-${params.mindmapId}-${params.nodeId}-${edgeIdCounter++}`,
+              from: child.props.from,
+              edgeLabel: child.props.edgeLabel,
+              edgeClassName: child.props.edgeClassName,
+              getEdgeType,
+              getStrokeStyle,
+            }));
+          };
+
           let nodeIdCounter = 0;
           let edgeIdCounter = 0;
           let mindmapIdCounter = 0;
@@ -673,18 +698,6 @@ export default function Home() {
             anchorGap?: number;
           }[] = [];
 
-          // Helper to resolve node ID with mindmap scope
-          // - If ID contains '.', it's already fully qualified (e.g., "map1.node1")
-          // - Otherwise, prefix with current mindmapId if inside a mindmap
-          const resolveNodeId = (
-            id: string,
-            currentMindmapId?: string,
-          ): string => {
-            if (!id) return id;
-            if (id.includes('.')) return id; // Already fully qualified
-            if (currentMindmapId) return `${currentMindmapId}.${id}`; // Add prefix
-            return id; // No prefix for Canvas nodes
-          };
           // Helper to process children recursively or flatly
           // mindmapId: current MindMap context (undefined for Canvas)
           const processChildren = (
@@ -692,29 +705,19 @@ export default function Home() {
             mindmapId?: string,
           ) => {
             childElements.forEach((child: RenderNode) => {
+              assertMindMapTopology({
+                mindmapId,
+                childType: child.type,
+                childId: child.props.id,
+                from: child.props.from,
+              });
+
               if (child.type === 'graph-edge') {
-                // Top-level edge
-                // Parse source and target for ports (nodeId:portId) or cross-mindmap (map.node:port)
-                const parseEdgeEndpoint = (val?: string) => {
-                  if (!val) return { id: undefined, handle: undefined };
-
-                  // Check for port notation (id:handle)
-                  // But also support dot notation for cross-mindmap (map.node)
-                  // Format: "nodeId", "nodeId:handle", "map.nodeId", "map.nodeId:handle"
-                  const colonIndex = val.lastIndexOf(':');
-                  if (colonIndex > 0) {
-                    const id = val.substring(0, colonIndex);
-                    const handle = val.substring(colonIndex + 1);
-                    return { id: resolveNodeId(id, mindmapId), handle };
-                  }
-                  return {
-                    id: resolveNodeId(val, mindmapId),
-                    handle: undefined,
-                  };
-                };
-
-                const sourceMeta = parseEdgeEndpoint(child.props.from);
-                const targetMeta = parseEdgeEndpoint(child.props.to);
+                const sourceMeta = parseEdgeEndpoint(
+                  fromToEndpointValue(child.props.from),
+                  mindmapId,
+                );
+                const targetMeta = parseEdgeEndpoint(child.props.to, mindmapId);
                 const edgeFontFamily = normalizeFontFamily(child.props.fontFamily);
 
                 // Determine edge type: if handles are specified, use traditional edge; otherwise use floating
@@ -775,8 +778,9 @@ export default function Home() {
                 }
               } else if (child.type === 'graph-sequence') {
                 // Sequence diagram: single ReactFlow node containing the entire diagram
-                const seqId =
+                const rawSequenceId =
                   child.props.id || `sequence-${sequenceIdCounter++}`;
+                const seqId = resolveNodeId(rawSequenceId, mindmapId);
                 const sequenceFontFamily = normalizeFontFamily(child.props.fontFamily);
                 const participants: {
                   id: string;
@@ -798,7 +802,7 @@ export default function Home() {
                       className: seqChild.props.className,
                     });
                   } else if (seqChild.type === 'graph-message') {
-                    const msgFrom = seqChild.props.from || '';
+                    const msgFrom = fromToEndpointValue(seqChild.props.from) || '';
                     const msgTo = seqChild.props.to || '';
                     messages.push({
                       from: msgFrom,
@@ -823,38 +827,24 @@ export default function Home() {
                     messageSpacing: child.props.messageSpacing ?? 60,
                     className: child.props.className,
                     fontFamily: sequenceFontFamily,
+                    groupId: mindmapId,
                     anchor: child.props.anchor,
                     position: child.props.position,
                     gap: child.props.gap,
                     sourceMeta: child.props.sourceMeta || {
                       sourceId: seqId,
-                      kind: 'canvas',
+                      kind: mindmapId ? 'mindmap' : 'canvas',
+                      scopeId: mindmapId,
                     },
                   },
                 });
+
+                if (mindmapId) {
+                  createMindMapEdge(child, { nodeId: seqId, mindmapId });
+                }
               } else if (child.type === 'graph-node') {
-                // MindMap Node: process as a regular node and create edge from 'from' prop
                 const rawNodeId = child.props.id || `node-${nodeIdCounter++}`;
                 const nodeId = resolveNodeId(rawNodeId, mindmapId);
-
-                // Create edge from 'from' prop if it exists
-                if (child.props.from) {
-                  // Resolve the source node ID (supports dot notation for cross-MindMap refs)
-                  const sourceId = resolveNodeId(child.props.from, mindmapId);
-                  edges.push({
-                    id: `edge-${sourceId}-${nodeId}`,
-                    source: sourceId,
-                    target: nodeId,
-                    label: child.props.edgeLabel,
-                    style: {
-                      stroke: '#94a3b8',
-                      strokeWidth: 2,
-                      ...getStrokeStyle(child.props.edgeClassName),
-                    },
-                    animated: false,
-                    type: 'floating', // Use floating edge for MindMap
-                  });
-                }
 
                 const rendererChildren = child.children || [];
                 const { label: baseLabel, parsedChildren } = extractNodeContent(
@@ -933,8 +923,13 @@ export default function Home() {
                     bubble: nodeBubble,
                   },
                 });
+
+                if (mindmapId) {
+                  createMindMapEdge(child, { nodeId, mindmapId });
+                }
               } else if (child.type === 'graph-image') {
-                const imageId = child.props.id || `image-${imageIdCounter++}`;
+                const rawImageId = child.props.id || `image-${imageIdCounter++}`;
+                const imageId = resolveNodeId(rawImageId, mindmapId);
                 nodes.push({
                   id: imageId,
                   type: 'image',
@@ -945,12 +940,18 @@ export default function Home() {
                     width: child.props.width,
                     height: child.props.height,
                     fit: child.props.fit,
+                    groupId: mindmapId,
                     sourceMeta: child.props.sourceMeta || {
                       sourceId: imageId,
-                      kind: 'canvas',
+                      kind: mindmapId ? 'mindmap' : 'canvas',
+                      scopeId: mindmapId,
                     },
                   },
                 });
+
+                if (mindmapId) {
+                  createMindMapEdge(child, { nodeId: imageId, mindmapId });
+                }
               } else if (child.type === 'graph-sticker') {
                 const rawStickerId = child.props.id || `sticker-${nodeIdCounter++}`;
                 const stickerId = resolveNodeId(rawStickerId, mindmapId);
@@ -986,6 +987,7 @@ export default function Home() {
                     height: child.props.height,
                     rotation: child.props.rotation,
                     fontFamily: stickerFontFamily,
+                    groupId: mindmapId,
                     children: stickerChildren,
                     outlineWidth: normalized.outlineWidth,
                     outlineColor: normalized.outlineColor,
@@ -999,6 +1001,10 @@ export default function Home() {
                     align: child.props.align,
                   },
                 });
+
+                if (mindmapId) {
+                  createMindMapEdge(child, { nodeId: stickerId, mindmapId });
+                }
               } else if (child.type === 'graph-washi-tape') {
                 const rawWashiId = child.props.id || `washi-${nodeIdCounter++}`;
                 const washiId = resolveNodeId(rawWashiId, mindmapId);
@@ -1046,6 +1052,7 @@ export default function Home() {
                     resolvedGeometry,
                     seed: normalizedWashi.seed,
                     opacity: normalizedWashi.opacity,
+                    groupId: mindmapId,
                     children: washiChildren,
                     sourceMeta: child.props.sourceMeta || {
                       sourceId: washiId,
@@ -1054,9 +1061,14 @@ export default function Home() {
                     },
                   },
                 });
+
+                if (mindmapId) {
+                  createMindMapEdge(child, { nodeId: washiId, mindmapId });
+                }
               } else {
                 // It's a Node (Sticky, Shape, Text)
-                const nodeId = child.props.id || `node-${nodeIdCounter++}`;
+                const rawNodeId = child.props.id || `node-${nodeIdCounter++}`;
+                const nodeId = resolveNodeId(rawNodeId, mindmapId);
                 const nodeFontFamily = normalizeFontFamily(child.props.fontFamily);
 
                 // Separate node content from nested edges
@@ -1082,7 +1094,10 @@ export default function Home() {
                 nestedEdges.forEach(
                   (edgeChild: RenderNode, edgeIndex: number) => {
                     // If 'from' is missing, inject parent id
-                    const sourceId = edgeChild.props.from || nodeId;
+                    const sourceId = resolveNodeId(
+                      fromToEndpointValue(edgeChild.props.from) || nodeId,
+                      mindmapId,
+                    );
                     const edgeFontFamily = normalizeFontFamily(edgeChild.props.fontFamily);
 
                     edges.push({
@@ -1151,6 +1166,7 @@ export default function Home() {
                     shape: nodeType === 'sticky' ? normalizedSticky?.shape : undefined,
                     color: child.props.color || child.props.bg,
                     className: child.props.className, // Tailwind support
+                    groupId: mindmapId,
                     pattern:
                       nodeType === 'sticky'
                         ? child.props.pattern ?? normalizedSticky?.pattern
@@ -1193,6 +1209,10 @@ export default function Home() {
                     },
                   },
                 });
+
+                if (mindmapId) {
+                  createMindMapEdge(child, { nodeId, mindmapId });
+                }
               }
             });
           };
@@ -1255,6 +1275,22 @@ export default function Home() {
         }
       } catch (error) {
         console.error('Failed to render file:', error);
+        if (isMindMapTopologyError(error)) {
+          setGraphError({
+            message: error.message,
+            type: error.code,
+            details: {
+              mindmapId: error.mindmapId,
+              nodeId: error.nodeId,
+            },
+          });
+          return;
+        }
+        setGraphError({
+          message: error instanceof Error ? error.message : 'Unknown rendering error',
+          type: 'RENDER_ERROR',
+          details: error,
+        });
       }
     }
 
