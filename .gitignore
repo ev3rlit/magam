@@ -43,10 +43,13 @@ Thumbs.db
 # Next.js
 .next
 app/.next
+*.tsbuildinfo
+app/tsconfig.tsbuildinfo
 
 notes
 # Local agent/runtime artifacts
 .claude/worktrees/
+.magam/
 examples/.magam/
 scripts/perf/artifacts/
 scripts/perf/logs/
