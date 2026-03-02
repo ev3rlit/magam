@@ -4,12 +4,21 @@ export type { MaterialPresetId } from './presets';
 
 export type MaterialRepeat = 'repeat-x' | 'repeat' | 'stretch';
 
+export interface PaperTextureParams {
+  glossOpacity?: number;
+  gradientIntensity?: number;
+  insetShadowOpacity?: number;
+  shadowWarmth?: number;
+  noiseOpacity?: number;
+}
+
 export interface MaterialPresetMeta {
   label: string;
   backgroundColor: string;
   backgroundImage?: string;
   backgroundSize?: string;
   textColor: string;
+  texture?: PaperTextureParams;
 }
 
 export type MaterialPresetRegistry = typeof MATERIAL_PRESET_REGISTRY;

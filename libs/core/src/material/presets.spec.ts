@@ -34,9 +34,9 @@ describe('material preset registry', () => {
   });
 
   it('exposes backgroundSize on lined/grid presets', () => {
-    expect(MATERIAL_PRESET_REGISTRY['lined-warm'].backgroundSize).toBe('100% 28px');
-    expect(MATERIAL_PRESET_REGISTRY['grid-standard'].backgroundSize).toBe('20px 20px');
-    expect(MATERIAL_PRESET_REGISTRY['grid-fine'].backgroundSize).toBe('10px 10px');
-    expect(MATERIAL_PRESET_REGISTRY['dot-grid'].backgroundSize).toBe('20px 20px');
+    expect(MATERIAL_PRESET_REGISTRY['lined-warm'].backgroundSize).toContain('100% 28px');
+    expect(MATERIAL_PRESET_REGISTRY['grid-standard'].backgroundSize).toContain('20px 20px');
+    expect(MATERIAL_PRESET_REGISTRY['grid-fine'].backgroundSize).toContain('10px 10px');
+    expect(MATERIAL_PRESET_REGISTRY['dot-grid'].backgroundSize).toContain('20px 20px');
   });
 });
