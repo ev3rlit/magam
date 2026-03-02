@@ -48,3 +48,5 @@ notes
 # Local agent/runtime artifacts
 .claude/worktrees/
 examples/.magam/
+scripts/perf/artifacts/
+scripts/perf/logs/
