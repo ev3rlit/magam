@@ -12,6 +12,7 @@ import {
   hasExplicitFontFamilyClass,
   resolveFontFamilyCssValue,
 } from '@/utils/fontHierarchy';
+import { useZoom } from '@/contexts/ZoomContext';
 
 interface PortData {
   id: string;
@@ -88,6 +89,7 @@ const getHandleConfig = (pos: string = 'top') => {
 };
 
 const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
+  const { isZoomBold } = useZoom();
   const currentFile = useGraphStore((state) => state.currentFile);
   const globalFontFamily = useGraphStore((state) => state.globalFontFamily);
   const canvasFontFamily = useGraphStore((state) => state.canvasFontFamily);
@@ -127,7 +129,7 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
   const labelStyle = {
     color: data.labelColor,
     fontSize: data.labelFontSize,
-    fontWeight: data.labelBold ? 'bold' : 'normal',
+    fontWeight: (isZoomBold || data.labelBold) ? 'bold' : 'normal',
     fontFamily: resolvedFontFamily,
   };
 

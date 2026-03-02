@@ -22,7 +22,7 @@ import FloatingEdge from './edges/FloatingEdge';
 import { useElkLayout } from '../hooks/useElkLayout';
 import { resolveAnchors } from '@/utils/anchorResolver';
 import { NavigationProvider } from '@/contexts/NavigationContext';
-import { ZoomProvider } from '@/contexts/ZoomContext';
+import { ZoomProvider, useZoom } from '@/contexts/ZoomContext';
 import { BubbleProvider } from '@/contexts/BubbleContext';
 import { BubbleOverlay } from './BubbleOverlay';
 import { Loader2, Check } from 'lucide-react';
@@ -88,6 +88,8 @@ function GraphCanvasContent({ onNodeDragStop, onWashiPresetChange }: GraphCanvas
     globalFontFamily,
     canvasFontFamily,
   } = useGraphStore();
+
+  const { isZoomBold } = useZoom();
 
   const canvasResolvedFontFamily = useMemo(
     () => resolveFontFamilyCssValue({ canvasFontFamily, globalFontFamily }),
@@ -568,6 +570,7 @@ function GraphCanvasContent({ onNodeDragStop, onWashiPresetChange }: GraphCanvas
         style={{
           opacity: isGraphVisible ? 1 : 0,
           fontFamily: canvasResolvedFontFamily,
+          fontWeight: isZoomBold ? 700 : undefined,
         }}
       >
         <ReactFlow

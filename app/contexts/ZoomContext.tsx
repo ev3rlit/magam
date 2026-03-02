@@ -10,15 +10,21 @@ interface ZoomContextValue {
     isBubbleMode: boolean;
     /** Inverse scale factor for bubble mode (1 / zoom) */
     inverseScale: number;
+    /** True when zoom is below font bold threshold */
+    isZoomBold: boolean;
 }
 
 /** Zoom threshold below which bubble mode activates */
 export const BUBBLE_THRESHOLD = 0.4;
 
+/** Zoom threshold below which font-weight switches to bold for readability */
+export const FONT_BOLD_ZOOM_THRESHOLD = 0.7;
+
 const ZoomContext = createContext<ZoomContextValue>({
     zoom: 1,
     isBubbleMode: false,
     inverseScale: 1,
+    isZoomBold: false,
 });
 
 /**
@@ -32,6 +38,7 @@ export function ZoomProvider({ children }: { children: React.ReactNode }) {
         zoom,
         isBubbleMode: zoom < BUBBLE_THRESHOLD,
         inverseScale: 1 / zoom,
+        isZoomBold: zoom < FONT_BOLD_ZOOM_THRESHOLD,
     }), [zoom]);
 
     return (

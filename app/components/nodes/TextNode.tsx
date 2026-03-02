@@ -10,6 +10,7 @@ import {
     hasExplicitFontFamilyClass,
     resolveFontFamilyCssValue,
 } from '@/utils/fontHierarchy';
+import { useZoom } from '@/contexts/ZoomContext';
 
 interface TextNodeData {
     label: string;
@@ -23,6 +24,7 @@ interface TextNodeData {
 }
 
 const TextNode = ({ data, selected }: NodeProps<TextNodeData>) => {
+    const { isZoomBold } = useZoom();
     const globalFontFamily = useGraphStore((state) => state.globalFontFamily);
     const canvasFontFamily = useGraphStore((state) => state.canvasFontFamily);
     const shouldApplyHierarchy = !hasExplicitFontFamilyClass(data.className);
@@ -47,7 +49,7 @@ const TextNode = ({ data, selected }: NodeProps<TextNodeData>) => {
                 style={{
                     fontSize: data.fontSize || 16,
                     color: data.color || '#374151', // text-gray-700
-                    fontWeight: data.bold ? 'bold' : 'normal',
+                    fontWeight: (isZoomBold || data.bold) ? 'bold' : 'normal',
                     fontStyle: data.italic ? 'italic' : 'normal',
                     fontFamily: resolvedFontFamily,
                 }}
