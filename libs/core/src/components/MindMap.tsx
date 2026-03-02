@@ -14,9 +14,11 @@ export interface MindMapProps {
   gap?: number;
   align?: 'start' | 'center' | 'end';
   /** 레이아웃 알고리즘. 기본값 'tree' */
-  layout?: 'tree' | 'bidirectional' | 'radial' | 'compact' | 'compact-bidir' | 'depth-hybrid' | 'treemap-pack' | 'quadrant-pack';
+  layout?: 'tree' | 'bidirectional' | 'radial' | 'compact' | 'compact-bidir' | 'depth-hybrid' | 'treemap-pack' | 'quadrant-pack' | 'voronoi-pack';
   /** 노드 간 간격 (px). 기본값 50 */
   spacing?: number;
+  /** quadrant-pack 서브트리 배치 밀도 (0~1). 기본값 0.5 */
+  density?: number;
   /** 컨테이너 스타일 (Tailwind CSS) */
   className?: string;
   /** MindMap 내부의 Node 컴포넌트들 */

@@ -6,4 +6,5 @@ export { BidirectionalCompactStrategy } from './bidirectionalCompactStrategy';
 export { DepthHybridStrategy } from './depthHybridStrategy';
 export { TreemapPackStrategy } from './treemapPackStrategy';
 export { QuadrantPackStrategy } from './quadrantPackStrategy';
+export { VoronoiPackStrategy } from './voronoiPackStrategy';
 export { getLayoutStrategy } from './registry';
