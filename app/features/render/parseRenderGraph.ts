@@ -74,8 +74,12 @@ export interface RenderNode {
       | 'radial'
       | 'compact'
       | 'compact-bidir'
-      | 'depth-hybrid';
+      | 'depth-hybrid'
+      | 'treemap-pack'
+      | 'quadrant-pack'
+      | 'voronoi-pack';
     spacing?: number;
+    density?: number;
     outlineWidth?: number;
     outlineColor?: string;
     shadow?: 'none' | 'sm' | 'md' | 'lg';
@@ -246,7 +250,10 @@ export function parseRenderGraph(data: RenderGraphResponse): ParsedRenderGraph |
             | 'radial'
             | 'compact'
             | 'compact-bidir'
-            | 'depth-hybrid') ||
+            | 'depth-hybrid'
+            | 'treemap-pack'
+            | 'quadrant-pack'
+            | 'voronoi-pack') ||
           'tree';
         const baseX = child.props.x ?? 0;
         const baseY = child.props.y ?? 0;
@@ -256,6 +263,7 @@ export function parseRenderGraph(data: RenderGraphResponse): ParsedRenderGraph |
           layoutType,
           basePosition: { x: baseX, y: baseY },
           spacing: child.props.spacing,
+          density: child.props.density,
           anchor: child.props.anchor,
           anchorPosition: child.props.position,
           anchorGap: child.props.gap,
