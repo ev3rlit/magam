@@ -148,6 +148,9 @@ export function assertMindMapTopology(params: {
       message: `[MindMap:${params.mindmapId}] nested MindMap is not supported.`,
     });
   }
+  if (params.from === undefined) {
+    return;
+  }
   parseFromProp(params.from, {
     mindmapId: params.mindmapId,
     nodeId: params.childId || 'unknown',

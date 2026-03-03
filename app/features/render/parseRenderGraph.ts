@@ -178,6 +178,9 @@ export function parseRenderGraph(data: RenderGraphResponse): ParsedRenderGraph |
     child: RenderNode,
     params: { nodeId: string; mindmapId: string },
   ) => {
+    if (child.props.from === undefined) {
+      return;
+    }
     edges.push(buildMindMapEdge({
       nodeId: params.nodeId,
       mindmapId: params.mindmapId,

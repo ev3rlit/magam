@@ -67,13 +67,13 @@ describe('mindmap parser topology contracts', () => {
     expect((parsed.edge.label as { text?: string }).text).toBe('branch');
   });
 
-  it('throws deterministic error when from is missing in mindmap context', () => {
+  it('allows root nodes without from in mindmap context', () => {
     expect(() => assertMindMapTopology({
       mindmapId: 'map',
       childType: 'graph-shape',
       childId: 'shape-1',
       from: undefined,
-    })).toThrow('[MindMap:map] node "shape-1" is missing required from prop.');
+    })).not.toThrow();
   });
 
   it('throws deterministic error for nested mindmap', () => {
@@ -124,6 +124,17 @@ describe('mindmap parser topology contracts', () => {
     expect(edge.label).toBe('판단');
     expect(edge.labelStyle).toMatchObject({ fill: '#fff', fontSize: 14 });
     expect(edge.labelBgStyle).toMatchObject({ fill: '#ef4444' });
+  });
+
+  it('keeps edge builder strict when from is missing', () => {
+    expect(() => buildMindMapEdge({
+      nodeId: 'map.child',
+      mindmapId: 'map',
+      edgeId: 'edge-1',
+      from: undefined,
+      getEdgeType: () => 'floating',
+      getStrokeStyle: () => ({}),
+    })).toThrow('[MindMap:map] node "map.child" is missing required from prop.');
   });
 
   it('resolves node ids per sibling mindmap scope', () => {
