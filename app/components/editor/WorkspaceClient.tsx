@@ -19,7 +19,6 @@ import {
   LazyChatPanel,
   LazyQuickOpenDialog,
   LazySearchOverlay,
-  LazyStickerInspector,
 } from './LazyPanels';
 import { useChatUiStore } from '@/store/chatUi';
 import { TabState, useGraphStore } from '@/store/graph';
@@ -369,11 +368,6 @@ export function WorkspaceClient() {
     };
   }, [openTabs, pendingCloseRequest]);
 
-  const hasSelectedSticker = useMemo(() => {
-    const selectedSet = new Set(selectedNodeIds);
-    return nodes.some((node) => selectedSet.has(node.id) && node.type === 'sticker');
-  }, [nodes, selectedNodeIds]);
-
   const openTabContextMenu = useCallback(
     (tabId: string, event: React.MouseEvent) => {
       setTabContextMenu({
@@ -562,7 +556,6 @@ export function WorkspaceClient() {
             onNodeDragStop={moveNode}
             onWashiPresetChange={handleWashiPresetChange}
           />
-          {hasSelectedSticker && <LazyStickerInspector />}
         </main>
 
         <Footer />
