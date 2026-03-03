@@ -22,7 +22,7 @@ const fontPresetCSS = `:root {
 }`;
 
 export const metadata: Metadata = {
-  title: '최범휘',
+  title: 'magam',
   description: 'AI-Native Programmatic Whiteboard',
 };
 
