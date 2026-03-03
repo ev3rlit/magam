@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useInMindMap } from '../context/MindMapContext';
 import { MagamError } from '../errors';
 import { useNodeId } from '../hooks/useNodeId';
 import type { PaperMaterial } from '../material/types';
@@ -25,6 +26,7 @@ export interface StickyProps {
 
 export const Sticky: React.FC<StickyProps> = (props) => {
   const scopedId = useNodeId(props.id);
+  const inMindMap = useInMindMap();
 
   if (!scopedId) {
     throw new MagamError("Missing required prop 'id'", 'props');
@@ -32,7 +34,7 @@ export const Sticky: React.FC<StickyProps> = (props) => {
   const hasAt = props.at && typeof props.at === 'object';
   const hasCoordinates = props.x !== undefined && props.y !== undefined;
   const hasFrom = props.from !== undefined;
-  if (!hasFrom && !hasAt && !hasCoordinates) {
+  if (!inMindMap && !hasFrom && !hasAt && !hasCoordinates) {
     throw new MagamError(
       "Sticky requires either 'at' placement input or 'x' and 'y' coordinates",
       'props',

@@ -255,6 +255,21 @@ describe('Magam Renderer', () => {
       expect(result.isOk()).toBe(true);
     });
 
+    it('should allow MindMap root nodes without from or explicit placement', async () => {
+      const element = (
+        <canvas>
+          <MindMap id="map">
+            <Sticky id="sticky-root" />
+            <Shape id="shape-root" />
+            <Sticker id="sticker-root">✅</Sticker>
+            <WashiTape id="washi-root" />
+          </MindMap>
+        </canvas>
+      );
+      const result = await renderToGraph(element);
+      expect(result.isOk()).toBe(true);
+    });
+
     it('should throw MagamError if Shape is missing props', async () => {
       const element = (
         <canvas>

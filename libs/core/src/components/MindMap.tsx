@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { MindMapContext } from '../context/MindMapContext';
 import { useNodeId } from '../hooks/useNodeId';
 
 export interface MindMapProps {
@@ -36,19 +37,24 @@ export const MindMap: React.FC<MindMapProps> = ({
   align,
   layout = 'tree',
   spacing = 50,
+  children,
   ...rest
 }) => {
   const scopedId = useNodeId(id);
-  return React.createElement('graph-mindmap', {
-    id: scopedId,
-    x,
-    y,
-    anchor,
-    position,
-    gap,
-    align,
-    layout,
-    spacing,
-    ...rest,
-  });
+  return React.createElement(
+    MindMapContext.Provider,
+    { value: true },
+    React.createElement('graph-mindmap', {
+      id: scopedId,
+      x,
+      y,
+      anchor,
+      position,
+      gap,
+      align,
+      layout,
+      spacing,
+      ...rest,
+    }, children),
+  );
 };

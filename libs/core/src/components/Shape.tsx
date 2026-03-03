@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useInMindMap } from '../context/MindMapContext';
 import { MagamError } from '../errors';
 import { useNodeId } from '../hooks/useNodeId';
 import type { FontFamilyPreset } from '../types/font';
@@ -40,6 +41,7 @@ export interface ShapeProps {
 
 export const Shape: React.FC<ShapeProps> = (props) => {
   const scopedId = useNodeId(props.id);
+  const inMindMap = useInMindMap();
 
   if (!scopedId) {
     throw new MagamError("Missing required prop 'id'", 'props');
@@ -50,7 +52,7 @@ export const Shape: React.FC<ShapeProps> = (props) => {
   const hasAnchor = props.anchor !== undefined;
   const hasFrom = props.from !== undefined;
 
-  if (!hasFrom && !hasCoordinates && !hasAnchor) {
+  if (!inMindMap && !hasFrom && !hasCoordinates && !hasAnchor) {
     throw new MagamError("Shape requires either 'x' and 'y' coordinates or 'anchor' positioning", 'props');
   }
 
