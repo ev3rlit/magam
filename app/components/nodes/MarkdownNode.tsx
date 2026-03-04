@@ -1,5 +1,5 @@
 import React, { isValidElement, memo, useCallback, useMemo } from 'react';
-import { NodeProps } from 'reactflow';
+import { NodeProps, useNodeId } from 'reactflow';
 import { twMerge } from 'tailwind-merge';
 import { BaseNode } from './BaseNode';
 import { CodeBlock } from '../ui/CodeBlock';
@@ -26,8 +26,15 @@ interface MarkdownNodeData {
 
 const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
     const { navigateToNode } = useNodeNavigation();
+    const nodeId = useNodeId();
     const globalFontFamily = useGraphStore((state) => state.globalFontFamily);
     const canvasFontFamily = useGraphStore((state) => state.canvasFontFamily);
+    const activeTextEditNodeId = useGraphStore((state) => state.activeTextEditNodeId);
+    const textEditDraft = useGraphStore((state) => state.textEditDraft);
+    const startTextEditSession = useGraphStore((state) => state.startTextEditSession);
+    const updateTextEditDraft = useGraphStore((state) => state.updateTextEditDraft);
+    const requestTextEditCommit = useGraphStore((state) => state.requestTextEditCommit);
+    const requestTextEditCancel = useGraphStore((state) => state.requestTextEditCancel);
     const shouldApplyHierarchy = !hasExplicitFontFamilyClass(data.className);
     const resolvedFontFamily = shouldApplyHierarchy
         ? resolveFontFamilyCssValue({
@@ -116,8 +123,30 @@ const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
         </div>
     ), [data.label, components, resolvedFontFamily]);
 
+    const isActiveEditor = Boolean(nodeId && selected && activeTextEditNodeId === nodeId);
+
+    const beginEditing = useCallback(() => {
+        if (!selected || !nodeId) return;
+        startTextEditSession({
+            nodeId,
+            initialDraft: data.label || '',
+            mode: 'markdown-wysiwyg',
+        });
+    }, [data.label, nodeId, selected, startTextEditSession]);
+
+    const commitEditing = useCallback(() => {
+        if (!nodeId) return;
+        requestTextEditCommit(nodeId);
+    }, [nodeId, requestTextEditCommit]);
+
+    const cancelEditing = useCallback(() => {
+        if (!nodeId) return;
+        requestTextEditCancel(nodeId);
+    }, [nodeId, requestTextEditCancel]);
+
     return (
         <BaseNode
+            style={{ pointerEvents: 'auto' }}
             className={twMerge(
                 "min-w-64 min-h-20 w-auto h-auto flex flex-col justify-center p-6 text-left",
                 "bg-white border-2 border-slate-200 text-slate-800 transition-all duration-300",
@@ -128,8 +157,40 @@ const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
             )}
             bubble={data.bubble}
             label={data.label}
+            onDoubleClick={beginEditing}
         >
-            {markdownContent}
+            {isActiveEditor ? (
+                <div className="w-full space-y-3 pointer-events-auto">
+                    <textarea
+                        value={textEditDraft}
+                        onChange={(event) => updateTextEditDraft(event.currentTarget.value)}
+                        onBlur={commitEditing}
+                        onKeyDown={(event) => {
+                            if (event.key === 'Escape') {
+                                event.preventDefault();
+                                cancelEditing();
+                                return;
+                            }
+                            const isCommitShortcut = (event.metaKey || event.ctrlKey) && event.key === 'Enter';
+                            if (isCommitShortcut) {
+                                event.preventDefault();
+                                commitEditing();
+                            }
+                        }}
+                        className="w-full min-h-[120px] rounded border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    />
+                    <div
+                        className="prose prose-sm prose-slate max-w-none rounded border border-dashed border-slate-300 bg-slate-50 p-3"
+                        style={{ fontFamily: resolvedFontFamily }}
+                    >
+                        <LazyMarkdownRenderer
+                            content={textEditDraft}
+                            urlTransform={(url) => url}
+                            components={components}
+                        />
+                    </div>
+                </div>
+            ) : markdownContent}
         </BaseNode>
     );
 };

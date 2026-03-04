@@ -4,6 +4,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useGraphStore } from '@/store/graph';
+import type { EditCompletionEvent } from '@/store/graph';
 
 const PORT = process.env.NEXT_PUBLIC_MAGAM_WS_PORT || '3001';
 const WS_URL = `ws://localhost:${PORT}`;
@@ -23,6 +24,12 @@ interface JsonRpcResponse {
     result?: unknown;
     error?: { code: number; message: string; data?: unknown };
     params?: Record<string, unknown>;
+}
+
+interface RpcMutationResult {
+    success?: boolean;
+    newVersion?: string;
+    commandId?: string;
 }
 
 export class RpcClientError extends Error {
@@ -188,26 +195,27 @@ export function useFileSync(
         };
     }, []);
 
-    const applyResultVersion = useCallback((result: unknown) => {
-        const typed = result as { newVersion?: string; commandId?: string };
+    const applyResultVersion = useCallback((result: unknown): RpcMutationResult => {
+        const typed = result as RpcMutationResult;
         if (typed?.newVersion) {
             useGraphStore.getState().setSourceVersion(typed.newVersion);
         }
         if (typed?.commandId) {
             useGraphStore.getState().setLastAppliedCommandId(typed.commandId);
         }
+        return typed;
     }, []);
 
-    const updateNode = useCallback(async (nodeId: string, props: Record<string, unknown>) => {
-        if (!filePath) return;
+    const updateNode = useCallback(async (nodeId: string, props: Record<string, unknown>): Promise<RpcMutationResult> => {
+        if (!filePath) return {};
         const result = await sendRequest('node.update', withCommon({ filePath, nodeId, props }));
-        applyResultVersion(result);
+        return applyResultVersion(result);
     }, [filePath, sendRequest, withCommon, applyResultVersion]);
 
-    const moveNode = useCallback(async (nodeId: string, x: number, y: number) => {
-        if (!filePath) return;
+    const moveNode = useCallback(async (nodeId: string, x: number, y: number): Promise<RpcMutationResult> => {
+        if (!filePath) return {};
         const result = await sendRequest('node.move', withCommon({ filePath, nodeId, x, y }));
-        applyResultVersion(result);
+        return applyResultVersion(result);
     }, [filePath, sendRequest, withCommon, applyResultVersion]);
 
     const createNode = useCallback(async (node: Record<string, unknown>) => {
@@ -222,5 +230,65 @@ export function useFileSync(
         applyResultVersion(result);
     }, [filePath, sendRequest, withCommon, applyResultVersion]);
 
-    return { updateNode, moveNode, createNode, reparentNode };
+    const applyEventSnapshot = useCallback(async (
+        event: EditCompletionEvent,
+        direction: 'before' | 'after',
+    ): Promise<void> => {
+        const snapshot = direction === 'before' ? event.before : event.after;
+
+        if (event.type === 'ABSOLUTE_MOVE_COMMITTED') {
+            const x = snapshot.x;
+            const y = snapshot.y;
+            if (typeof x !== 'number' || typeof y !== 'number') {
+                throw new Error('INVALID_EVENT_SNAPSHOT');
+            }
+            await moveNode(event.nodeId, x, y);
+            return;
+        }
+
+        if (event.type === 'TEXT_EDIT_COMMITTED') {
+            const content = snapshot.content;
+            if (typeof content !== 'string') {
+                throw new Error('INVALID_EVENT_SNAPSHOT');
+            }
+            await updateNode(event.nodeId, { content });
+            return;
+        }
+
+        const patchProps: Record<string, unknown> = {};
+        if ('gap' in snapshot && typeof snapshot.gap === 'number') {
+            patchProps.gap = snapshot.gap;
+        }
+        if ('at' in snapshot && snapshot.at && typeof snapshot.at === 'object') {
+            patchProps.at = snapshot.at;
+        }
+        if (Object.keys(patchProps).length === 0) {
+            throw new Error('INVALID_EVENT_SNAPSHOT');
+        }
+        await updateNode(event.nodeId, patchProps);
+    }, [moveNode, updateNode]);
+
+    const undoLastEdit = useCallback(async (): Promise<boolean> => {
+        const state = useGraphStore.getState();
+        const event = state.peekUndoEditEvent();
+        if (!event) {
+            return false;
+        }
+        await applyEventSnapshot(event, 'before');
+        useGraphStore.getState().commitUndoEventSuccess(event.eventId);
+        return true;
+    }, [applyEventSnapshot]);
+
+    const redoLastEdit = useCallback(async (): Promise<boolean> => {
+        const state = useGraphStore.getState();
+        const event = state.peekRedoEditEvent();
+        if (!event) {
+            return false;
+        }
+        await applyEventSnapshot(event, 'after');
+        useGraphStore.getState().commitRedoEventSuccess(event.eventId);
+        return true;
+    }, [applyEventSnapshot]);
+
+    return { updateNode, moveNode, createNode, reparentNode, undoLastEdit, redoLastEdit };
 }

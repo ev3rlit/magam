@@ -50,13 +50,29 @@ import {
 } from '@/utils/clipboardGraph';
 import { getWashiPresetPatternCatalog, resolvePresetPatternId } from '@/utils/washiTapeDefaults';
 import type { MaterialPresetId } from '@/types/washiTape';
+import { shouldCommitDragStop } from './GraphCanvas.drag';
 
 type GraphCanvasProps = {
-  onNodeDragStop?: (nodeId: string, x: number, y: number) => Promise<void> | void;
+  onNodeDragStop?: (payload: {
+    nodeId: string;
+    x: number;
+    y: number;
+    originX: number;
+    originY: number;
+  }) => Promise<void> | void;
   onWashiPresetChange?: (nodeIds: string[], presetId: MaterialPresetId) => Promise<void> | void;
+  onUndoEditStep?: () => Promise<boolean> | boolean;
+  onRedoEditStep?: () => Promise<boolean> | boolean;
+  mapEditErrorToToast?: (error: unknown) => string | null;
 };
 
-function GraphCanvasContent({ onNodeDragStop, onWashiPresetChange }: GraphCanvasProps) {
+function GraphCanvasContent({
+  onNodeDragStop,
+  onWashiPresetChange,
+  onUndoEditStep,
+  onRedoEditStep,
+  mapEditErrorToToast,
+}: GraphCanvasProps) {
   const nodeTypes = useMemo(
     () => ({
       sticky: StickyNode,
@@ -439,8 +455,23 @@ function GraphCanvasContent({ onNodeDragStop, onWashiPresetChange }: GraphCanvas
     async (_event: React.MouseEvent, node: FlowNode) => {
       if (!onNodeDragStop) return;
 
+      const original = dragOriginPositions.current.get(node.id);
+      if (!shouldCommitDragStop({
+        origin: original,
+        current: { x: node.position.x, y: node.position.y },
+      })) {
+        dragOriginPositions.current.delete(node.id);
+        return;
+      }
+
       try {
-        await onNodeDragStop(node.id, node.position.x, node.position.y);
+        await onNodeDragStop({
+          nodeId: node.id,
+          x: node.position.x,
+          y: node.position.y,
+          originX: original?.x ?? node.position.x,
+          originY: original?.y ?? node.position.y,
+        });
 
         const currentNodes = getNodes();
         const hasAnchors = currentNodes.some((n) => {
@@ -457,14 +488,21 @@ function GraphCanvasContent({ onNodeDragStop, onWashiPresetChange }: GraphCanvas
           setNodes(resolved);
         }
       } catch (error) {
-        const original = dragOriginPositions.current.get(node.id);
         if (original) {
           setNodes((prev) => prev.map((n) => (n.id === node.id ? { ...n, position: original } : n)));
+        }
+
+        const mapped = mapEditErrorToToast?.(error);
+        if (mapped) {
+          showToast(mapped);
+          return;
         }
 
         const code = (error as { code?: number })?.code;
         if (code === 40901) {
           showToast('외부 수정 감지: 최신 상태로 다시 동기화합니다.');
+        } else if (code === 40903) {
+          showToast('ID 중복 감지: 중복 식별자를 먼저 정리해주세요.');
         } else {
           showToast('편집 실패: 이전 상태로 롤백되었습니다.');
         }
@@ -472,7 +510,7 @@ function GraphCanvasContent({ onNodeDragStop, onWashiPresetChange }: GraphCanvas
         dragOriginPositions.current.delete(node.id);
       }
     },
-    [getNodes, onNodeDragStop, setNodes],
+    [getNodes, mapEditErrorToToast, onNodeDragStop, setNodes],
   );
 
   const handleWashiPresetSelect = useCallback(
@@ -625,6 +663,25 @@ function GraphCanvasContent({ onNodeDragStop, onWashiPresetChange }: GraphCanvas
       }
 
       if (isUndo) {
+        if (onUndoEditStep) {
+          e.preventDefault();
+          try {
+            const handled = await onUndoEditStep();
+            if (handled) {
+              showToast('편집 1단계 실행 취소');
+              return;
+            }
+          } catch (error) {
+            const mapped = mapEditErrorToToast?.(error);
+            if (mapped) {
+              showToast(mapped);
+            } else {
+              showToast('실행 취소에 실패했습니다.');
+            }
+            return;
+          }
+        }
+
         const history = clipboardHistory.current;
         const previous = history.past.pop();
         if (!previous) return;
@@ -638,6 +695,25 @@ function GraphCanvasContent({ onNodeDragStop, onWashiPresetChange }: GraphCanvas
       }
 
       if (isRedo) {
+        if (onRedoEditStep) {
+          e.preventDefault();
+          try {
+            const handled = await onRedoEditStep();
+            if (handled) {
+              showToast('편집 1단계 다시 실행');
+              return;
+            }
+          } catch (error) {
+            const mapped = mapEditErrorToToast?.(error);
+            if (mapped) {
+              showToast(mapped);
+            } else {
+              showToast('다시 실행에 실패했습니다.');
+            }
+            return;
+          }
+        }
+
         const history = clipboardHistory.current;
         const nextSnapshot = history.future.pop();
         if (!nextSnapshot) return;
@@ -652,7 +728,7 @@ function GraphCanvasContent({ onNodeDragStop, onWashiPresetChange }: GraphCanvas
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [focusNextNodeByType, selectNodesByType]);
+  }, [focusNextNodeByType, mapEditErrorToToast, onRedoEditStep, onUndoEditStep, selectNodesByType]);
 
   return (
     <>
@@ -765,7 +841,13 @@ function GraphCanvasContent({ onNodeDragStop, onWashiPresetChange }: GraphCanvas
   );
 }
 
-export function GraphCanvas({ onNodeDragStop, onWashiPresetChange }: GraphCanvasProps) {
+export function GraphCanvas({
+  onNodeDragStop,
+  onWashiPresetChange,
+  onUndoEditStep,
+  onRedoEditStep,
+  mapEditErrorToToast,
+}: GraphCanvasProps) {
   return (
     <div className="w-full h-full min-h-[500px] flex-1 relative">
       <ReactFlowProvider>
@@ -775,6 +857,9 @@ export function GraphCanvas({ onNodeDragStop, onWashiPresetChange }: GraphCanvas
               <GraphCanvasContent
                 onNodeDragStop={onNodeDragStop}
                 onWashiPresetChange={onWashiPresetChange}
+                onUndoEditStep={onUndoEditStep}
+                onRedoEditStep={onRedoEditStep}
+                mapEditErrorToToast={mapEditErrorToToast}
               />
             </BubbleProvider>
           </ZoomProvider>
