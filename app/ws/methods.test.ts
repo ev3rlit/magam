@@ -1,15 +1,21 @@
 import { afterEach, describe, expect, it, mock } from 'bun:test';
 import { mkdtemp, readFile, rm, writeFile } from 'fs/promises';
-import { join } from 'path';
+import { basename, dirname, join } from 'path';
 import { tmpdir } from 'os';
 import { createHash } from 'crypto';
 import { methods } from './methods';
 
 const tempDirs: string[] = [];
+const originalMagamTargetDir = process.env.MAGAM_TARGET_DIR;
 
 afterEach(async () => {
   await Promise.all(tempDirs.map((dir) => rm(dir, { recursive: true, force: true })));
   tempDirs.length = 0;
+  if (originalMagamTargetDir === undefined) {
+    delete process.env.MAGAM_TARGET_DIR;
+  } else {
+    process.env.MAGAM_TARGET_DIR = originalMagamTargetDir;
+  }
 });
 
 async function makeTempTsx(content: string): Promise<string> {
@@ -47,6 +53,31 @@ describe('RPC editing methods', () => {
     const patched = await readFile(filePath, 'utf-8');
     expect(patched.includes('x={100}')).toBe(true);
     expect(patched.includes('y={200}')).toBe(true);
+  });
+
+  it('node.move: relative filePath는 MAGAM_TARGET_DIR 기준으로 해석한다', async () => {
+    const filePath = await makeTempTsx(`export default function Sample(){ return <Node id="n1" x={1} y={2} />; }`);
+    const original = await readFile(filePath, 'utf-8');
+    process.env.MAGAM_TARGET_DIR = dirname(filePath);
+    const relativePath = basename(filePath);
+    const notify = mock((_payload: { filePath: string }) => { });
+
+    const result = await methods['node.move']({
+      filePath: relativePath,
+      nodeId: 'n1',
+      x: 77,
+      y: 88,
+      baseVersion: sha(original),
+      originId: 'client-1',
+      commandId: 'cmd-relative-1',
+    }, { ws: {}, subscriptions: new Set(), notifyFileChanged: notify }) as { success: boolean; newVersion: string };
+
+    expect(result.success).toBe(true);
+    const patched = await readFile(filePath, 'utf-8');
+    expect(patched.includes('x={77}')).toBe(true);
+    expect(patched.includes('y={88}')).toBe(true);
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(notify.mock.calls[0]?.[0].filePath).toBe(relativePath);
   });
 
   it('node.update: baseVersion 불일치면 VERSION_CONFLICT', async () => {

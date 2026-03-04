@@ -26,6 +26,7 @@ import {
   getWashiPresetPatternCatalog,
 } from '@/utils/washiTapeDefaults';
 import { parseRenderGraph } from '@/features/render/parseRenderGraph';
+import { editDebugLog } from '@/utils/editDebug';
 import { mapDragToRelativeAttachmentUpdate } from '@/utils/relativeAttachmentMapping';
 import {
   buildTextDraftPatch,
@@ -270,7 +271,7 @@ export function WorkspaceClient() {
       throw new RpcClientError(40401, 'NODE_NOT_FOUND', { reason: relativeUpdate.reason });
     }
 
-    if (relativeUpdate && relativeUpdate.kind !== 'invalid') {
+    if (relativeUpdate) {
       const previousData = (targetNode.data || {}) as Record<string, unknown>;
       useGraphStore.getState().updateNodeData(payload.nodeId, relativeUpdate.props);
       try {
@@ -638,6 +639,12 @@ export function WorkspaceClient() {
         });
         clearTextEditSession();
       } catch (error) {
+        editDebugLog('text-edit-commit', error, {
+          nodeId: node.id,
+          filePath: runtime.currentFile,
+          beforeContent,
+          nextContent,
+        });
         restoreNodeData(node.id, previousData);
         const message = mapEditRpcErrorToToast(error) ?? '텍스트 저장에 실패했습니다.';
         setGraphError({

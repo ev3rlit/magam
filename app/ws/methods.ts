@@ -4,6 +4,7 @@
 
 import { readFile } from 'fs/promises';
 import { createHash } from 'crypto';
+import { isAbsolute, resolve } from 'path';
 import {
     patchFile,
     patchNodeCreate,
@@ -27,6 +28,7 @@ export interface RpcContext {
 }
 
 type RpcHandler = (params: Record<string, unknown>, ctx: RpcContext) => Promise<unknown>;
+const fileMutationLocks = new Map<string, Promise<void>>();
 
 function ensureString(value: unknown, fieldName: string): string {
     if (!value || typeof value !== 'string') {
@@ -50,12 +52,46 @@ function ensureNumber(value: unknown, fieldName: string): number {
     return value;
 }
 
+function isFileMutexEnabled(): boolean {
+    return process.env.MAGAM_WS_ENABLE_FILE_MUTEX === '1';
+}
+
+export function runWithOptionalFileMutex<T>(filePath: string, task: () => Promise<T>): Promise<T> {
+    if (!isFileMutexEnabled()) {
+        return task();
+    }
+
+    const previousLock = fileMutationLocks.get(filePath) || Promise.resolve();
+    const run = previousLock
+        .catch(() => undefined)
+        .then(() => task());
+    const nextLock = run.then(() => undefined, () => undefined);
+
+    fileMutationLocks.set(filePath, nextLock);
+    nextLock.finally(() => {
+        if (fileMutationLocks.get(filePath) === nextLock) {
+            fileMutationLocks.delete(filePath);
+        }
+    });
+
+    return run;
+}
+
+function resolveWorkspaceFilePath(filePath: string): string {
+    if (isAbsolute(filePath)) {
+        return filePath;
+    }
+    const workspaceRoot = resolve(process.env.MAGAM_TARGET_DIR || process.cwd());
+    return resolve(workspaceRoot, filePath);
+}
+
 function ensureCommonParams(params: Record<string, unknown>) {
     const filePath = ensureString(params.filePath, 'filePath');
     const baseVersion = ensureString(params.baseVersion, 'baseVersion');
     const originId = ensureString(params.originId, 'originId');
     const commandId = ensureString(params.commandId, 'commandId');
-    return { filePath, baseVersion, originId, commandId };
+    const resolvedFilePath = resolveWorkspaceFilePath(filePath);
+    return { filePath, resolvedFilePath, baseVersion, originId, commandId };
 }
 
 async function getFileVersion(filePath: string): Promise<string> {
@@ -76,19 +112,21 @@ async function ensureBaseVersion(filePath: string, baseVersion: string): Promise
 
 async function mutateWithContract(
     ctx: RpcContext,
-    common: { filePath: string; baseVersion: string; originId: string; commandId: string },
+    common: { filePath: string; resolvedFilePath: string; baseVersion: string; originId: string; commandId: string },
     mutator: () => Promise<void>,
 ): Promise<{ success: boolean; newVersion: string; commandId: string }> {
-    await ensureBaseVersion(common.filePath, common.baseVersion);
-    await mutator();
-    const newVersion = await getFileVersion(common.filePath);
-    ctx.notifyFileChanged?.({
-        filePath: common.filePath,
-        version: newVersion,
-        originId: common.originId,
-        commandId: common.commandId,
+    return runWithOptionalFileMutex(common.resolvedFilePath, async () => {
+        await ensureBaseVersion(common.resolvedFilePath, common.baseVersion);
+        await mutator();
+        const newVersion = await getFileVersion(common.resolvedFilePath);
+        ctx.notifyFileChanged?.({
+            filePath: common.filePath,
+            version: newVersion,
+            originId: common.originId,
+            commandId: common.commandId,
+        });
+        return { success: true, newVersion, commandId: common.commandId };
     });
-    return { success: true, newVersion, commandId: common.commandId };
 }
 
 async function handleFileSubscribe(params: Record<string, unknown>, ctx: RpcContext): Promise<{ success: boolean }> {
@@ -117,11 +155,11 @@ async function handleNodeUpdate(
 
     try {
         return await mutateWithContract(ctx, common, async () => {
-            const collisionIds = await getGlobalIdentifierCollisions(common.filePath);
+            const collisionIds = await getGlobalIdentifierCollisions(common.resolvedFilePath);
             if (collisionIds.length > 0) {
                 throw { ...RPC_ERRORS.ID_COLLISION, data: { collisionIds } };
             }
-            await patchFile(common.filePath, nodeId, props);
+            await patchFile(common.resolvedFilePath, nodeId, props);
         });
     } catch (error) {
         const e = error as { code?: number; message?: string; data?: unknown } | Error;
@@ -147,11 +185,11 @@ async function handleNodeMove(
 
     try {
         return await mutateWithContract(ctx, common, async () => {
-            const collisionIds = await getGlobalIdentifierCollisions(common.filePath);
+            const collisionIds = await getGlobalIdentifierCollisions(common.resolvedFilePath);
             if (collisionIds.length > 0) {
                 throw { ...RPC_ERRORS.ID_COLLISION, data: { collisionIds } };
             }
-            await patchNodePosition(common.filePath, nodeId, x, y);
+            await patchNodePosition(common.resolvedFilePath, nodeId, x, y);
         });
     } catch (error) {
         const e = error as { code?: number; message?: string; data?: unknown } | Error;
@@ -183,7 +221,7 @@ async function handleNodeCreate(
 
     try {
         return await mutateWithContract(ctx, common, async () => {
-            await patchNodeCreate(common.filePath, node);
+            await patchNodeCreate(common.resolvedFilePath, node);
         });
     } catch (error) {
         const e = error as { code?: number; message?: string; data?: unknown } | Error;
@@ -203,7 +241,7 @@ async function handleNodeReparent(
 
     try {
         return await mutateWithContract(ctx, common, async () => {
-            await patchNodeReparent(common.filePath, nodeId, newParentId || null);
+            await patchNodeReparent(common.resolvedFilePath, nodeId, newParentId || null);
         });
     } catch (error) {
         const e = error as { code?: number; message?: string; data?: unknown } | Error;

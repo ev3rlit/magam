@@ -2,13 +2,20 @@
  * useFileSync Hook - WebSocket client for file synchronization
  */
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { useGraphStore } from '@/store/graph';
 import type { EditCompletionEvent } from '@/store/graph';
+import { editDebugLog, isEditDebugEnabled } from '@/utils/editDebug';
 
 const PORT = process.env.NEXT_PUBLIC_MAGAM_WS_PORT || '3001';
 const WS_URL = `ws://localhost:${PORT}`;
 const REQUEST_TIMEOUT = 5000;
+
+export const MAX_VERSION_CONFLICT_RETRY = 1;
+export const VERSION_CONFLICT_METRIC_WINDOW_MS = 10 * 60 * 1000;
+export const VERSION_CONFLICT_RATE_THRESHOLD = 0.02;
+
+type MutationMethod = 'node.update' | 'node.move' | 'node.create' | 'node.reparent';
 
 interface JsonRpcRequest {
     jsonrpc: '2.0';
@@ -26,10 +33,73 @@ interface JsonRpcResponse {
     params?: Record<string, unknown>;
 }
 
-interface RpcMutationResult {
+export interface RpcMutationResult {
     success?: boolean;
     newVersion?: string;
     commandId?: string;
+}
+
+type VersionConflictData = {
+    expected?: unknown;
+    actual?: unknown;
+};
+
+type VersionConflictErrorLike = {
+    code?: unknown;
+    message?: unknown;
+    data?: unknown;
+};
+
+export interface VersionConflictMetricsSnapshot {
+    windowMs: number;
+    threshold: number;
+    mutationTotal10m: number;
+    versionConflictTotal10m: number;
+    versionConflictRate10m: number;
+    shouldEnableServerMutex: boolean;
+    updatedAt: number;
+}
+
+export interface VersionConflictMetricsTracker {
+    recordMutation: () => VersionConflictMetricsSnapshot;
+    recordVersionConflict: () => VersionConflictMetricsSnapshot;
+    getSnapshot: () => VersionConflictMetricsSnapshot;
+    reset: () => void;
+}
+
+type RetryEvent = {
+    method: MutationMethod;
+    filePath: string;
+    attempt: number;
+    maxRetry: number;
+    expected?: string;
+    actual?: string;
+    metrics: VersionConflictMetricsSnapshot;
+    error: unknown;
+};
+
+type CreateMutationExecutorInput = {
+    sendRequest: (method: MutationMethod, params: Record<string, unknown>) => Promise<unknown>;
+    buildCommonParams: (params: Record<string, unknown>) => Record<string, unknown>;
+    applyResultVersion: (result: unknown) => RpcMutationResult;
+    onVersionConflictActual?: (actualVersion: string) => void;
+    onConflictRetry?: (event: RetryEvent) => void;
+    metricsTracker?: VersionConflictMetricsTracker;
+};
+
+type EnqueueMutationInput = {
+    method: MutationMethod;
+    filePath: string;
+    buildParams: () => Record<string, unknown>;
+};
+
+declare global {
+    interface Window {
+        __MAGAM_EDIT_METRICS__?: Readonly<{
+            getSnapshot: () => VersionConflictMetricsSnapshot;
+            reset: () => void;
+        }>;
+    }
 }
 
 export class RpcClientError extends Error {
@@ -45,6 +115,151 @@ export class RpcClientError extends Error {
 }
 
 let requestIdCounter = 0;
+
+function pruneExpiredTimestamps(timestamps: number[], now: number, windowMs: number): void {
+    while (timestamps.length > 0 && (now - timestamps[0]) > windowMs) {
+        timestamps.shift();
+    }
+}
+
+function toOptionalString(value: unknown): string | undefined {
+    return typeof value === 'string' ? value : undefined;
+}
+
+function extractVersionConflictVersions(error: unknown): { expected?: string; actual?: string } {
+    const data = (error as VersionConflictErrorLike)?.data as VersionConflictData | undefined;
+    return {
+        expected: toOptionalString(data?.expected),
+        actual: toOptionalString(data?.actual),
+    };
+}
+
+export function isVersionConflictError(error: unknown): error is VersionConflictErrorLike {
+    const candidate = error as VersionConflictErrorLike | undefined;
+    if (!candidate) return false;
+    return candidate.code === 40901 || candidate.message === 'VERSION_CONFLICT';
+}
+
+export function createVersionConflictMetricsTracker(input?: {
+    windowMs?: number;
+    threshold?: number;
+    now?: () => number;
+}): VersionConflictMetricsTracker {
+    const mutationTimestamps: number[] = [];
+    const versionConflictTimestamps: number[] = [];
+    const windowMs = input?.windowMs ?? VERSION_CONFLICT_METRIC_WINDOW_MS;
+    const threshold = input?.threshold ?? VERSION_CONFLICT_RATE_THRESHOLD;
+    const now = input?.now ?? Date.now;
+
+    const buildSnapshot = (): VersionConflictMetricsSnapshot => {
+        const timestamp = now();
+        pruneExpiredTimestamps(mutationTimestamps, timestamp, windowMs);
+        pruneExpiredTimestamps(versionConflictTimestamps, timestamp, windowMs);
+
+        const mutationTotal10m = mutationTimestamps.length;
+        const versionConflictTotal10m = versionConflictTimestamps.length;
+        const versionConflictRate10m = mutationTotal10m === 0
+            ? 0
+            : versionConflictTotal10m / mutationTotal10m;
+
+        return {
+            windowMs,
+            threshold,
+            mutationTotal10m,
+            versionConflictTotal10m,
+            versionConflictRate10m,
+            shouldEnableServerMutex: versionConflictRate10m >= threshold,
+            updatedAt: timestamp,
+        };
+    };
+
+    return {
+        recordMutation: () => {
+            mutationTimestamps.push(now());
+            return buildSnapshot();
+        },
+        recordVersionConflict: () => {
+            versionConflictTimestamps.push(now());
+            return buildSnapshot();
+        },
+        getSnapshot: () => buildSnapshot(),
+        reset: () => {
+            mutationTimestamps.length = 0;
+            versionConflictTimestamps.length = 0;
+        },
+    };
+}
+
+export function createPerFileMutationExecutor(input: CreateMutationExecutorInput): {
+    enqueueMutation: (mutation: EnqueueMutationInput) => Promise<RpcMutationResult>;
+    getMetricsSnapshot: () => VersionConflictMetricsSnapshot;
+    resetMetrics: () => void;
+} {
+    const queueTails = new Map<string, Promise<void>>();
+    const metrics = input.metricsTracker ?? createVersionConflictMetricsTracker();
+
+    const executeWithRetry = async (mutation: EnqueueMutationInput): Promise<RpcMutationResult> => {
+        metrics.recordMutation();
+
+        let retryAttempt = 0;
+        while (true) {
+            try {
+                const params = input.buildCommonParams(mutation.buildParams());
+                const result = await input.sendRequest(mutation.method, params);
+                return input.applyResultVersion(result);
+            } catch (error) {
+                if (!isVersionConflictError(error)) {
+                    throw error;
+                }
+
+                const { expected, actual } = extractVersionConflictVersions(error);
+                const metricsSnapshot = metrics.recordVersionConflict();
+
+                if (retryAttempt >= MAX_VERSION_CONFLICT_RETRY) {
+                    throw error;
+                }
+
+                retryAttempt += 1;
+                if (actual) {
+                    input.onVersionConflictActual?.(actual);
+                }
+                input.onConflictRetry?.({
+                    method: mutation.method,
+                    filePath: mutation.filePath,
+                    attempt: retryAttempt,
+                    maxRetry: MAX_VERSION_CONFLICT_RETRY,
+                    expected,
+                    actual,
+                    metrics: metricsSnapshot,
+                    error,
+                });
+            }
+        }
+    };
+
+    const enqueueMutation = async (mutation: EnqueueMutationInput): Promise<RpcMutationResult> => {
+        const previousTail = queueTails.get(mutation.filePath) || Promise.resolve();
+        const run = previousTail
+            .catch(() => undefined)
+            .then(() => executeWithRetry(mutation));
+
+        const nextTail = run.then(() => undefined, () => undefined);
+        queueTails.set(mutation.filePath, nextTail);
+        nextTail.finally(() => {
+            if (queueTails.get(mutation.filePath) === nextTail) {
+                queueTails.delete(mutation.filePath);
+            }
+        });
+
+        return run;
+    };
+
+    return {
+        enqueueMutation,
+        getMetricsSnapshot: () => metrics.getSnapshot(),
+        resetMetrics: () => metrics.reset(),
+    };
+}
 
 export function shouldReloadForFileChange(input: {
     changedFile: string;
@@ -206,29 +421,83 @@ export function useFileSync(
         return typed;
     }, []);
 
+    const mutationExecutor = useMemo(() => createPerFileMutationExecutor({
+        sendRequest: (method, params) => sendRequest(method, params),
+        buildCommonParams: withCommon,
+        applyResultVersion,
+        onVersionConflictActual: (actualVersion) => {
+            useGraphStore.getState().setSourceVersion(actualVersion);
+        },
+        onConflictRetry: (event) => {
+            editDebugLog('mutation-version-conflict-retry', event.error, {
+                method: event.method,
+                filePath: event.filePath,
+                attempt: event.attempt,
+                maxRetry: event.maxRetry,
+                expected: event.expected,
+                actual: event.actual,
+                mutation_total_10m: event.metrics.mutationTotal10m,
+                version_conflict_total_10m: event.metrics.versionConflictTotal10m,
+                version_conflict_rate_10m: event.metrics.versionConflictRate10m,
+                threshold: event.metrics.threshold,
+                should_enable_server_mutex: event.metrics.shouldEnableServerMutex,
+            });
+        },
+    }), [applyResultVersion, sendRequest, withCommon]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined' || !isEditDebugEnabled()) {
+            return;
+        }
+
+        const debugMetrics = Object.freeze({
+            getSnapshot: () => mutationExecutor.getMetricsSnapshot(),
+            reset: () => mutationExecutor.resetMetrics(),
+        });
+        window.__MAGAM_EDIT_METRICS__ = debugMetrics;
+
+        return () => {
+            if (window.__MAGAM_EDIT_METRICS__ === debugMetrics) {
+                delete window.__MAGAM_EDIT_METRICS__;
+            }
+        };
+    }, [mutationExecutor]);
+
     const updateNode = useCallback(async (nodeId: string, props: Record<string, unknown>): Promise<RpcMutationResult> => {
         if (!filePath) return {};
-        const result = await sendRequest('node.update', withCommon({ filePath, nodeId, props }));
-        return applyResultVersion(result);
-    }, [filePath, sendRequest, withCommon, applyResultVersion]);
+        return mutationExecutor.enqueueMutation({
+            method: 'node.update',
+            filePath,
+            buildParams: () => ({ filePath, nodeId, props }),
+        });
+    }, [filePath, mutationExecutor]);
 
     const moveNode = useCallback(async (nodeId: string, x: number, y: number): Promise<RpcMutationResult> => {
         if (!filePath) return {};
-        const result = await sendRequest('node.move', withCommon({ filePath, nodeId, x, y }));
-        return applyResultVersion(result);
-    }, [filePath, sendRequest, withCommon, applyResultVersion]);
+        return mutationExecutor.enqueueMutation({
+            method: 'node.move',
+            filePath,
+            buildParams: () => ({ filePath, nodeId, x, y }),
+        });
+    }, [filePath, mutationExecutor]);
 
     const createNode = useCallback(async (node: Record<string, unknown>) => {
         if (!filePath) return;
-        const result = await sendRequest('node.create', withCommon({ filePath, node }));
-        applyResultVersion(result);
-    }, [filePath, sendRequest, withCommon, applyResultVersion]);
+        await mutationExecutor.enqueueMutation({
+            method: 'node.create',
+            filePath,
+            buildParams: () => ({ filePath, node }),
+        });
+    }, [filePath, mutationExecutor]);
 
     const reparentNode = useCallback(async (nodeId: string, newParentId?: string) => {
         if (!filePath) return;
-        const result = await sendRequest('node.reparent', withCommon({ filePath, nodeId, newParentId }));
-        applyResultVersion(result);
-    }, [filePath, sendRequest, withCommon, applyResultVersion]);
+        await mutationExecutor.enqueueMutation({
+            method: 'node.reparent',
+            filePath,
+            buildParams: () => ({ filePath, nodeId, newParentId }),
+        });
+    }, [filePath, mutationExecutor]);
 
     const applyEventSnapshot = useCallback(async (
         event: EditCompletionEvent,

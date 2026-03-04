@@ -48,6 +48,7 @@ import {
   snapshotGraphState,
   type GraphSnapshot,
 } from '@/utils/clipboardGraph';
+import { editDebugLog } from '@/utils/editDebug';
 import { getWashiPresetPatternCatalog, resolvePresetPatternId } from '@/utils/washiTapeDefaults';
 import type { MaterialPresetId } from '@/types/washiTape';
 import { shouldCommitDragStop } from './GraphCanvas.drag';
@@ -488,6 +489,12 @@ function GraphCanvasContent({
           setNodes(resolved);
         }
       } catch (error) {
+        editDebugLog('node-drag-stop', error, {
+          nodeId: node.id,
+          attemptedPosition: { x: node.position.x, y: node.position.y },
+          originalPosition: original ?? null,
+        });
+
         if (original) {
           setNodes((prev) => prev.map((n) => (n.id === node.id ? { ...n, position: original } : n)));
         }
@@ -543,6 +550,11 @@ function GraphCanvasContent({
       try {
         await onWashiPresetChange?.(selectedWashiNodeIds, presetId);
       } catch (error) {
+        editDebugLog('washi-preset-change', error, {
+          nodeIds: selectedWashiNodeIds,
+          presetId,
+        });
+
         useGraphStore.setState((state) => ({
           nodes: state.nodes.map((node) => {
             const previous = previousData.get(node.id);
@@ -672,6 +684,7 @@ function GraphCanvasContent({
               return;
             }
           } catch (error) {
+            editDebugLog('edit-undo-step', error);
             const mapped = mapEditErrorToToast?.(error);
             if (mapped) {
               showToast(mapped);
@@ -704,6 +717,7 @@ function GraphCanvasContent({
               return;
             }
           } catch (error) {
+            editDebugLog('edit-redo-step', error);
             const mapped = mapEditErrorToToast?.(error);
             if (mapped) {
               showToast(mapped);
