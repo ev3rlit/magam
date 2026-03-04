@@ -43,6 +43,7 @@ interface BaseNodeProps {
     */
     label?: string;
     style?: React.CSSProperties;
+    onDoubleClick?: React.MouseEventHandler<HTMLDivElement>;
 }
 
 export const BaseNodeComponent = ({
@@ -55,6 +56,7 @@ export const BaseNodeComponent = ({
     bubble = false,
     label,
     style,
+    onDoubleClick,
 }: BaseNodeProps) => {
     const { registerBubble, unregisterBubble } = useBubbleActions();
     const nodeId = useNodeId();
@@ -106,7 +108,7 @@ export const BaseNodeComponent = ({
     // Bubble is now rendered in BubbleOverlay, not here
 
     return (
-        <div className={twMerge("relative group", className)} style={style}>
+        <div className={twMerge("relative group", className)} style={style} onDoubleClick={onDoubleClick}>
             {/* Target handle */}
             {endHandle && (
                 <Handle

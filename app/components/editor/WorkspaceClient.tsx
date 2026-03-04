@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { useFileSync } from '@/hooks/useFileSync';
+import { RpcClientError, useFileSync } from '@/hooks/useFileSync';
 import { GraphCanvas } from '@/components/GraphCanvas';
 import { Sidebar } from '@/components/ui/Sidebar';
 import { Header } from '@/components/ui/Header';
@@ -26,6 +26,13 @@ import {
   getWashiPresetPatternCatalog,
 } from '@/utils/washiTapeDefaults';
 import { parseRenderGraph } from '@/features/render/parseRenderGraph';
+import { editDebugLog } from '@/utils/editDebug';
+import { mapDragToRelativeAttachmentUpdate } from '@/utils/relativeAttachmentMapping';
+import {
+  buildTextDraftPatch,
+  canCommitTextEdit,
+  mapEditRpcErrorToToast,
+} from './workspaceEditUtils';
 
 type PendingTabCloseRequest = {
   tabIds: string[];
@@ -46,6 +53,11 @@ type MagamTestHooks = {
   getOpenTabs: () => TabState[];
   markTabDirty: (tabId: string, dirty: boolean) => void;
 };
+
+function getNodeLabel(node: { data?: unknown }): string {
+  const data = (node.data || {}) as Record<string, unknown>;
+  return typeof data.label === 'string' ? data.label : '';
+}
 
 declare global {
   interface Window {
@@ -74,6 +86,12 @@ export function WorkspaceClient() {
     openSearch,
     closeSearch,
     setError: setGraphError,
+    activeTextEditNodeId,
+    textEditDraft,
+    pendingTextEditAction,
+    clearPendingTextEditAction,
+    clearTextEditSession,
+    pushEditCompletionEvent,
   } = useGraphStore();
   const isChatOpen = useChatUiStore((state) => state.isOpen);
   const toggleChat = useChatUiStore((state) => state.toggleOpen);
@@ -126,7 +144,12 @@ export function WorkspaceClient() {
   }, [setFiles]);
 
   // File sync with reload callback for file list changes
-  const { updateNode, moveNode } = useFileSync(currentFile, handleFileChange, loadFiles);
+  const {
+    updateNode,
+    moveNode,
+    undoLastEdit,
+    redoLastEdit,
+  } = useFileSync(currentFile, handleFileChange, loadFiles);
 
   // Initial file load
   useEffect(() => {
@@ -209,6 +232,87 @@ export function WorkspaceClient() {
     },
     [updateNode],
   );
+
+  const restoreNodeData = useCallback((nodeId: string, previousData: Record<string, unknown> | undefined) => {
+    useGraphStore.setState((state) => ({
+      nodes: state.nodes.map((node) => (
+        node.id === nodeId
+          ? { ...node, data: previousData || {} }
+          : node
+      )),
+    }));
+  }, []);
+
+  const handleNodeDragCommit = useCallback(async (payload: {
+    nodeId: string;
+    x: number;
+    y: number;
+    originX: number;
+    originY: number;
+  }) => {
+    const runtime = useGraphStore.getState();
+    const targetNode = runtime.nodes.find((node) => node.id === payload.nodeId);
+    if (!targetNode) {
+      throw new RpcClientError(40401, 'NODE_NOT_FOUND', { nodeId: payload.nodeId });
+    }
+    const baseVersion = runtime.sourceVersion;
+    const targetFile = runtime.currentFile;
+    if (!baseVersion || !targetFile) {
+      throw new Error('SOURCE_VERSION_NOT_READY');
+    }
+
+    const relativeUpdate = mapDragToRelativeAttachmentUpdate({
+      draggedNode: targetNode,
+      allNodes: runtime.nodes,
+      dropPosition: { x: payload.x, y: payload.y },
+    });
+
+    if (relativeUpdate?.kind === 'invalid') {
+      throw new RpcClientError(40401, 'NODE_NOT_FOUND', { reason: relativeUpdate.reason });
+    }
+
+    if (relativeUpdate) {
+      const previousData = (targetNode.data || {}) as Record<string, unknown>;
+      useGraphStore.getState().updateNodeData(payload.nodeId, relativeUpdate.props);
+      try {
+        const result = await updateNode(payload.nodeId, relativeUpdate.props);
+        const nextVersion = result.newVersion ?? useGraphStore.getState().sourceVersion ?? baseVersion;
+        const commandId = result.commandId ?? crypto.randomUUID();
+        pushEditCompletionEvent({
+          eventId: crypto.randomUUID(),
+          type: 'ATTACH_RELATIVE_COMMITTED',
+          nodeId: payload.nodeId,
+          filePath: targetFile,
+          commandId,
+          baseVersion,
+          nextVersion,
+          before: relativeUpdate.before,
+          after: relativeUpdate.after,
+          committedAt: Date.now(),
+        });
+      } catch (error) {
+        restoreNodeData(payload.nodeId, previousData);
+        throw error;
+      }
+      return;
+    }
+
+    const result = await moveNode(payload.nodeId, payload.x, payload.y);
+    const nextVersion = result.newVersion ?? useGraphStore.getState().sourceVersion ?? baseVersion;
+    const commandId = result.commandId ?? crypto.randomUUID();
+    pushEditCompletionEvent({
+      eventId: crypto.randomUUID(),
+      type: 'ABSOLUTE_MOVE_COMMITTED',
+      nodeId: payload.nodeId,
+      filePath: targetFile,
+      commandId,
+      baseVersion,
+      nextVersion,
+      before: { x: payload.originX, y: payload.originY },
+      after: { x: payload.x, y: payload.y },
+      committedAt: Date.now(),
+    });
+  }, [moveNode, pushEditCompletionEvent, restoreNodeData, updateNode]);
 
   const washiPresetCatalog = useMemo(() => getWashiPresetPatternCatalog(), []);
   const allWashiNodeIds = useMemo(
@@ -476,6 +580,96 @@ export function WorkspaceClient() {
   ]);
 
   useEffect(() => {
+    if (!pendingTextEditAction) {
+      return;
+    }
+    clearPendingTextEditAction();
+
+    const run = async () => {
+      if (pendingTextEditAction.type === 'cancel') {
+        clearTextEditSession();
+        return;
+      }
+
+      if (!canCommitTextEdit({
+        activeNodeId: activeTextEditNodeId,
+        requestNodeId: pendingTextEditAction.nodeId,
+        selectedNodeIds,
+      })) {
+        clearTextEditSession();
+        return;
+      }
+
+      const runtime = useGraphStore.getState();
+      const node = runtime.nodes.find((item) => item.id === pendingTextEditAction.nodeId);
+      if (!node || !runtime.currentFile || !runtime.sourceVersion) {
+        clearTextEditSession();
+        return;
+      }
+
+      const beforeContent = getNodeLabel(node);
+      const nextContent = textEditDraft;
+      if (beforeContent === nextContent) {
+        clearTextEditSession();
+        return;
+      }
+
+      const previousData = (node.data || {}) as Record<string, unknown>;
+      useGraphStore.getState().updateNodeData(
+        node.id,
+        buildTextDraftPatch(node.type, nextContent),
+      );
+
+      try {
+        const result = await updateNode(node.id, { content: nextContent });
+        const nextVersion = result.newVersion ?? useGraphStore.getState().sourceVersion ?? runtime.sourceVersion;
+        const commandId = result.commandId ?? crypto.randomUUID();
+
+        pushEditCompletionEvent({
+          eventId: crypto.randomUUID(),
+          type: 'TEXT_EDIT_COMMITTED',
+          nodeId: node.id,
+          filePath: runtime.currentFile,
+          commandId,
+          baseVersion: runtime.sourceVersion,
+          nextVersion,
+          before: { content: beforeContent },
+          after: { content: nextContent },
+          committedAt: Date.now(),
+        });
+        clearTextEditSession();
+      } catch (error) {
+        editDebugLog('text-edit-commit', error, {
+          nodeId: node.id,
+          filePath: runtime.currentFile,
+          beforeContent,
+          nextContent,
+        });
+        restoreNodeData(node.id, previousData);
+        const message = mapEditRpcErrorToToast(error) ?? '텍스트 저장에 실패했습니다.';
+        setGraphError({
+          message,
+          type: 'EDIT_REJECTED',
+          details: error,
+        });
+      }
+    };
+
+    run();
+  }, [
+    activeTextEditNodeId,
+    clearPendingTextEditAction,
+    clearTextEditSession,
+    pendingTextEditAction,
+    pushEditCompletionEvent,
+    restoreNodeData,
+    selectedNodeIds,
+    setGraphError,
+    textEditDraft,
+    updateNode,
+  ]);
+
+  useEffect(() => {
     async function renderFile() {
       if (!currentFile) return;
 
@@ -553,8 +747,11 @@ export function WorkspaceClient() {
           <ErrorOverlay />
           {isSearchOpen && <LazySearchOverlay />}
           <GraphCanvas
-            onNodeDragStop={moveNode}
+            onNodeDragStop={handleNodeDragCommit}
             onWashiPresetChange={handleWashiPresetChange}
+            onUndoEditStep={undoLastEdit}
+            onRedoEditStep={redoLastEdit}
+            mapEditErrorToToast={mapEditRpcErrorToToast}
           />
         </main>
 

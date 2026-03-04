@@ -238,3 +238,67 @@ describe('washi selection helpers', () => {
     expect(useGraphStore.getState().selectedNodeIds).toEqual(['w1']);
   });
 });
+
+describe('text edit session state', () => {
+  it('active node id 기반으로 draft를 관리하고 commit 요청을 생성한다', () => {
+    useGraphStore.getState().startTextEditSession({
+      nodeId: 'md-1',
+      initialDraft: '# hello',
+      mode: 'markdown-wysiwyg',
+    });
+    useGraphStore.getState().updateTextEditDraft('# hello world');
+    useGraphStore.getState().requestTextEditCommit('md-1');
+
+    const state = useGraphStore.getState();
+    expect(state.activeTextEditNodeId).toBe('md-1');
+    expect(state.textEditDraft).toBe('# hello world');
+    expect(state.textEditMode).toBe('markdown-wysiwyg');
+    expect(state.pendingTextEditAction?.type).toBe('commit');
+    expect(state.pendingTextEditAction?.nodeId).toBe('md-1');
+  });
+
+  it('선택이 다른 노드로 바뀌면 편집 세션을 정리한다', () => {
+    useGraphStore.getState().startTextEditSession({
+      nodeId: 'text-1',
+      initialDraft: 'A',
+      mode: 'text',
+    });
+
+    useGraphStore.getState().setSelectedNodes(['other-node']);
+    const state = useGraphStore.getState();
+    expect(state.activeTextEditNodeId).toBeNull();
+    expect(state.textEditDraft).toBe('');
+    expect(state.pendingTextEditAction).toBeNull();
+  });
+});
+
+describe('edit completion history', () => {
+  it('undo/redo는 이벤트 1건 단위로 past/future를 이동한다', () => {
+    const event = {
+      eventId: 'event-1',
+      type: 'ABSOLUTE_MOVE_COMMITTED' as const,
+      nodeId: 'node-1',
+      filePath: 'examples/a.tsx',
+      commandId: 'cmd-1',
+      baseVersion: 'sha256:base',
+      nextVersion: 'sha256:next',
+      before: { x: 10, y: 20 },
+      after: { x: 30, y: 40 },
+      committedAt: Date.now(),
+    };
+
+    useGraphStore.getState().pushEditCompletionEvent(event);
+
+    const undoTarget = useGraphStore.getState().peekUndoEditEvent();
+    expect(undoTarget?.eventId).toBe('event-1');
+    useGraphStore.getState().commitUndoEventSuccess('event-1');
+    expect(useGraphStore.getState().editHistoryPast).toEqual([]);
+    expect(useGraphStore.getState().editHistoryFuture.map((item) => item.eventId)).toEqual(['event-1']);
+
+    const redoTarget = useGraphStore.getState().peekRedoEditEvent();
+    expect(redoTarget?.eventId).toBe('event-1');
+    useGraphStore.getState().commitRedoEventSuccess('event-1');
+    expect(useGraphStore.getState().editHistoryFuture).toEqual([]);
+    expect(useGraphStore.getState().editHistoryPast.map((item) => item.eventId)).toEqual(['event-1']);
+  });
+});

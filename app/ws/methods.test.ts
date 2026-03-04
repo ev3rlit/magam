@@ -1,15 +1,21 @@
 import { afterEach, describe, expect, it, mock } from 'bun:test';
 import { mkdtemp, readFile, rm, writeFile } from 'fs/promises';
-import { join } from 'path';
+import { basename, dirname, join } from 'path';
 import { tmpdir } from 'os';
 import { createHash } from 'crypto';
 import { methods } from './methods';
 
 const tempDirs: string[] = [];
+const originalMagamTargetDir = process.env.MAGAM_TARGET_DIR;
 
 afterEach(async () => {
   await Promise.all(tempDirs.map((dir) => rm(dir, { recursive: true, force: true })));
   tempDirs.length = 0;
+  if (originalMagamTargetDir === undefined) {
+    delete process.env.MAGAM_TARGET_DIR;
+  } else {
+    process.env.MAGAM_TARGET_DIR = originalMagamTargetDir;
+  }
 });
 
 async function makeTempTsx(content: string): Promise<string> {
@@ -49,6 +55,31 @@ describe('RPC editing methods', () => {
     expect(patched.includes('y={200}')).toBe(true);
   });
 
+  it('node.move: relative filePath는 MAGAM_TARGET_DIR 기준으로 해석한다', async () => {
+    const filePath = await makeTempTsx(`export default function Sample(){ return <Node id="n1" x={1} y={2} />; }`);
+    const original = await readFile(filePath, 'utf-8');
+    process.env.MAGAM_TARGET_DIR = dirname(filePath);
+    const relativePath = basename(filePath);
+    const notify = mock((_payload: { filePath: string }) => { });
+
+    const result = await methods['node.move']({
+      filePath: relativePath,
+      nodeId: 'n1',
+      x: 77,
+      y: 88,
+      baseVersion: sha(original),
+      originId: 'client-1',
+      commandId: 'cmd-relative-1',
+    }, { ws: {}, subscriptions: new Set(), notifyFileChanged: notify }) as { success: boolean; newVersion: string };
+
+    expect(result.success).toBe(true);
+    const patched = await readFile(filePath, 'utf-8');
+    expect(patched.includes('x={77}')).toBe(true);
+    expect(patched.includes('y={88}')).toBe(true);
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(notify.mock.calls[0]?.[0].filePath).toBe(relativePath);
+  });
+
   it('node.update: baseVersion 불일치면 VERSION_CONFLICT', async () => {
     const filePath = await makeTempTsx(`export default function Sample(){ return <Node id="n1" x={1} y={2} />; }`);
 
@@ -60,6 +91,27 @@ describe('RPC editing methods', () => {
       originId: 'client-1',
       commandId: 'cmd-1',
     }, { ws: {}, subscriptions: new Set() })).rejects.toMatchObject({ code: 40901, message: 'VERSION_CONFLICT' });
+  });
+
+  it('node.move: 전역 id 충돌이 있으면 ID_COLLISION으로 거부한다', async () => {
+    const filePath = await makeTempTsx(`
+      export default function Sample(){ return <Canvas><Node id="dup" x={1} y={2} /><Node id="dup" x={3} y={4} /></Canvas>; }
+    `);
+    const original = await readFile(filePath, 'utf-8');
+
+    await expect(methods['node.move']({
+      filePath,
+      nodeId: 'dup',
+      x: 111,
+      y: 222,
+      baseVersion: sha(original),
+      originId: 'client-1',
+      commandId: 'cmd-collision-1',
+    }, { ws: {}, subscriptions: new Set() })).rejects.toMatchObject({
+      code: 40903,
+      message: 'ID_COLLISION',
+      data: { collisionIds: ['dup'] },
+    });
   });
 
   it('node.create: 새 노드를 파일에 삽입한다', async () => {

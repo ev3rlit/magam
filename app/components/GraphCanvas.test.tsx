@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { shouldScheduleAutoRelayout } from './GraphCanvas.relayout';
+import { shouldCommitDragStop } from './GraphCanvas.drag';
 
 describe('GraphCanvas auto relayout policy', () => {
   const baseInput = {
@@ -56,5 +57,25 @@ describe('GraphCanvas auto relayout policy', () => {
         lastRelayoutAt: 1_000,
       }),
     ).toBe(false);
+  });
+});
+
+describe('GraphCanvas drag-stop commit policy', () => {
+  it('drag 시작/종료 좌표가 같으면 커밋하지 않는다', () => {
+    expect(
+      shouldCommitDragStop({
+        origin: { x: 100, y: 200 },
+        current: { x: 100, y: 200 },
+      }),
+    ).toBe(false);
+  });
+
+  it('좌표가 변경되면 drag-stop 1회 커밋 대상으로 본다', () => {
+    expect(
+      shouldCommitDragStop({
+        origin: { x: 100, y: 200 },
+        current: { x: 130, y: 210 },
+      }),
+    ).toBe(true);
   });
 });

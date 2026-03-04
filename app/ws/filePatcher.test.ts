@@ -2,7 +2,18 @@ import { afterEach, describe, expect, it } from 'bun:test';
 import { mkdtemp, readFile, rm, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { patchFile, patchNodeCreate, patchNodePosition, patchNodeReparent } from './filePatcher';
+import {
+  getGlobalIdentifierCollisions,
+  patchFile,
+  patchNodeCreate,
+  patchNodePosition,
+  patchNodeReparent,
+} from './filePatcher';
+import {
+  ATTACH_FIXTURE_TSX,
+  TEXT_FIXTURE_TSX,
+} from './__fixtures__/bidirectional-editing';
+import { expectIncludesAll, expectIncludesNone, expectSameSnippetCount } from './testUtils';
 
 const tempDirs: string[] = [];
 
@@ -85,6 +96,19 @@ describe('filePatcher', () => {
 
     const patched = await readFile(filePath, 'utf-8');
     expect(patched.includes('# hello')).toBe(true);
+  });
+
+  it('update: 텍스트/마크다운 편집은 content 대상만 바뀐다', async () => {
+    const filePath = await makeTempTsx(TEXT_FIXTURE_TSX);
+    const before = await readFile(filePath, 'utf-8');
+
+    await patchFile(filePath, 'text-1', { content: '## changed' });
+    const after = await readFile(filePath, 'utf-8');
+
+    expectIncludesAll(after, ['id="text-1"', '## changed', 'id="text-2"', 'plain-old']);
+    expectIncludesNone(after, ['# Title\\nold']);
+    expect(before.includes('id="text-2"')).toBe(true);
+    expectSameSnippetCount(after, 'id="text-2"', 1);
   });
 
   it('move: patchNodePosition은 x/y만 갱신한다', async () => {
@@ -210,6 +234,41 @@ describe('filePatcher', () => {
     expect(patched.includes('opacity={0.92}')).toBe(true);
   });
 
+  it('update: attach 상대 이동에서 Washi at.offset만 갱신해도 기존 필드를 보존한다', async () => {
+    const filePath = await makeTempTsx(ATTACH_FIXTURE_TSX);
+
+    await patchFile(filePath, 'washi-1', {
+      at: { offset: 44 },
+    });
+
+    const patched = await readFile(filePath, 'utf-8');
+    expectIncludesAll(patched, [
+      'id="washi-1"',
+      'target: "target"',
+      'placement: "top"',
+      'span: 0.8',
+      'align: 0.5',
+      'offset: 44',
+    ]);
+  });
+
+  it('update: attach 상대 이동에서 Sticker gap만 갱신한다', async () => {
+    const filePath = await makeTempTsx(ATTACH_FIXTURE_TSX);
+
+    await patchFile(filePath, 'sticker-1', {
+      gap: 62,
+    });
+
+    const patched = await readFile(filePath, 'utf-8');
+    expectIncludesAll(patched, [
+      'id="sticker-1"',
+      'anchor={"target"}',
+      'position={"right"}',
+      'align={"center"}',
+      'gap={62}',
+    ]);
+  });
+
   it('reparent: 부모 변경 성공', async () => {
     const filePath = await makeTempTsx(`
       export default function Sample() {
@@ -272,5 +331,32 @@ describe('filePatcher', () => {
     expect(patched.includes('icon=')).toBe(false);
     expect(patched.includes('type={"rectangle"}')).toBe(true);
     expect(patched.includes('label={"Auth Service"}')).toBe(true);
+  });
+
+  it('detect: 전역 id 중복을 탐지한다', async () => {
+    const filePath = await makeTempTsx(`
+      export default function Sample() {
+        return <Canvas>
+          <Node id="dup" />
+          <Text id="dup">x</Text>
+        </Canvas>;
+      }
+    `);
+
+    const collisions = await getGlobalIdentifierCollisions(filePath);
+    expect(collisions).toEqual(['dup']);
+  });
+
+  it('update: id를 기존 id로 바꾸려 하면 ID_COLLISION 에러', async () => {
+    const filePath = await makeTempTsx(`
+      export default function Sample() {
+        return <Canvas>
+          <Node id="a" />
+          <Node id="b" />
+        </Canvas>;
+      }
+    `);
+
+    await expect(patchFile(filePath, 'a', { id: 'b' })).rejects.toThrow('ID_COLLISION');
   });
 });

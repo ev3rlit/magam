@@ -21,6 +21,32 @@ type SearchActionResult = {
   clearHighlights?: boolean;
 };
 
+export type EditCompletionEventType =
+  | 'ABSOLUTE_MOVE_COMMITTED'
+  | 'TEXT_EDIT_COMMITTED'
+  | 'ATTACH_RELATIVE_COMMITTED';
+
+export interface EditCompletionEvent {
+  eventId: string;
+  type: EditCompletionEventType;
+  nodeId: string;
+  filePath: string;
+  commandId: string;
+  baseVersion: string;
+  nextVersion: string;
+  before: Record<string, unknown>;
+  after: Record<string, unknown>;
+  committedAt: number;
+}
+
+export type TextEditMode = 'text' | 'markdown-wysiwyg';
+
+export interface TextEditAction {
+  type: 'commit' | 'cancel';
+  nodeId: string;
+  requestId: number;
+}
+
 export type CustomBackgroundData = { type: 'custom'; svg: string; gap: number };
 export type CanvasBackgroundStyle = 'dots' | 'lines' | 'solid' | CustomBackgroundData;
 
@@ -119,6 +145,14 @@ export interface GraphState {
   activeResultIndex: number;
   highlightElementIds: string[];
   lastExecutedSearch?: SearchResult;
+  activeTextEditNodeId: string | null;
+  textEditMode: TextEditMode | null;
+  textEditDraft: string;
+  textEditDirty: boolean;
+  pendingTextEditAction: TextEditAction | null;
+  editHistoryPast: EditCompletionEvent[];
+  editHistoryFuture: EditCompletionEvent[];
+  editHistoryMaxSize: number;
   setGraph: (graph: { nodes: Node[]; edges: Edge[]; needsAutoLayout?: boolean; layoutType?: 'tree' | 'bidirectional' | 'radial' | 'compact' | 'compact-bidir' | 'depth-hybrid' | 'treemap-pack' | 'quadrant-pack' | 'voronoi-pack'; mindMapGroups?: MindMapGroup[]; canvasBackground?: CanvasBackgroundStyle; canvasFontFamily?: FontFamilyPreset; sourceVersion?: string | null }) => void;
   setSourceVersion: (version: string | null) => void;
   setLastAppliedCommandId: (commandId?: string) => void;
@@ -158,6 +192,17 @@ export interface GraphState {
   setSearchActiveIndex: (index: number) => void;
   setSearchHighlightElementIds: (elementIds: string[]) => void;
   resetSearchState: () => void;
+  startTextEditSession: (input: { nodeId: string; initialDraft: string; mode: TextEditMode }) => void;
+  updateTextEditDraft: (draft: string) => void;
+  requestTextEditCommit: (nodeId: string) => void;
+  requestTextEditCancel: (nodeId: string) => void;
+  clearPendingTextEditAction: () => void;
+  clearTextEditSession: () => void;
+  pushEditCompletionEvent: (event: EditCompletionEvent) => void;
+  peekUndoEditEvent: () => EditCompletionEvent | null;
+  peekRedoEditEvent: () => EditCompletionEvent | null;
+  commitUndoEventSuccess: (eventId: string) => void;
+  commitRedoEventSuccess: (eventId: string) => void;
 }
 
 export const getDefaultTabTitle = (pageId: string): string => {
@@ -203,6 +248,14 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   searchResults: [],
   activeResultIndex: -1,
   highlightElementIds: [],
+  activeTextEditNodeId: null,
+  textEditMode: null,
+  textEditDraft: '',
+  textEditDirty: false,
+  pendingTextEditAction: null,
+  editHistoryPast: [],
+  editHistoryFuture: [],
+  editHistoryMaxSize: 200,
   setGraph: ({ nodes, edges, needsAutoLayout = false, layoutType = 'tree', mindMapGroups = [], canvasBackground, canvasFontFamily, sourceVersion }) => set({
     nodes,
     edges,
@@ -238,7 +291,23 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   setCanvasFontFamily: (canvasFontFamily) => set({
     canvasFontFamily: isFontFamilyPreset(canvasFontFamily) ? canvasFontFamily : undefined,
   }),
-  setSelectedNodes: (selectedNodeIds) => set({ selectedNodeIds }),
+  setSelectedNodes: (selectedNodeIds) => set((state) => {
+    const shouldClearTextEdit =
+      Boolean(state.activeTextEditNodeId)
+      && !selectedNodeIds.includes(state.activeTextEditNodeId as string);
+    return {
+      selectedNodeIds,
+      ...(shouldClearTextEdit
+        ? {
+            activeTextEditNodeId: null,
+            textEditMode: null,
+            textEditDraft: '',
+            textEditDirty: false,
+            pendingTextEditAction: null,
+          }
+        : {}),
+    };
+  }),
   selectNodesByType: (nodeType) => {
     const ids = get().nodes
       .filter((node) => node.type === nodeType)
@@ -542,5 +611,90 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     searchResults: [],
     activeResultIndex: -1,
     highlightElementIds: [],
+  }),
+  startTextEditSession: ({ nodeId, initialDraft, mode }) => set({
+    activeTextEditNodeId: nodeId,
+    textEditMode: mode,
+    textEditDraft: initialDraft,
+    textEditDirty: false,
+    pendingTextEditAction: null,
+  }),
+  updateTextEditDraft: (textEditDraft) => set((state) => ({
+    textEditDraft,
+    textEditDirty: state.activeTextEditNodeId
+      ? textEditDraft !== state.textEditDraft || state.textEditDirty
+      : false,
+  })),
+  requestTextEditCommit: (nodeId) => set((state) => {
+    if (state.activeTextEditNodeId !== nodeId) {
+      return state;
+    }
+    return {
+      pendingTextEditAction: {
+        type: 'commit',
+        nodeId,
+        requestId: Date.now(),
+      },
+    };
+  }),
+  requestTextEditCancel: (nodeId) => set((state) => {
+    if (state.activeTextEditNodeId !== nodeId) {
+      return state;
+    }
+    return {
+      pendingTextEditAction: {
+        type: 'cancel',
+        nodeId,
+        requestId: Date.now(),
+      },
+    };
+  }),
+  clearPendingTextEditAction: () => set({ pendingTextEditAction: null }),
+  clearTextEditSession: () => set({
+    activeTextEditNodeId: null,
+    textEditMode: null,
+    textEditDraft: '',
+    textEditDirty: false,
+    pendingTextEditAction: null,
+  }),
+  pushEditCompletionEvent: (event) => set((state) => {
+    const nextPast = [...state.editHistoryPast, event];
+    if (nextPast.length > state.editHistoryMaxSize) {
+      nextPast.shift();
+    }
+    return {
+      editHistoryPast: nextPast,
+      editHistoryFuture: [],
+    };
+  }),
+  peekUndoEditEvent: () => {
+    const { editHistoryPast } = get();
+    if (editHistoryPast.length === 0) return null;
+    return editHistoryPast[editHistoryPast.length - 1];
+  },
+  peekRedoEditEvent: () => {
+    const { editHistoryFuture } = get();
+    if (editHistoryFuture.length === 0) return null;
+    return editHistoryFuture[editHistoryFuture.length - 1];
+  },
+  commitUndoEventSuccess: (eventId) => set((state) => {
+    const last = state.editHistoryPast[state.editHistoryPast.length - 1];
+    if (!last || last.eventId !== eventId) {
+      return state;
+    }
+    return {
+      editHistoryPast: state.editHistoryPast.slice(0, -1),
+      editHistoryFuture: [...state.editHistoryFuture, last],
+    };
+  }),
+  commitRedoEventSuccess: (eventId) => set((state) => {
+    const last = state.editHistoryFuture[state.editHistoryFuture.length - 1];
+    if (!last || last.eventId !== eventId) {
+      return state;
+    }
+    return {
+      editHistoryFuture: state.editHistoryFuture.slice(0, -1),
+      editHistoryPast: [...state.editHistoryPast, last],
+    };
   }),
 }));
