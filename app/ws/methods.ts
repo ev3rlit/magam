@@ -4,7 +4,15 @@
 
 import { readFile } from 'fs/promises';
 import { createHash } from 'crypto';
-import { patchFile, patchNodeCreate, patchNodePosition, patchNodeReparent, NodeProps, CreateNodeInput } from './filePatcher';
+import {
+    patchFile,
+    patchNodeCreate,
+    patchNodePosition,
+    patchNodeReparent,
+    getGlobalIdentifierCollisions,
+    NodeProps,
+    CreateNodeInput,
+} from './filePatcher';
 import { RPC_ERRORS } from './rpc';
 
 export interface RpcContext {
@@ -109,6 +117,10 @@ async function handleNodeUpdate(
 
     try {
         return await mutateWithContract(ctx, common, async () => {
+            const collisionIds = await getGlobalIdentifierCollisions(common.filePath);
+            if (collisionIds.length > 0) {
+                throw { ...RPC_ERRORS.ID_COLLISION, data: { collisionIds } };
+            }
             await patchFile(common.filePath, nodeId, props);
         });
     } catch (error) {
@@ -116,6 +128,10 @@ async function handleNodeUpdate(
         if (typeof (e as any).code === 'number') throw e;
         const message = (e as Error).message;
         if (message === 'NODE_NOT_FOUND') throw { ...RPC_ERRORS.NODE_NOT_FOUND, data: { nodeId } };
+        if (message === 'ID_COLLISION') {
+            const collisionId = typeof props.id === 'string' ? props.id : nodeId;
+            throw { ...RPC_ERRORS.ID_COLLISION, data: { collisionIds: [collisionId] } };
+        }
         throw { ...RPC_ERRORS.PATCH_FAILED, data: message };
     }
 }
@@ -131,6 +147,10 @@ async function handleNodeMove(
 
     try {
         return await mutateWithContract(ctx, common, async () => {
+            const collisionIds = await getGlobalIdentifierCollisions(common.filePath);
+            if (collisionIds.length > 0) {
+                throw { ...RPC_ERRORS.ID_COLLISION, data: { collisionIds } };
+            }
             await patchNodePosition(common.filePath, nodeId, x, y);
         });
     } catch (error) {

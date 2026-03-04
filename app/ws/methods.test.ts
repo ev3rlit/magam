@@ -62,6 +62,27 @@ describe('RPC editing methods', () => {
     }, { ws: {}, subscriptions: new Set() })).rejects.toMatchObject({ code: 40901, message: 'VERSION_CONFLICT' });
   });
 
+  it('node.move: 전역 id 충돌이 있으면 ID_COLLISION으로 거부한다', async () => {
+    const filePath = await makeTempTsx(`
+      export default function Sample(){ return <Canvas><Node id="dup" x={1} y={2} /><Node id="dup" x={3} y={4} /></Canvas>; }
+    `);
+    const original = await readFile(filePath, 'utf-8');
+
+    await expect(methods['node.move']({
+      filePath,
+      nodeId: 'dup',
+      x: 111,
+      y: 222,
+      baseVersion: sha(original),
+      originId: 'client-1',
+      commandId: 'cmd-collision-1',
+    }, { ws: {}, subscriptions: new Set() })).rejects.toMatchObject({
+      code: 40903,
+      message: 'ID_COLLISION',
+      data: { collisionIds: ['dup'] },
+    });
+  });
+
   it('node.create: 새 노드를 파일에 삽입한다', async () => {
     const filePath = await makeTempTsx(`export default function Sample(){ return <Canvas><Node id="root" /></Canvas>; }`);
     const original = await readFile(filePath, 'utf-8');

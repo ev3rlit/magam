@@ -32,6 +32,56 @@ export interface CreateNodeInput {
     props?: Record<string, unknown>;
 }
 
+function collectIdOccurrences(ast: t.File): Map<string, number> {
+    const counts = new Map<string, number>();
+
+    traverse(ast, {
+        JSXOpeningElement(path: NodePath<t.JSXOpeningElement>) {
+            const idValue = getStringLikeAttributeValue(getAttrByName(path.node, 'id'));
+            if (!idValue) return;
+            counts.set(idValue, (counts.get(idValue) || 0) + 1);
+        },
+    });
+
+    return counts;
+}
+
+function findIdCollisionsInAst(ast: t.File): string[] {
+    return Array.from(collectIdOccurrences(ast).entries())
+        .filter(([, count]) => count > 1)
+        .map(([id]) => id);
+}
+
+export async function getGlobalIdentifierCollisions(filePath: string): Promise<string[]> {
+    const code = await readFile(filePath, 'utf-8');
+    const ast = parse(code, {
+        sourceType: 'module',
+        plugins: ['jsx', 'typescript'],
+    });
+    return findIdCollisionsInAst(ast);
+}
+
+function hasConflictingNodeId(ast: t.File, nextId: string, currentNodeId: string): boolean {
+    let conflictFound = false;
+
+    traverse(ast, {
+        JSXOpeningElement(path: NodePath<t.JSXOpeningElement>) {
+            if (conflictFound) {
+                path.stop();
+                return;
+            }
+            const idValue = getStringLikeAttributeValue(getAttrByName(path.node, 'id'));
+            if (!idValue) return;
+            if (idValue === nextId && idValue !== currentNodeId) {
+                conflictFound = true;
+                path.stop();
+            }
+        },
+    });
+
+    return conflictFound;
+}
+
 function getAttrByName(node: t.JSXOpeningElement, name: string): t.JSXAttribute | undefined {
     return node.attributes.find(
         (attr: t.JSXAttribute | t.JSXSpreadAttribute): attr is t.JSXAttribute =>
@@ -294,10 +344,23 @@ export async function patchFile(filePath: string, nodeId: string, props: NodePro
         if (!node) return false;
 
         const nextId = typeof props.id === 'string' ? props.id : undefined;
+        if (nextId && nextId !== nodeId && hasConflictingNodeId(ast, nextId, nodeId)) {
+            throw new Error('ID_COLLISION');
+        }
         const patchProps: Record<string, unknown> = { ...props };
         delete patchProps.content;
 
         Object.entries(patchProps).forEach(([propName, propValue]) => {
+            if (propName === 'at' && propValue && typeof propValue === 'object') {
+                const existingAt = getAttributeValue(getAttrByName(node.node, 'at'));
+                if (existingAt && typeof existingAt === 'object') {
+                    upsertJsxAttribute(node, propName, {
+                        ...(existingAt as Record<string, unknown>),
+                        ...(propValue as Record<string, unknown>),
+                    });
+                    return;
+                }
+            }
             upsertJsxAttribute(node, propName, propValue);
         });
 
