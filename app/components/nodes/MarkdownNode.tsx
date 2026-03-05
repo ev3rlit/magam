@@ -56,6 +56,7 @@ const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
         }
         : undefined;
     const frameStyle = resolvedSize.mode === 'object2d'
+        && resolvedSize.object2d.mode === 'fixed'
         ? {
             width: resolvedSize.object2d.widthPx,
             height: resolvedSize.object2d.heightPx,
@@ -63,6 +64,8 @@ const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
             minHeight: resolvedSize.object2d.heightPx,
         }
         : undefined;
+    const isContentDrivenAuto = resolvedSize.mode === 'object2d'
+        && resolvedSize.object2d.mode === 'auto';
 
     const handleLinkClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
         e.preventDefault();
@@ -132,7 +135,11 @@ const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
 
     const markdownContent = useMemo(() => (
         <div
-            className="prose prose-sm prose-slate max-w-none pointer-events-none select-none"
+            className={twMerge(
+                "prose prose-sm prose-slate max-w-none pointer-events-none select-none",
+                isContentDrivenAuto
+                    && "prose-headings:my-1.5 prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5"
+            )}
             style={{ fontFamily: resolvedFontFamily, ...typographyStyle }}
         >
             <LazyMarkdownRenderer
@@ -141,7 +148,7 @@ const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
                 components={components}
             />
         </div>
-    ), [data.label, components, resolvedFontFamily]);
+    ), [data.label, components, isContentDrivenAuto, resolvedFontFamily]);
 
     const isActiveEditor = Boolean(nodeId && selected && activeTextEditNodeId === nodeId);
 
@@ -168,7 +175,9 @@ const MarkdownNode = ({ data, selected }: NodeProps<MarkdownNodeData>) => {
         <BaseNode
             style={{ pointerEvents: 'auto', ...frameStyle }}
             className={twMerge(
-                "min-w-64 min-h-20 w-auto h-auto flex flex-col justify-center p-6 text-left",
+                isContentDrivenAuto
+                    ? "w-auto h-auto flex flex-col justify-center px-4 py-3 text-left"
+                    : "min-w-64 min-h-20 w-auto h-auto flex flex-col justify-center p-6 text-left",
                 "bg-white border-2 border-slate-200 text-slate-800 transition-all duration-300",
                 "shadow-lg rounded-xl",
                 !selected && "hover:border-indigo-300 hover:shadow-xl hover:-translate-y-1",

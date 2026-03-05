@@ -37,6 +37,24 @@ describe('StickyNode helpers', () => {
     expect(sizing.hasFixedFrame).toBe(false);
   });
 
+  it('normalizes missing standardized size input to auto mode', () => {
+    const normalized = normalizeObjectSizeInput(undefined, {
+      component: 'StickyNode',
+      inputPath: 'size',
+      defaultRatio: 'landscape',
+    });
+    const resolved = resolveObject2D(normalized, {
+      component: 'StickyNode',
+      inputPath: 'size',
+    });
+
+    expect(normalized.mode).toBe('auto');
+    expect(resolved).toMatchObject({
+      mode: 'auto',
+      tokenUsed: 'auto',
+    });
+  });
+
   it('resolves token + ratio size input for sticky sizing', () => {
     const normalized = normalizeObjectSizeInput({ token: 's', ratio: 'portrait' }, {
       component: 'StickyNode',
@@ -49,6 +67,7 @@ describe('StickyNode helpers', () => {
     });
 
     expect(resolved).toMatchObject({
+      mode: 'fixed',
       widthPx: 96,
       heightPx: 160,
       ratioUsed: 'portrait',
@@ -75,14 +94,32 @@ describe('StickyNode helpers', () => {
     );
 
     expect(numericResolved).toMatchObject({
+      mode: 'fixed',
       widthPx: 192,
       heightPx: 120,
       ratioUsed: 'landscape',
     });
     expect(uniformResolved).toMatchObject({
+      mode: 'fixed',
       widthPx: 160,
       heightPx: 160,
       ratioUsed: 'square',
+    });
+  });
+
+  it('supports explicit auto token in sticky size', () => {
+    const resolved = resolveObject2D(
+      normalizeObjectSizeInput('auto', {
+        component: 'StickyNode',
+        inputPath: 'size',
+        defaultRatio: 'landscape',
+      }),
+      { component: 'StickyNode', inputPath: 'size' },
+    );
+
+    expect(resolved).toMatchObject({
+      mode: 'auto',
+      tokenUsed: 'auto',
     });
   });
 });

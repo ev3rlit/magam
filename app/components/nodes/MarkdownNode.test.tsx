@@ -47,9 +47,25 @@ describe('MarkdownNode WYSIWYG parity', () => {
     expect(resolved.mode).toBe('object2d');
     if (resolved.mode === 'object2d') {
       expect(resolved.object2d).toMatchObject({
+        mode: 'fixed',
         widthPx: 120,
         heightPx: 192,
         ratioUsed: 'portrait',
+      });
+    }
+  });
+
+  it('markdown 2d object token supports auto mode', () => {
+    const resolved = resolveMarkdownSize({ token: 'auto' }, {
+      component: 'MarkdownNode',
+      inputPath: 'size',
+    });
+
+    expect(resolved.mode).toBe('object2d');
+    if (resolved.mode === 'object2d') {
+      expect(resolved.object2d).toMatchObject({
+        mode: 'auto',
+        tokenUsed: 'auto',
       });
     }
   });

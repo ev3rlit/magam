@@ -64,6 +64,8 @@ export interface SizeTokenRegistry {
 
 export type SizeToken = keyof SizeTokenRegistry;
 export type SizeValue = number | SizeToken;
+export type Object2DSizeToken = SizeToken | 'auto';
+export type Object2DSizeValue = number | Object2DSizeToken;
 
 export type SizeRatio = 'landscape' | 'portrait' | 'square';
 
@@ -72,9 +74,10 @@ export type FontSizeInput = number | SizeToken;
 
 // 2D 전용 (Sticky/Shape 등) - 단일 size prop에 주입
 export type ObjectSizeInput =
-  | SizeToken
-  | { token: SizeToken; ratio?: SizeRatio }
-  | { widthHeight: SizeValue }
+  | Object2DSizeToken
+  | number
+  | { token: Object2DSizeToken; ratio?: SizeRatio }
+  | { widthHeight: Object2DSizeValue }
   | { width: SizeValue; height: SizeValue };
 
 // Markdown 전용 - 단일 size prop으로 1D/2D 동시 지원
@@ -82,8 +85,8 @@ export type ObjectSizeInput =
 // - object input: 2D 폭/높이 스케일
 export type MarkdownSizeInput =
   | SizeValue
-  | { token: SizeToken; ratio?: SizeRatio }
-  | { widthHeight: SizeValue }
+  | { token: Object2DSizeToken; ratio?: SizeRatio }
+  | { widthHeight: Object2DSizeValue }
   | { width: SizeValue; height: SizeValue };
 
 export interface TextSizeProps {
@@ -120,7 +123,7 @@ declare module '@magam/core' {
 
 ### 4.2.1 단일 prop 계약
 - TextNode: `fontSize` 단일 prop 사용 (`number | token`)
-- Sticky/Shape: `size` 단일 prop 사용 (`number | token | { token, ratio } | { widthHeight } | { width, height }`)
+- Sticky/Shape: `size` 단일 prop 사용 (`number | token | 'auto' | { token, ratio } | { widthHeight } | { width, height }`)
 - Markdown: `size` 단일 prop 사용 (primitive=`1D`, object=`2D`)
 - Sequence Diagram: v1에서 size 토큰 미지원(현행 구현 유지)
 - Sticker: 다이컷 아웃라인 특성상 `size` 단일 prop 비대상(콘텐츠 기반 자동 크기)
@@ -130,6 +133,7 @@ declare module '@magam/core' {
 ### 4.2.2 Width/Height 단일 토큰 입력
 - `size={{ widthHeight: 'm' }}` 형태로 width/height를 하나의 토큰으로 동시에 지정할 수 있다.
 - 이 입력은 내부적으로 `size={{ width: 'm', height: 'm' }}`와 동일하게 해석한다.
+- `size="auto"` 또는 `size={{ token: 'auto' }}`를 사용하면 2D 프레임을 고정하지 않고 콘텐츠 기반 자동 크기를 사용한다.
 
 ### 4.2.3 Experimental 제약 (레거시 API)
 - 레거시 크기 API(`width`/`height` 분리, 컴포넌트별 legacy alias)는 v1에서 지원하지 않는다.
@@ -175,7 +179,7 @@ landscape: {
 
 - `portrait`는 landscape 폭/높이를 스왑해 계산합니다.
 - 상기 수치는 기본 preset이며, 팀/제품별로 registry에서 조정 가능합니다.
-- fallback 기본값은 카테고리 기준으로 고정합니다: `typography=m`, `space=m`, `object2d={ token: 'm', ratio: 'landscape' }`.
+- fallback 기본값은 카테고리 기준으로 고정합니다: `typography=m`, `space=m`, `object2d='auto'`.
 
 ### 4.5 도형(Shape) 기준
 
@@ -248,7 +252,7 @@ landscape: {
 수용 기준:
 - [AC-04] Text 계열은 `fontSize` 외 별도 사이즈 prop 없이 동작한다.
 - [AC-05] Sticky/Shape/Markdown 계열은 `size` 외 별도 사이즈 prop 없이 동작한다.
-- [AC-06] `size`는 `token | number | { token, ratio } | { widthHeight } | { width, height }` 기반 입력을 허용한다(컴포넌트별 계약에 따름).
+- [AC-06] `size`는 `token | number | 'auto' | { token, ratio } | { widthHeight } | { width, height }` 기반 입력을 허용한다(컴포넌트별 계약에 따름).
 - [AC-07] `size={{ widthHeight: 'm' }}`가 `size={{ width: 'm', height: 'm' }}`와 동일하게 동작한다.
 - [AC-08] Markdown에서 `size` primitive(`number | token`)는 1D, object 입력은 2D로 해석된다.
 
@@ -275,7 +279,7 @@ landscape: {
 
 ### FR-4. 2D 오브젝트 `xs~xl` 토큰 지원
 - 2D 오브젝트(`Sticky`, `Shape`, `Markdown`)는 `size` 단일 prop으로 입력을 받는다.
-- `size`는 `size="m"` 또는 `size={{ token: 'm', ratio: 'portrait' }}`를 지원한다.
+- `size`는 `size="m"`, `size="auto"` 또는 `size={{ token: 'm', ratio: 'portrait' }}`를 지원한다.
 - `size={{ widthHeight: 'm' }}`로 width/height를 하나의 토큰으로 지정할 수 있다.
 - 필요 시 `size={{ width: 'l', height: 160 }}` 형태 커스텀 입력을 허용한다.
 - `Shape`는 type별 기본 ratio를 가진다(`rectangle=landscape`, `circle/triangle=square`).
@@ -379,7 +383,7 @@ API 예시:
 - number면 그대로 반환, token이면 registry에서 해석한다.
 
 3. `normalizeSizeInput(size)`
-- 2D `size` union(`token | { token, ratio } | { widthHeight } | { width, height }`)을 내부 공통 형태로 정규화한다.
+- 2D `size` union(`token | 'auto' | { token, ratio } | { widthHeight } | { width, height }`)을 내부 공통 형태로 정규화한다.
 
 4. `resolveObject2D(sizeInput)`
 - 정규화된 입력을 최종 width/height(px)로 변환한다.

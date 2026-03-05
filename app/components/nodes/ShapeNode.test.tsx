@@ -18,6 +18,7 @@ describe('ShapeNode size rules', () => {
     });
 
     expect(resolved).toMatchObject({
+      mode: 'fixed',
       widthPx: 192,
       heightPx: 120,
       ratioUsed: 'landscape',
@@ -43,11 +44,13 @@ describe('ShapeNode size rules', () => {
     );
 
     expect(circleResolved).toMatchObject({
+      mode: 'fixed',
       widthPx: 120,
       heightPx: 120,
       ratioUsed: 'square',
     });
     expect(triangleResolved).toMatchObject({
+      mode: 'fixed',
       widthPx: 160,
       heightPx: 160,
       ratioUsed: 'square',
@@ -65,10 +68,26 @@ describe('ShapeNode size rules', () => {
     );
 
     expect(resolved).toMatchObject({
+      mode: 'fixed',
       widthPx: 160,
       heightPx: 160,
       ratioUsed: 'square',
     });
   });
-});
 
+  it('supports auto token for content-driven shape sizing', () => {
+    const resolved = resolveObject2D(
+      normalizeObjectSizeInput({ token: 'auto' }, {
+        component: 'ShapeNode',
+        inputPath: 'size',
+        defaultRatio: 'landscape',
+      }),
+      { component: 'ShapeNode', inputPath: 'size' },
+    );
+
+    expect(resolved).toMatchObject({
+      mode: 'auto',
+      tokenUsed: 'auto',
+    });
+  });
+});

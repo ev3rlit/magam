@@ -9,7 +9,7 @@
 
 ### 세션 2026-03-05
 
-- Q: 미지원 토큰 fallback 정책은 무엇인가? → A: 카테고리 기본값으로 fallback (`typography=m`, `space=m`, `object2d=m+landscape`).
+- Q: 미지원 토큰 fallback 정책은 무엇인가? → A: 카테고리 기본값으로 fallback (`typography=m`, `space=m`, `object2d=auto`).
 - Q: 미지원 레거시 사이즈 API는 런타임에서 어떻게 처리하는가? → A: warning을 남기고 해당 입력을 무시한다(하드 에러 없음).
 - Q: 2D 사이즈 입력이 충돌하면 어떻게 처리하는가? → A: invalid로 처리하고 warning 후 카테고리 기본값으로 fallback한다.
 - Q: 숫자 호환 범위는 어디까지인가? → A: `fontSize={number}`, `Markdown size={number}`, `Sticky/Shape size={number}`를 허용하며, 2D 구조화된 width/height 숫자 입력도 함께 지원한다. `Sticky/Shape size={number}`는 primitive token과 동일한 해석 경로(컴포넌트 기본 ratio)를 따른다.
@@ -84,7 +84,7 @@
 ### 엣지 케이스
 
 - size 토큰이 미정의이거나 오탈자일 때 어떻게 동작하는가?
-- 미정의/오탈자 토큰은 warning을 남기고 카테고리 기본값(`typography=m`, `space=m`, `object2d=m+landscape`)으로 fallback해야 한다.
+- 미정의/오탈자 토큰은 warning을 남기고 카테고리 기본값(`typography=m`, `space=m`, `object2d=auto`)으로 fallback해야 한다.
 - Markdown에 2D를 의도했지만 단일 size 값이 전달된 경우 시스템은 어떻게 동작하는가?
 - 정사각 기준 도형에서 사용자가 충돌하는 orientation 의도를 전달하면 어떻게 처리하는가?
 - 2D ratio 값이 `landscape | portrait | square` 외 값이면 어떻게 처리하는가?
@@ -103,7 +103,7 @@
 - **FR-001**: 시스템은 지원 대상 1D/2D 사이징에 대해 의미 기반 사이즈 어휘(`xs`, `s`, `m`, `l`, `xl`)를 제공해야 한다.
 - **FR-002**: 시스템은 통일 계약 범위 내 숫자 입력 호환을 유지해야 한다(`fontSize={number}`, `Markdown size={number}`, `Sticky/Shape size={number}`, 구조화된 2D width/height 숫자 입력 허용).
 - **FR-003**: 시스템은 컴포넌트 패밀리별로 단일 size 진입점을 제공해 중복/경쟁 사이즈 prop을 피해야 한다.
-- **FR-004**: 시스템은 지원 블록 컴포넌트에서 의미 토큰 preset과 orientation 의도를 사용한 모듈러 2D 사이징을 지원해야 한다.
+- **FR-004**: 시스템은 지원 블록 컴포넌트에서 의미 토큰 preset과 orientation 의도를 사용한 모듈러 2D 사이징을 지원해야 하며, `auto` 토큰(또는 size 미지정)일 때 콘텐츠 기반 자동 크기를 사용해야 한다.
 - **FR-004A**: 시스템은 2D orientation 의도값으로 `landscape | portrait | square`만 허용해야 한다.
 - **FR-005**: 시스템은 사용자가 하나의 의미 값으로 width/height를 동시에 설정할 수 있어야 한다.
 - **FR-006**: 시스템은 사용자가 preset이 아닌 커스텀 치수가 필요할 때 명시적 width/height 값을 제공할 수 있어야 한다.
@@ -111,11 +111,11 @@
 - **FR-008**: 시퀀스 다이어그램 size 토큰화는 본 기능 버전 범위에서 제외되어야 한다.
 - **FR-009**: Sticker 사이징은 콘텐츠 기반으로 유지되어야 하며 2D size token 대상에서 제외되어야 한다.
 - **FR-010**: 통일 계약 밖 레거시 실험 사이즈 API는 본 기능 버전에서 미지원이어야 하며, 공식 문서/예제에서 안내되면 안 되고 런타임에서 발견 시 warning 후 무시해야 한다.
-- **FR-011**: 미지원 size 토큰 입력 시 시스템은 모든 런타임 환경에서 일관되게 warning을 남기고 카테고리 기본값 fallback(`typography=m`, `space=m`, `object2d=m+landscape`)을 적용해야 한다.
+- **FR-011**: 미지원 size 토큰 입력 시 시스템은 모든 런타임 환경에서 일관되게 warning을 남기고 카테고리 기본값 fallback(`typography=m`, `space=m`, `object2d=auto`)을 적용해야 한다.
 - **FR-012**: 동일 카테고리 안에서 동일 의미 토큰은 지원 컴포넌트 전반에 동일한 시각 결과로 해석되어야 한다.
 - **FR-013**: 본 명세는 기존 토큰 의미를 깨지 않고 미래에 사이즈 어휘를 확장할 수 있어야 한다.
 - **FR-014**: 공식 사용 가이드는 token-first 원칙을 유지하되, 필요한 호환 동작은 함께 문서화해야 한다.
-- **FR-015**: 단일 2D size 입력에 충돌 모드가 포함되면 시스템은 invalid로 처리하고 warning 후 카테고리 기본값 fallback(`typography=m`, `space=m`, `object2d=m+landscape`)을 적용해야 한다.
+- **FR-015**: 단일 2D size 입력에 충돌 모드가 포함되면 시스템은 invalid로 처리하고 warning 후 카테고리 기본값 fallback(`typography=m`, `space=m`, `object2d=auto`)을 적용해야 한다.
 - **FR-016**: Sticky/Shape의 primitive numeric `size` 입력은 지원해야 하며, primitive token과 동일한 해석 경로(컴포넌트 기본 ratio)로 처리해야 한다. 구조화된 numeric width/height 입력도 2D 사이징으로 계속 지원해야 한다.
 - **FR-017**: 미지원 2D ratio 값 입력 시 시스템은 warning을 남기고 기본 ratio(`landscape`)로 fallback해야 한다.
 

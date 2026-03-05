@@ -109,14 +109,15 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
     })
     : undefined;
   const resolvedObjectSize = useMemo(() => {
-    if (data.size === undefined) return null;
-
     const defaultRatio = resolveShapeDefaultRatio(data.type);
     const normalized = normalizeObjectSizeInput(data.size, {
       component: 'ShapeNode',
       inputPath: 'size',
       defaultRatio,
     });
+    if (normalized.mode === 'auto') {
+      return null;
+    }
     let normalizedRatio = normalized.ratio;
     if (
       (data.type === 'circle' || data.type === 'triangle')
@@ -131,7 +132,7 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
       });
       normalizedRatio = 'square';
     }
-    return resolveObject2D(
+    const resolved = resolveObject2D(
       {
         ...normalized,
         ratio: normalizedRatio,
@@ -141,6 +142,7 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
         inputPath: 'size',
       },
     );
+    return resolved.mode === 'fixed' ? resolved : null;
   }, [data.size, data.type]);
   const frameStyle = resolvedObjectSize
     ? {
@@ -150,6 +152,7 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
       minHeight: resolvedObjectSize.heightPx,
     }
     : undefined;
+  const isContentDrivenAuto = resolvedObjectSize === null;
   const shapeClasses = clsx(
     'flex items-center justify-center transition-all duration-200',
     {
@@ -163,7 +166,7 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
     clsx(
       resolvedObjectSize
         ? 'w-auto h-auto flex items-center justify-center p-4'
-        : 'min-w-36 min-h-20 w-auto h-auto flex items-center justify-center p-4',
+        : 'w-auto h-auto flex items-center justify-center px-3 py-2',
       'bg-white border-2 border-node-border text-node-text transition-all duration-300',
       'shadow-node rounded-lg',
       // Only apply hover effects if NOT selected
@@ -213,7 +216,7 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
     backgroundSize: data.imageFit || 'cover',
   } : undefined;
 
-  if (data.type === 'triangle') {
+  if (data.type === 'triangle' && !isContentDrivenAuto) {
     return (
       <BaseNode
         className="flex items-center justify-center"
@@ -268,14 +271,19 @@ const ShapeNode = ({ data, selected }: NodeProps<ShapeNodeData>) => {
       label={data.label}
       style={frameStyle ? { ...frameStyle, ...imageStyle } : imageStyle}
     >
-      <div className="w-full flex items-start justify-center text-left break-words p-4 pointer-events-none select-none">
+      <div className={clsx(
+        'w-full flex justify-center text-left break-words pointer-events-none select-none',
+        isContentDrivenAuto ? 'items-center px-2 py-1.5' : 'items-start p-4',
+      )}>
         <div className="flex items-center gap-2">
           {renderNodeContent({
             children: data.children,
             fallbackLabel: data.label,
             iconClassName: 'w-4 h-4 text-slate-500 shrink-0',
             textClassName:
-              'text-sm font-medium leading-relaxed text-slate-700 whitespace-pre-wrap',
+              isContentDrivenAuto
+                ? 'text-sm font-medium leading-normal text-slate-700 whitespace-pre-wrap'
+                : 'text-sm font-medium leading-relaxed text-slate-700 whitespace-pre-wrap',
             textStyle: labelStyle,
           })}
         </div>

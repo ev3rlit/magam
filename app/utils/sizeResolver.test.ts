@@ -48,9 +48,20 @@ describe('sizeResolver foundations', () => {
 
     console.warn = originalWarn;
 
-    expect(normalized.mode).toBe('token');
-    expect(normalized.primitive).toBe('m');
+    expect(normalized.mode).toBe('auto');
+    expect(normalized.primitive).toBe('auto');
     expect(warnings.some((line) => line.includes('CONFLICTING_SIZE_INPUT'))).toBe(true);
+  });
+
+  it('defaults missing object size input to auto mode', () => {
+    const normalized = normalizeObjectSizeInput(undefined, {
+      component: 'StickyNode',
+      inputPath: 'size',
+    });
+    expect(normalized).toMatchObject({
+      mode: 'auto',
+      primitive: 'auto',
+    });
   });
 
   it('resolves object token in landscape dimensions', () => {
@@ -63,6 +74,9 @@ describe('sizeResolver foundations', () => {
       component: 'StickyNode',
       inputPath: 'size',
     });
+    if (resolved.mode !== 'fixed') {
+      throw new Error('Expected fixed object2d size');
+    }
     expect(resolved.widthPx).toBe(160);
     expect(resolved.heightPx).toBe(96);
     expect(resolved.ratioUsed).toBe('landscape');
@@ -79,6 +93,7 @@ describe('sizeResolver foundations', () => {
       inputPath: 'size',
     });
     expect(resolved).toMatchObject({
+      mode: 'fixed',
       widthPx: 192,
       heightPx: 120,
       ratioUsed: 'landscape',
@@ -122,12 +137,27 @@ describe('sizeResolver foundations', () => {
     console.warn = originalWarn;
 
     expect(resolved).toMatchObject({
-      widthPx: 192,
-      heightPx: 120,
+      mode: 'auto',
       ratioUsed: 'landscape',
-      tokenUsed: 'm',
+      tokenUsed: 'auto',
     });
     expect(warnings.some((line) => line.includes('UNSUPPORTED_TOKEN'))).toBe(true);
+  });
+
+  it('treats explicit auto object token as content-driven size', () => {
+    const normalized = normalizeObjectSizeInput(
+      { token: 'auto' },
+      { component: 'ShapeNode', inputPath: 'size' },
+    );
+    const resolved = resolveObject2D(normalized, {
+      component: 'ShapeNode',
+      inputPath: 'size',
+    });
+    expect(normalized.mode).toBe('auto');
+    expect(resolved).toMatchObject({
+      mode: 'auto',
+      tokenUsed: 'auto',
+    });
   });
 
   it('resolves markdown primitive as typography mode', () => {
@@ -149,6 +179,7 @@ describe('sizeResolver foundations', () => {
     expect(resolved.mode).toBe('object2d');
     if (resolved.mode === 'object2d') {
       expect(resolved.object2d).toMatchObject({
+        mode: 'fixed',
         widthPx: 160,
         heightPx: 160,
         ratioUsed: 'square',

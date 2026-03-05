@@ -16,6 +16,7 @@ interface SizeTokenRegistry {
 }
 
 type SizeToken = keyof SizeTokenRegistry & string;
+type Object2DSizeToken = SizeToken | 'auto';
 ```
 
 ### Rules
@@ -77,16 +78,18 @@ type Markdown1DInput = number | SizeToken;
 
 ```ts
 type SizeValue = number | SizeToken;
+type Object2DSizeValue = number | Object2DSizeToken;
 
 type ObjectSizeInput =
-  | SizeToken
+  | Object2DSizeToken
   | number
-  | { token: SizeToken; ratio?: SizeRatio }
-  | { widthHeight: SizeValue }
+  | { token: Object2DSizeToken; ratio?: SizeRatio }
+  | { widthHeight: Object2DSizeValue }
   | { width: SizeValue; height: SizeValue };
 ```
 
 - primitive `number`/`token` 입력은 컴포넌트 기본 ratio 규칙으로 해석한다.
+- `auto`는 콘텐츠 기반 자동 크기를 의미하며, `size` 미지정 시에도 기본적으로 `auto`로 해석한다.
 - `Shape` 기본 ratio: `rectangle=landscape`, `circle/triangle=square`.
 
 ### MarkdownSizeInput
@@ -94,8 +97,8 @@ type ObjectSizeInput =
 ```ts
 type MarkdownSizeInput =
   | SizeValue                    // 1D
-  | { token: SizeToken; ratio?: SizeRatio } // 2D
-  | { widthHeight: SizeValue }   // 2D
+  | { token: Object2DSizeToken; ratio?: SizeRatio } // 2D
+  | { widthHeight: Object2DSizeValue }   // 2D
   | { width: SizeValue; height: SizeValue }; // 2D
 ```
 
@@ -110,8 +113,8 @@ type MarkdownSizeInput =
 
 | Field | Type | Required | Description |
 |------|------|----------|-------------|
-| `mode` | `'token' \| 'uniform' \| 'explicit'` | Yes | 해석 모드 |
-| `token` | `SizeToken \| null` | Cond | token 모드 값 |
+| `mode` | `'auto' \| 'token' \| 'uniform' \| 'explicit'` | Yes | 해석 모드 |
+| `token` | `Object2DSizeToken \| null` | Cond | token 모드 값 |
 | `ratio` | `SizeRatio` | Yes | 2D 방향(기본 landscape) |
 | `width` | `SizeValue \| null` | Cond | explicit width |
 | `height` | `SizeValue \| null` | Cond | explicit height |
@@ -127,7 +130,7 @@ type MarkdownSizeInput =
 | `lineHeightPx` | number | Yes | 최종 line-height |
 | `tokenUsed` | SizeToken | No | token 기반일 때 사용 |
 
-### ResolvedObject2D
+### ResolvedObject2D (`mode='fixed'`)
 
 | Field | Type | Required | Description |
 |------|------|----------|-------------|
@@ -135,6 +138,14 @@ type MarkdownSizeInput =
 | `heightPx` | number | Yes | 최종 height |
 | `ratioUsed` | SizeRatio | Yes | 최종 ratio |
 | `tokenUsed` | SizeToken | No | token 기반일 때 사용 |
+
+### ResolvedObject2D (`mode='auto'`)
+
+| Field | Type | Required | Description |
+|------|------|----------|-------------|
+| `mode` | `'auto'` | Yes | 콘텐츠 기반 자동 크기 |
+| `ratioUsed` | SizeRatio | Yes | 컨텍스트 기본 ratio(참고값) |
+| `tokenUsed` | `'auto'` | Yes | auto 토큰 사용 표시 |
 
 ## 8) SizeWarningEvent
 

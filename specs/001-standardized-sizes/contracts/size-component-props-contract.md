@@ -22,14 +22,14 @@
 
 | Prop | Required | Type | Notes |
 |------|----------|------|-------|
-| `size` | No | `ObjectSizeInput` | `number`/`token`/object union 지원 |
+| `size` | No | `ObjectSizeInput` | `number`/`token`/`auto`/object union 지원 |
 | `width`/`height` | No | legacy experimental | 공식 계약 외, 런타임 warning+ignore |
 
 ### Shape
 
 | Prop | Required | Type | Notes |
 |------|----------|------|-------|
-| `size` | No | `ObjectSizeInput` | `number`/`token`/object union 지원 |
+| `size` | No | `ObjectSizeInput` | `number`/`token`/`auto`/object union 지원 |
 | `type` | No | `'rectangle' \| 'circle' \| 'triangle' \| string` | 기본 ratio 정책 결정(`rectangle=landscape`, `circle/triangle=square`) |
 | `width`/`height` | No | legacy experimental | 공식 계약 외, 런타임 warning+ignore |
 
@@ -37,7 +37,7 @@
 
 | Prop | Required | Type | Notes |
 |------|----------|------|-------|
-| `size` | No | `MarkdownSizeInput` | 단일 값=1D, object=2D |
+| `size` | No | `MarkdownSizeInput` | 단일 값=1D, object=2D(`auto` 지원) |
 
 ### Sequence
 

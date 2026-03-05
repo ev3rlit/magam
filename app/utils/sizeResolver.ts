@@ -10,6 +10,7 @@ import {
   type FontSizeInput,
   type MarkdownSizeInput,
   type NormalizedObjectSizeInput,
+  type Object2DSizeToken,
   type ObjectSizeInput,
   type ResolvedMarkdownSize,
   type ResolvedObject2D,
@@ -21,7 +22,8 @@ import {
 } from '@magam/core';
 import { emitSizeWarning, type SizeWarningCode } from './sizeWarnings';
 
-type Object2DDefault = { token: SizeToken; ratio: SizeRatio };
+const OBJECT2D_AUTO_TOKEN: Object2DSizeToken = 'auto';
+type Object2DDefault = { token: Object2DSizeToken; ratio: SizeRatio };
 
 export const CATEGORY_DEFAULTS: {
   typography: SizeToken;
@@ -31,7 +33,7 @@ export const CATEGORY_DEFAULTS: {
   typography: DEFAULT_SIZE_TOKEN,
   space: DEFAULT_SIZE_TOKEN,
   object2d: {
-    token: DEFAULT_SIZE_TOKEN,
+    token: OBJECT2D_AUTO_TOKEN,
     ratio: DEFAULT_SIZE_RATIO,
   },
 };
@@ -70,6 +72,10 @@ function isKnownTokenValue(value: unknown): value is SizeToken {
   return isKnownSizeToken(value);
 }
 
+function isAutoObject2DToken(value: unknown): value is typeof OBJECT2D_AUTO_TOKEN {
+  return value === OBJECT2D_AUTO_TOKEN;
+}
+
 export function isSizeRatio(value: unknown): value is SizeRatio {
   return value === 'landscape' || value === 'portrait' || value === 'square';
 }
@@ -92,7 +98,7 @@ function normalizeRatio(
 function resolveFallbackToken(category: SizeCategory): SizeToken {
   if (category === 'typography') return CATEGORY_DEFAULTS.typography;
   if (category === 'space') return CATEGORY_DEFAULTS.space;
-  return CATEGORY_DEFAULTS.object2d.token;
+  return DEFAULT_SIZE_TOKEN;
 }
 
 function resolveTokenValue(token: SizeToken, category: SizeCategory): number {
@@ -169,17 +175,23 @@ export function normalizeObjectSizeInput(
     inputPath: options.inputPath ?? 'size',
   };
   const defaultRatio = options.defaultRatio ?? CATEGORY_DEFAULTS.object2d.ratio;
+  const source = context.inputPath ?? 'size';
+  const toAuto = (): NormalizedObjectSizeInput => ({
+    mode: 'auto',
+    ratio: defaultRatio,
+    token: OBJECT2D_AUTO_TOKEN,
+    primitive: OBJECT2D_AUTO_TOKEN,
+    width: null,
+    height: null,
+    source,
+  });
 
   if (input === undefined) {
-    return {
-      mode: 'token',
-      ratio: defaultRatio,
-      token: CATEGORY_DEFAULTS.object2d.token,
-      primitive: CATEGORY_DEFAULTS.object2d.token,
-      width: null,
-      height: null,
-      source: context.inputPath ?? 'size',
-    };
+    return toAuto();
+  }
+
+  if (isAutoObject2DToken(input)) {
+    return toAuto();
   }
 
   if (isValidNumber(input) || isKnownTokenValue(input)) {
@@ -190,7 +202,7 @@ export function normalizeObjectSizeInput(
       primitive: input,
       width: null,
       height: null,
-      source: context.inputPath ?? 'size',
+      source,
     };
   }
 
@@ -198,17 +210,9 @@ export function normalizeObjectSizeInput(
     emitWarning(
       'CONFLICTING_SIZE_INPUT',
       context,
-      `object2d=${CATEGORY_DEFAULTS.object2d.token}+${CATEGORY_DEFAULTS.object2d.ratio}`,
+      `object2d=${CATEGORY_DEFAULTS.object2d.token}`,
     );
-    return {
-      mode: 'token',
-      ratio: CATEGORY_DEFAULTS.object2d.ratio,
-      token: CATEGORY_DEFAULTS.object2d.token,
-      primitive: CATEGORY_DEFAULTS.object2d.token,
-      width: null,
-      height: null,
-      source: context.inputPath ?? 'size',
-    };
+    return toAuto();
   }
 
   const hasToken = input.token !== undefined;
@@ -221,36 +225,23 @@ export function normalizeObjectSizeInput(
     emitWarning(
       'CONFLICTING_SIZE_INPUT',
       context,
-      `object2d=${CATEGORY_DEFAULTS.object2d.token}+${CATEGORY_DEFAULTS.object2d.ratio}`,
+      `object2d=${CATEGORY_DEFAULTS.object2d.token}`,
     );
-    return {
-      mode: 'token',
-      ratio: CATEGORY_DEFAULTS.object2d.ratio,
-      token: CATEGORY_DEFAULTS.object2d.token,
-      primitive: CATEGORY_DEFAULTS.object2d.token,
-      width: null,
-      height: null,
-      source: context.inputPath ?? 'size',
-    };
+    return toAuto();
   }
 
   if (hasToken) {
     const token = input.token;
+    if (isAutoObject2DToken(token)) {
+      return toAuto();
+    }
     if (!isKnownTokenValue(token)) {
       emitWarning(
         'UNSUPPORTED_TOKEN',
         context,
-        `object2d=${CATEGORY_DEFAULTS.object2d.token}+${CATEGORY_DEFAULTS.object2d.ratio}`,
+        `object2d=${CATEGORY_DEFAULTS.object2d.token}`,
       );
-      return {
-        mode: 'token',
-        ratio: CATEGORY_DEFAULTS.object2d.ratio,
-        token: CATEGORY_DEFAULTS.object2d.token,
-        primitive: CATEGORY_DEFAULTS.object2d.token,
-        width: null,
-        height: null,
-        source: context.inputPath ?? 'size',
-      };
+      return toAuto();
     }
     return {
       mode: 'token',
@@ -259,11 +250,14 @@ export function normalizeObjectSizeInput(
       primitive: token,
       width: null,
       height: null,
-      source: context.inputPath ?? 'size',
+      source,
     };
   }
 
   if (hasUniform) {
+    if (isAutoObject2DToken(input.widthHeight)) {
+      return toAuto();
+    }
     return {
       mode: 'uniform',
       ratio: 'square',
@@ -271,7 +265,7 @@ export function normalizeObjectSizeInput(
       primitive: null,
       width: input.widthHeight as SizeValue,
       height: input.widthHeight as SizeValue,
-      source: context.inputPath ?? 'size',
+      source,
     };
   }
 
@@ -282,7 +276,7 @@ export function normalizeObjectSizeInput(
     primitive: null,
     width: input.width as SizeValue,
     height: input.height as SizeValue,
-    source: context.inputPath ?? 'size',
+    source,
   };
 }
 
@@ -290,6 +284,7 @@ function resolveFromBaseSize(baseSizePx: number, ratio: SizeRatio): ResolvedObje
   const rounded = Math.round(baseSizePx);
   if (ratio === 'square') {
     return {
+      mode: 'fixed',
       widthPx: rounded,
       heightPx: rounded,
       ratioUsed: 'square',
@@ -297,12 +292,14 @@ function resolveFromBaseSize(baseSizePx: number, ratio: SizeRatio): ResolvedObje
   }
   if (ratio === 'portrait') {
     return {
+      mode: 'fixed',
       widthPx: rounded,
       heightPx: Math.round(rounded * LANDSCAPE_ASPECT_RATIO),
       ratioUsed: 'portrait',
     };
   }
   return {
+    mode: 'fixed',
     widthPx: Math.round(rounded * LANDSCAPE_ASPECT_RATIO),
     heightPx: rounded,
     ratioUsed: 'landscape',
@@ -313,9 +310,18 @@ export function resolveObject2D(
   normalized: NormalizedObjectSizeInput,
   context: SizeResolverContext = {},
 ): ResolvedObject2D {
-  if (normalized.mode === 'uniform') {
-    const base = resolveSize(normalized.width ?? CATEGORY_DEFAULTS.object2d.token, 'object2d', context);
+  if (normalized.mode === 'auto') {
     return {
+      mode: 'auto',
+      ratioUsed: normalized.ratio,
+      tokenUsed: OBJECT2D_AUTO_TOKEN,
+    };
+  }
+
+  if (normalized.mode === 'uniform') {
+    const base = resolveSize(normalized.width ?? DEFAULT_SIZE_TOKEN, 'object2d', context);
+    return {
+      mode: 'fixed',
       widthPx: base,
       heightPx: base,
       ratioUsed: 'square',
@@ -324,17 +330,17 @@ export function resolveObject2D(
   }
 
   if (normalized.mode === 'explicit') {
-    const widthPx = resolveSize(normalized.width ?? CATEGORY_DEFAULTS.object2d.token, 'object2d', {
+    const widthPx = resolveSize(normalized.width ?? DEFAULT_SIZE_TOKEN, 'object2d', {
       ...context,
       inputPath: `${context.inputPath ?? 'size'}.width`,
     });
-    const heightPx = resolveSize(normalized.height ?? CATEGORY_DEFAULTS.object2d.token, 'object2d', {
+    const heightPx = resolveSize(normalized.height ?? DEFAULT_SIZE_TOKEN, 'object2d', {
       ...context,
       inputPath: `${context.inputPath ?? 'size'}.height`,
     });
     const ratioUsed =
       widthPx === heightPx ? 'square' : widthPx > heightPx ? 'landscape' : 'portrait';
-    return { widthPx, heightPx, ratioUsed };
+    return { mode: 'fixed', widthPx, heightPx, ratioUsed };
   }
 
   const primitive = normalized.primitive;
@@ -342,9 +348,18 @@ export function resolveObject2D(
     return resolveFromBaseSize(primitive, normalized.ratio);
   }
 
+  if (isAutoObject2DToken(primitive)) {
+    return {
+      mode: 'auto',
+      ratioUsed: normalized.ratio,
+      tokenUsed: OBJECT2D_AUTO_TOKEN,
+    };
+  }
+
   if (isKnownTokenValue(primitive)) {
     const tokenResult = resolveObject2DTokenSize(primitive, normalized.ratio);
     return {
+      mode: 'fixed',
       widthPx: tokenResult.widthPx,
       heightPx: tokenResult.heightPx,
       ratioUsed: tokenResult.ratioUsed,
@@ -355,16 +370,11 @@ export function resolveObject2D(
   emitWarning(
     'UNSUPPORTED_TOKEN',
     context,
-    `object2d=${CATEGORY_DEFAULTS.object2d.token}+${CATEGORY_DEFAULTS.object2d.ratio}`,
-  );
-  const fallback = resolveObject2DTokenSize(
-    CATEGORY_DEFAULTS.object2d.token,
-    CATEGORY_DEFAULTS.object2d.ratio,
+    `object2d=${CATEGORY_DEFAULTS.object2d.token}`,
   );
   return {
-    widthPx: fallback.widthPx,
-    heightPx: fallback.heightPx,
-    ratioUsed: fallback.ratioUsed,
+    mode: 'auto',
+    ratioUsed: CATEGORY_DEFAULTS.object2d.ratio,
     tokenUsed: CATEGORY_DEFAULTS.object2d.token,
   };
 }
