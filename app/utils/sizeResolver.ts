@@ -236,11 +236,27 @@ export function normalizeObjectSizeInput(
 
   if (hasToken) {
     const token = input.token;
+    if (!isKnownTokenValue(token)) {
+      emitWarning(
+        'UNSUPPORTED_TOKEN',
+        context,
+        `object2d=${CATEGORY_DEFAULTS.object2d.token}+${CATEGORY_DEFAULTS.object2d.ratio}`,
+      );
+      return {
+        mode: 'token',
+        ratio: CATEGORY_DEFAULTS.object2d.ratio,
+        token: CATEGORY_DEFAULTS.object2d.token,
+        primitive: CATEGORY_DEFAULTS.object2d.token,
+        width: null,
+        height: null,
+        source: context.inputPath ?? 'size',
+      };
+    }
     return {
       mode: 'token',
       ratio: normalizeRatio(input.ratio, context, defaultRatio),
-      token: isKnownTokenValue(token) ? token : null,
-      primitive: token as SizeValue,
+      token,
+      primitive: token,
       width: null,
       height: null,
       source: context.inputPath ?? 'size',
@@ -385,4 +401,3 @@ export function resolveShapeDefaultRatio(shapeType?: string): SizeRatio {
   }
   return 'landscape';
 }
-

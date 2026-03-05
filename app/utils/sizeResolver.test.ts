@@ -105,6 +105,31 @@ describe('sizeResolver foundations', () => {
     expect(warnings.some((line) => line.includes('UNSUPPORTED_RATIO'))).toBe(true);
   });
 
+  it('treats invalid object token payload as unsupported token and falls back', () => {
+    const warnings: string[] = [];
+    const originalWarn = console.warn;
+    console.warn = ((message: string) => warnings.push(String(message))) as typeof console.warn;
+
+    const normalized = normalizeObjectSizeInput(
+      { token: 120 } as any,
+      { component: 'ShapeNode', inputPath: 'size' },
+    );
+    const resolved = resolveObject2D(normalized, {
+      component: 'ShapeNode',
+      inputPath: 'size',
+    });
+
+    console.warn = originalWarn;
+
+    expect(resolved).toMatchObject({
+      widthPx: 192,
+      heightPx: 120,
+      ratioUsed: 'landscape',
+      tokenUsed: 'm',
+    });
+    expect(warnings.some((line) => line.includes('UNSUPPORTED_TOKEN'))).toBe(true);
+  });
+
   it('resolves markdown primitive as typography mode', () => {
     const resolved = resolveMarkdownSize('s', {
       component: 'MarkdownNode',
@@ -154,4 +179,3 @@ describe('sizeResolver foundations', () => {
     expect(resolveShapeDefaultRatio('rectangle')).toBe('landscape');
   });
 });
-
