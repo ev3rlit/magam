@@ -1,0 +1,74 @@
+import { describe, expect, it } from 'bun:test';
+import {
+  normalizeObjectSizeInput,
+  resolveObject2D,
+  resolveShapeDefaultRatio,
+} from '@/utils/sizeResolver';
+
+describe('ShapeNode size rules', () => {
+  it('uses landscape as default ratio for rectangle', () => {
+    const normalized = normalizeObjectSizeInput('m', {
+      component: 'ShapeNode',
+      inputPath: 'size',
+      defaultRatio: resolveShapeDefaultRatio('rectangle'),
+    });
+    const resolved = resolveObject2D(normalized, {
+      component: 'ShapeNode',
+      inputPath: 'size',
+    });
+
+    expect(resolved).toMatchObject({
+      widthPx: 192,
+      heightPx: 120,
+      ratioUsed: 'landscape',
+    });
+  });
+
+  it('uses square as default ratio for circle and triangle', () => {
+    const circleResolved = resolveObject2D(
+      normalizeObjectSizeInput('m', {
+        component: 'ShapeNode',
+        inputPath: 'size',
+        defaultRatio: resolveShapeDefaultRatio('circle'),
+      }),
+      { component: 'ShapeNode', inputPath: 'size' },
+    );
+    const triangleResolved = resolveObject2D(
+      normalizeObjectSizeInput('l', {
+        component: 'ShapeNode',
+        inputPath: 'size',
+        defaultRatio: resolveShapeDefaultRatio('triangle'),
+      }),
+      { component: 'ShapeNode', inputPath: 'size' },
+    );
+
+    expect(circleResolved).toMatchObject({
+      widthPx: 120,
+      heightPx: 120,
+      ratioUsed: 'square',
+    });
+    expect(triangleResolved).toMatchObject({
+      widthPx: 160,
+      heightPx: 160,
+      ratioUsed: 'square',
+    });
+  });
+
+  it('supports explicit width/height with mixed token + number', () => {
+    const resolved = resolveObject2D(
+      normalizeObjectSizeInput({ width: 'l', height: 160 }, {
+        component: 'ShapeNode',
+        inputPath: 'size',
+        defaultRatio: 'landscape',
+      }),
+      { component: 'ShapeNode', inputPath: 'size' },
+    );
+
+    expect(resolved).toMatchObject({
+      widthPx: 160,
+      heightPx: 160,
+      ratioUsed: 'square',
+    });
+  });
+});
+

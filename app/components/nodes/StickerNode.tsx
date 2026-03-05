@@ -10,6 +10,7 @@ import { stickerDebugLog } from '@/utils/stickerDebug';
 import { getStickerJitterAngle, resolveStickerRotation } from '@/utils/stickerJitter';
 import type { FontFamilyPreset } from '@magam/core';
 import { LazyMarkdownRenderer } from '@/components/markdown/LazyMarkdownRenderer';
+import { emitSizeWarning } from '@/utils/sizeWarnings';
 import {
   hasExplicitFontFamilyClass,
   resolveFontFamilyCssValue,
@@ -418,6 +419,16 @@ const StickerNode = ({ data, selected }: NodeProps<StickerNodeData>) => {
       globalFontFamily,
     })
     : undefined;
+  useEffect(() => {
+    const sizeInput = (data as { size?: unknown }).size;
+    if (sizeInput === undefined) return;
+    emitSizeWarning({
+      code: 'UNSUPPORTED_LEGACY_SIZE_API',
+      component: 'StickerNode',
+      inputPath: 'size',
+      fallbackApplied: 'ignored legacy input',
+    });
+  }, [(data as { size?: unknown }).size]);
 
   const hasChildren = children.length > 0;
   const isTextMode = useMemo(

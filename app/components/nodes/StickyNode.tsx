@@ -6,13 +6,19 @@ import { BaseNode } from './BaseNode';
 import type { RenderableChild } from '@/utils/childComposition';
 import { renderNodeContent } from './renderableContent';
 import { useGraphStore } from '@/store/graph';
-import type { FontFamilyPreset, PaperMaterial, PaperTextureParams } from '@magam/core';
+import type {
+  FontFamilyPreset,
+  ObjectSizeInput,
+  PaperMaterial,
+  PaperTextureParams,
+} from '@magam/core';
 import {
   hasExplicitFontFamilyClass,
   resolveFontFamilyCssValue,
 } from '@/utils/fontHierarchy';
 import { normalizeStickyDefaults } from '@/utils/washiTapeDefaults';
 import { resolveStickyPattern } from '@/utils/washiTapePattern';
+import { normalizeObjectSizeInput, resolveObject2D } from '@/utils/sizeResolver';
 
 type StickyShape = 'rectangle' | 'heart' | 'cloud' | 'speech';
 
@@ -21,7 +27,10 @@ interface StickyNodeData {
   color?: string;
   pattern?: PaperMaterial;
   shape?: StickyShape;
+  size?: ObjectSizeInput;
+  // Legacy size API (unsupported for standardized size contract)
   width?: number;
+  // Legacy size API (unsupported for standardized size contract)
   height?: number;
   fontFamily?: FontFamilyPreset;
   labelColor?: string;
@@ -213,9 +222,26 @@ const StickyNode = ({ data, selected }: NodeProps<StickyNodeData>) => {
     () => resolveStickyPattern(normalized.pattern),
     [normalized.pattern],
   );
+  const resolvedObjectSize = useMemo(() => {
+    if (raw.size === undefined) return null;
+    const normalizedSize = normalizeObjectSizeInput(raw.size, {
+      component: 'StickyNode',
+      inputPath: 'size',
+      defaultRatio: 'landscape',
+    });
+    return resolveObject2D(normalizedSize, {
+      component: 'StickyNode',
+      inputPath: 'size',
+    });
+  }, [raw.size]);
   const sizing = useMemo(
-    () => resolveStickySizing(raw.width ?? normalized.width, raw.height ?? normalized.height),
-    [normalized.height, normalized.width, raw.height, raw.width],
+    () => {
+      if (!resolvedObjectSize) {
+        return resolveStickySizing(undefined, undefined);
+      }
+      return resolveStickySizing(resolvedObjectSize.widthPx, resolvedObjectSize.heightPx);
+    },
+    [resolvedObjectSize],
   );
 
   const legacyColorClassName = (
