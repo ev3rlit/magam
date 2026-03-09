@@ -8,4 +8,8 @@ describe('public API boundary', () => {
   it('keeps Shape available as the general-purpose public object', () => {
     expect(api).toHaveProperty('Shape');
   });
+
+  it('exposes MindMapEmbed for reusable mind map subtrees', () => {
+    expect(api).toHaveProperty('MindMapEmbed');
+  });
 });

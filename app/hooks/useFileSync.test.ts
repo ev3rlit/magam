@@ -18,6 +18,7 @@ describe('useFileSync notification guard', () => {
     const shouldReload = shouldReloadForFileChange({
       changedFile: 'examples/a.tsx',
       currentFile: 'examples/a.tsx',
+      watchedFiles: new Set(['examples/a.tsx']),
       incomingOriginId: 'client-1',
       incomingCommandId: 'cmd-1',
       clientId: 'client-1',
@@ -31,6 +32,7 @@ describe('useFileSync notification guard', () => {
     const shouldReload = shouldReloadForFileChange({
       changedFile: 'examples/a.tsx',
       currentFile: 'examples/a.tsx',
+      watchedFiles: new Set(['examples/a.tsx']),
       incomingOriginId: 'external',
       incomingCommandId: 'cmd-x',
       clientId: 'client-1',
@@ -40,10 +42,11 @@ describe('useFileSync notification guard', () => {
     expect(shouldReload).toBe(true);
   });
 
-  it('다른 파일 변경은 무시한다', () => {
+  it('watch 대상이 아닌 파일 변경은 무시한다', () => {
     const shouldReload = shouldReloadForFileChange({
       changedFile: 'examples/b.tsx',
       currentFile: 'examples/a.tsx',
+      watchedFiles: new Set(['examples/a.tsx']),
       incomingOriginId: 'external',
       incomingCommandId: 'cmd-x',
       clientId: 'client-1',
@@ -51,6 +54,20 @@ describe('useFileSync notification guard', () => {
     });
 
     expect(shouldReload).toBe(false);
+  });
+
+  it('외부 의존 파일 변경은 현재 파일이 아니어도 리렌더한다', () => {
+    const shouldReload = shouldReloadForFileChange({
+      changedFile: 'components/auth.tsx',
+      currentFile: 'examples/a.tsx',
+      watchedFiles: new Set(['examples/a.tsx', 'components/auth.tsx']),
+      incomingOriginId: 'client-1',
+      incomingCommandId: 'cmd-1',
+      clientId: 'client-1',
+      lastAppliedCommandId: 'cmd-1',
+    });
+
+    expect(shouldReload).toBe(true);
   });
 });
 

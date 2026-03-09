@@ -127,6 +127,7 @@ export interface GraphState {
   currentFile: string | null;
   graphId: string; // Unique ID for the current graph data version
   sourceVersion: string | null;
+  sourceVersions: Record<string, string>;
   clientId: string;
   lastAppliedCommandId?: string;
   status: 'idle' | 'loading' | 'error' | 'success' | 'connected';
@@ -153,8 +154,9 @@ export interface GraphState {
   editHistoryPast: EditCompletionEvent[];
   editHistoryFuture: EditCompletionEvent[];
   editHistoryMaxSize: number;
-  setGraph: (graph: { nodes: Node[]; edges: Edge[]; needsAutoLayout?: boolean; layoutType?: 'tree' | 'bidirectional' | 'radial' | 'compact' | 'compact-bidir' | 'depth-hybrid' | 'treemap-pack' | 'quadrant-pack' | 'voronoi-pack'; mindMapGroups?: MindMapGroup[]; canvasBackground?: CanvasBackgroundStyle; canvasFontFamily?: FontFamilyPreset; sourceVersion?: string | null }) => void;
+  setGraph: (graph: { nodes: Node[]; edges: Edge[]; needsAutoLayout?: boolean; layoutType?: 'tree' | 'bidirectional' | 'radial' | 'compact' | 'compact-bidir' | 'depth-hybrid' | 'treemap-pack' | 'quadrant-pack' | 'voronoi-pack'; mindMapGroups?: MindMapGroup[]; canvasBackground?: CanvasBackgroundStyle; canvasFontFamily?: FontFamilyPreset; sourceVersion?: string | null; sourceVersions?: Record<string, string> }) => void;
   setSourceVersion: (version: string | null) => void;
+  setSourceVersionForFile: (filePath: string, version: string | null) => void;
   setLastAppliedCommandId: (commandId?: string) => void;
   setFiles: (files: string[]) => void;
   setFileTree: (tree: FileTreeNode | null) => void;
@@ -228,6 +230,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   currentFile: null,
   graphId: uuidv4(),
   sourceVersion: null,
+  sourceVersions: {},
   clientId: uuidv4(),
   lastAppliedCommandId: undefined,
   status: 'idle',
@@ -256,18 +259,49 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   editHistoryPast: [],
   editHistoryFuture: [],
   editHistoryMaxSize: 200,
-  setGraph: ({ nodes, edges, needsAutoLayout = false, layoutType = 'tree', mindMapGroups = [], canvasBackground, canvasFontFamily, sourceVersion }) => set({
+  setGraph: ({
     nodes,
     edges,
-    needsAutoLayout,
-    layoutType,
-    mindMapGroups,
-    graphId: uuidv4(),
-    ...(canvasBackground ? { canvasBackground } : {}),
-    ...(isFontFamilyPreset(canvasFontFamily) ? { canvasFontFamily } : { canvasFontFamily: undefined }),
-    ...(sourceVersion !== undefined ? { sourceVersion } : {}),
+    needsAutoLayout = false,
+    layoutType = 'tree',
+    mindMapGroups = [],
+    canvasBackground,
+    canvasFontFamily,
+    sourceVersion,
+    sourceVersions,
+  }) => set((state) => {
+    const nextSourceVersions = sourceVersions ?? state.sourceVersions;
+    return {
+      nodes,
+      edges,
+      needsAutoLayout,
+      layoutType,
+      mindMapGroups,
+      graphId: uuidv4(),
+      ...(canvasBackground ? { canvasBackground } : {}),
+      ...(isFontFamilyPreset(canvasFontFamily) ? { canvasFontFamily } : { canvasFontFamily: undefined }),
+      ...(sourceVersion !== undefined ? { sourceVersion } : {}),
+      sourceVersions: nextSourceVersions,
+    };
   }),
   setSourceVersion: (sourceVersion) => set({ sourceVersion }),
+  setSourceVersionForFile: (filePath, version) => set((state) => {
+    if (!filePath) {
+      return state;
+    }
+
+    const nextSourceVersions = { ...state.sourceVersions };
+    if (version) {
+      nextSourceVersions[filePath] = version;
+    } else {
+      delete nextSourceVersions[filePath];
+    }
+
+    return {
+      sourceVersions: nextSourceVersions,
+      ...(state.currentFile === filePath ? { sourceVersion: version } : {}),
+    };
+  }),
   setLastAppliedCommandId: (lastAppliedCommandId) => set({ lastAppliedCommandId }),
   setFiles: (files) => set({ files }),
   setFileTree: (fileTree) => set({ fileTree }),
@@ -280,7 +314,10 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     }
     return { expandedFolders: newExpanded };
   }),
-  setCurrentFile: (currentFile) => set({ currentFile }),
+  setCurrentFile: (currentFile) => set((state) => ({
+    currentFile,
+    sourceVersion: currentFile ? (state.sourceVersions[currentFile] ?? null) : null,
+  })),
   setStatus: (status) => set({ status }),
   setError: (error) => set({ error }),
   setCanvasBackground: (canvasBackground) => set({ canvasBackground }),

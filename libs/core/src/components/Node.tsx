@@ -1,5 +1,6 @@
 import * as React from 'react';
 import type { FontFamilyPreset } from '../types/font';
+import { useMindMapEmbedMeta, useMindMapScopedId } from '../hooks/useMindMapScopedProps';
 
 export type EdgeLabelStyle = {
   text?: string;
@@ -51,5 +52,7 @@ export interface NodeProps {
 }
 
 export const Node: React.FC<NodeProps> = (props) => {
-  return React.createElement('graph-node', props, props.children);
+  const scopedId = useMindMapScopedId(props.id);
+  const embedMeta = useMindMapEmbedMeta(props.from);
+  return React.createElement('graph-node', { ...props, ...embedMeta, id: scopedId }, props.children);
 };

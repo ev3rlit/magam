@@ -4,6 +4,7 @@ import { mapDragToRelativeAttachmentUpdate } from '@/utils/relativeAttachmentMap
 import {
   canCommitTextEdit,
   mapEditRpcErrorToToast,
+  resolveNodeEditTarget,
 } from './workspaceEditUtils';
 
 function makeNode(input: Partial<Node> & { id: string; type: string; data?: Record<string, unknown> }): Node {
@@ -34,6 +35,36 @@ describe('WorkspaceClient text edit isolation', () => {
       requestNodeId: 'md-1',
       selectedNodeIds: ['md-2'],
     })).toBe(false);
+  });
+
+  it('외부 파일 sourceMeta가 있으면 해당 파일과 sourceId를 편집 대상으로 선택한다', () => {
+    const target = resolveNodeEditTarget(makeNode({
+      id: 'map.root',
+      type: 'shape',
+      data: {
+        sourceMeta: {
+          sourceId: 'root',
+          filePath: 'components/auth-branch.tsx',
+        },
+      },
+    }), 'examples/main.tsx');
+
+    expect(target).toEqual({
+      nodeId: 'root',
+      filePath: 'components/auth-branch.tsx',
+    });
+  });
+
+  it('sourceMeta가 없으면 현재 파일과 렌더 노드 id를 편집 대상으로 사용한다', () => {
+    const target = resolveNodeEditTarget(makeNode({
+      id: 'shape-1',
+      type: 'shape',
+    }), 'examples/main.tsx');
+
+    expect(target).toEqual({
+      nodeId: 'shape-1',
+      filePath: 'examples/main.tsx',
+    });
   });
 });
 

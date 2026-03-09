@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const mockGlob = vi.fn();
-const mockTranspile = vi.fn();
+const mockTranspileWithMetadata = vi.fn();
 const mockExecute = vi.fn();
 const mockExistsSync = vi.fn();
 const mockReadFileSync = vi.fn();
@@ -27,7 +27,8 @@ vi.mock('fast-glob', () => ({
 
 // Mock dependencies
 vi.mock('../core/transpiler', () => ({
-  transpile: mockTranspile,
+  transpile: vi.fn(),
+  transpileWithMetadata: mockTranspileWithMetadata,
 }));
 
 vi.mock('../core/executor', () => ({
@@ -205,8 +206,10 @@ describe('HTTP Render Server', () => {
 
     it('should render file successfully', async () => {
       mockExistsSync.mockReturnValue(true);
-      // We don't read file manually anymore, transpile does it
-      mockTranspile.mockResolvedValue('transpiled code');
+      mockTranspileWithMetadata.mockResolvedValue({
+        code: 'transpiled code',
+        inputs: [`${targetDir}/exists.tsx`],
+      });
       mockExecute.mockResolvedValue({ isOk: () => true, value: {} } as any);
 
       const response = await fetch(`${baseUrl}/render`, {
@@ -219,14 +222,85 @@ describe('HTTP Render Server', () => {
       expect(body.graph).toEqual({});
       expect(typeof body.sourceVersion).toBe('string');
       expect(body.sourceVersion.startsWith('sha256:')).toBe(true);
+      expect(body.sourceVersions).toEqual({
+        'exists.tsx': body.sourceVersion,
+      });
       // expect valid args
-      expect(mockTranspile).toHaveBeenCalledWith(expect.stringContaining('exists.tsx'));
+      expect(mockTranspileWithMetadata).toHaveBeenCalledWith(expect.stringContaining('exists.tsx'));
       expect(mockExecute).toHaveBeenCalledWith('transpiled code');
+    });
+
+    it('should normalize duplicated workspace prefixes in render requests', async () => {
+      mockExistsSync.mockImplementation((candidatePath: fs.PathLike) => (
+        String(candidatePath) === `${targetDir}/nested/example.tsx`
+      ));
+      mockTranspileWithMetadata.mockResolvedValue({
+        code: 'transpiled code',
+        inputs: [`${targetDir}/nested/example.tsx`],
+      });
+      mockExecute.mockResolvedValue({ isOk: () => true, value: {} } as any);
+
+      const response = await fetch(`${baseUrl}/render`, {
+        method: 'POST',
+        body: JSON.stringify({ filePath: 'test/test/nested/example.tsx' }),
+      });
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body.sourceVersions).toEqual({
+        'nested/example.tsx': body.sourceVersion,
+      });
+      expect(mockTranspileWithMetadata).toHaveBeenCalledWith(
+        `${targetDir}/nested/example.tsx`,
+      );
+    });
+
+    it('should inject sourceMeta.filePath from JSX source info', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockTranspileWithMetadata.mockResolvedValue({
+        code: 'transpiled code',
+        inputs: [
+          `${targetDir}/exists.tsx`,
+          `${targetDir}/components/auth.tsx`,
+        ],
+      });
+      mockExecute.mockResolvedValue({
+        isOk: () => true,
+        value: {
+          children: [
+            {
+              type: 'graph-node',
+              props: {
+                id: 'root',
+                __source: { fileName: '/tmp/test/components/auth.tsx' },
+              },
+              children: [],
+            },
+          ],
+        },
+      } as any);
+
+      const response = await fetch(`${baseUrl}/render`, {
+        method: 'POST',
+        body: JSON.stringify({ filePath: 'exists.tsx' }),
+      });
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body.graph.children[0].props.sourceMeta).toEqual({
+        sourceId: 'root',
+        filePath: 'components/auth.tsx',
+        kind: 'canvas',
+      });
+      expect(body.sourceVersions).toMatchObject({
+        'exists.tsx': expect.stringMatching(/^sha256:/),
+        'components/auth.tsx': expect.stringMatching(/^sha256:/),
+      });
     });
 
     it('should handle render errors', async () => {
       mockExistsSync.mockReturnValue(true);
-      mockTranspile.mockRejectedValue(new Error('Transpile error'));
+      mockTranspileWithMetadata.mockRejectedValue(new Error('Transpile error'));
 
       const response = await fetch(`${baseUrl}/render`, {
         method: 'POST',

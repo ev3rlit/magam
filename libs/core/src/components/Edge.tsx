@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNodeId } from '../hooks/useNodeId';
+import { useMindMapEmbedMeta, useMindMapScopedReference } from '../hooks/useMindMapScopedProps';
 
 export interface EdgeProps {
   id?: string;
@@ -14,7 +14,8 @@ export interface EdgeProps {
 }
 
 export const Edge: React.FC<EdgeProps> = (props) => {
-  const scopedFrom = useNodeId(props.from);
-  const scopedTo = useNodeId(props.to);
-  return React.createElement('graph-edge', { ...props, from: scopedFrom, to: scopedTo });
+  const scopedFrom = useMindMapScopedReference(props.from);
+  const scopedTo = useMindMapScopedReference(props.to);
+  const embedMeta = useMindMapEmbedMeta();
+  return React.createElement('graph-edge', { ...props, ...embedMeta, from: scopedFrom, to: scopedTo });
 };

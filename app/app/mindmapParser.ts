@@ -58,9 +58,14 @@ export function isMindMapTopologyError(error: unknown): error is MindMapTopology
   );
 }
 
-export function resolveNodeId(id: string, currentMindmapId?: string): string {
+function isMindMapLocalId(id: string, localScope?: string): boolean {
+  if (!localScope) return false;
+  return id === localScope || id.startsWith(`${localScope}.`);
+}
+
+export function resolveNodeId(id: string, currentMindmapId?: string, localScope?: string): string {
   if (!id) return id;
-  if (id.includes('.')) return id;
+  if (id.includes('.') && !isMindMapLocalId(id, localScope)) return id;
   if (currentMindmapId) return `${currentMindmapId}.${id}`;
   return id;
 }
@@ -68,6 +73,7 @@ export function resolveNodeId(id: string, currentMindmapId?: string): string {
 export function parseEdgeEndpoint(
   value: string | undefined,
   currentMindmapId: string | undefined,
+  localScope?: string,
 ): { id: string | undefined; handle: string | undefined } {
   if (!value) {
     return { id: undefined, handle: undefined };
@@ -77,11 +83,11 @@ export function parseEdgeEndpoint(
   if (colonIndex > 0) {
     const id = value.substring(0, colonIndex);
     const handle = value.substring(colonIndex + 1);
-    return { id: resolveNodeId(id, currentMindmapId), handle };
+    return { id: resolveNodeId(id, currentMindmapId, localScope), handle };
   }
 
   return {
-    id: resolveNodeId(value, currentMindmapId),
+    id: resolveNodeId(value, currentMindmapId, localScope),
     handle: undefined,
   };
 }
@@ -195,6 +201,7 @@ export function buildMindMapEdge(params: {
   mindmapId: string;
   edgeId: string;
   from: FromProp | undefined;
+  localScope?: string;
   edgeLabel?: string;
   edgeClassName?: string;
   getEdgeType: (type?: string) => string;
@@ -215,7 +222,7 @@ export function buildMindMapEdge(params: {
     mindmapId: params.mindmapId,
     nodeId: params.nodeId,
   });
-  const sourceMeta = parseEdgeEndpoint(parsedFrom.node, params.mindmapId);
+  const sourceMeta = parseEdgeEndpoint(parsedFrom.node, params.mindmapId, params.localScope);
 
   const fromEdge = parsedFrom.edge;
   const styleClassName = typeof fromEdge.className === 'string'

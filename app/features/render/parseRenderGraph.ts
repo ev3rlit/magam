@@ -98,9 +98,11 @@ export interface RenderNode {
     messageSpacing?: number;
     sourceMeta?: {
       sourceId: string;
+      filePath?: string;
       kind: 'canvas' | 'mindmap';
       scopeId?: string;
     };
+    __mindmapEmbedScope?: string;
     children?: any;
   };
   children?: RenderNode[];
@@ -115,6 +117,7 @@ interface RenderGraphResponse {
     };
   };
   sourceVersion?: string | null;
+  sourceVersions?: Record<string, string>;
 }
 
 export interface ParsedRenderGraph {
@@ -126,6 +129,7 @@ export interface ParsedRenderGraph {
   canvasBackground?: CanvasBackgroundStyle;
   canvasFontFamily?: FontFamilyPreset;
   sourceVersion?: string | null;
+  sourceVersions?: Record<string, string>;
 }
 
 export function parseRenderGraph(data: RenderGraphResponse): ParsedRenderGraph | null {
@@ -201,6 +205,7 @@ export function parseRenderGraph(data: RenderGraphResponse): ParsedRenderGraph |
       mindmapId: params.mindmapId,
       edgeId: `edge-${params.mindmapId}-${params.nodeId}-${edgeIdCounter++}`,
       from: child.props.from,
+      localScope: child.props.__mindmapEmbedScope,
       edgeLabel: child.props.edgeLabel,
       edgeClassName: child.props.edgeClassName,
       getEdgeType,
@@ -224,8 +229,13 @@ export function parseRenderGraph(data: RenderGraphResponse): ParsedRenderGraph |
         const sourceMeta = parseEdgeEndpoint(
           fromToEndpointValue(child.props.from),
           mindmapId,
+          child.props.__mindmapEmbedScope,
         );
-        const targetMeta = parseEdgeEndpoint(child.props.to, mindmapId);
+        const targetMeta = parseEdgeEndpoint(
+          child.props.to,
+          mindmapId,
+          child.props.__mindmapEmbedScope,
+        );
         const edgeFontFamily = normalizeFontFamily(child.props.fontFamily);
 
         const hasHandles = sourceMeta.handle || targetMeta.handle;
@@ -296,7 +306,11 @@ export function parseRenderGraph(data: RenderGraphResponse): ParsedRenderGraph |
         }
         const rawSequenceId =
           child.props.id || `sequence-${sequenceIdCounter++}`;
-        const seqId = resolveNodeId(rawSequenceId, mindmapId);
+        const seqId = resolveNodeId(
+          rawSequenceId,
+          mindmapId,
+          child.props.__mindmapEmbedScope,
+        );
         const sequenceFontFamily = normalizeFontFamily(child.props.fontFamily);
         const participants: {
           id: string;
@@ -360,7 +374,11 @@ export function parseRenderGraph(data: RenderGraphResponse): ParsedRenderGraph |
         }
       } else if (child.type === 'graph-node') {
         const rawNodeId = child.props.id || `node-${nodeIdCounter++}`;
-        const nodeId = resolveNodeId(rawNodeId, mindmapId);
+        const nodeId = resolveNodeId(
+          rawNodeId,
+          mindmapId,
+          child.props.__mindmapEmbedScope,
+        );
 
         const rendererChildren = child.children || [];
         const { label: baseLabel, parsedChildren } = extractNodeContent(
@@ -446,7 +464,11 @@ export function parseRenderGraph(data: RenderGraphResponse): ParsedRenderGraph |
         }
       } else if (child.type === 'graph-image') {
         const rawImageId = child.props.id || `image-${imageIdCounter++}`;
-        const imageId = resolveNodeId(rawImageId, mindmapId);
+        const imageId = resolveNodeId(
+          rawImageId,
+          mindmapId,
+          child.props.__mindmapEmbedScope,
+        );
         nodes.push({
           id: imageId,
           type: 'image',
@@ -474,7 +496,11 @@ export function parseRenderGraph(data: RenderGraphResponse): ParsedRenderGraph |
           warnUnsupportedLegacySizeApi('StickerNode', 'size');
         }
         const rawStickerId = child.props.id || `sticker-${nodeIdCounter++}`;
-        const stickerId = resolveNodeId(rawStickerId, mindmapId);
+        const stickerId = resolveNodeId(
+          rawStickerId,
+          mindmapId,
+          child.props.__mindmapEmbedScope,
+        );
         const stickerFontFamily = normalizeFontFamily(child.props.fontFamily);
         const stickerRendererChildren = child.children || [];
         const { label: stickerLabel, parsedChildren: stickerChildren } = extractStickerContent(
@@ -530,7 +556,11 @@ export function parseRenderGraph(data: RenderGraphResponse): ParsedRenderGraph |
         }
       } else if (child.type === 'graph-washi-tape') {
         const rawWashiId = child.props.id || `washi-${nodeIdCounter++}`;
-        const washiId = resolveNodeId(rawWashiId, mindmapId);
+        const washiId = resolveNodeId(
+          rawWashiId,
+          mindmapId,
+          child.props.__mindmapEmbedScope,
+        );
         const washiRendererChildren = child.children || [];
         const { label: washiLabel, parsedChildren: washiChildren } = extractStickerContent(
           washiRendererChildren,
@@ -590,7 +620,11 @@ export function parseRenderGraph(data: RenderGraphResponse): ParsedRenderGraph |
         }
       } else {
         const rawNodeId = child.props.id || `node-${nodeIdCounter++}`;
-        const nodeId = resolveNodeId(rawNodeId, mindmapId);
+        const nodeId = resolveNodeId(
+          rawNodeId,
+          mindmapId,
+          child.props.__mindmapEmbedScope,
+        );
         const nodeFontFamily = normalizeFontFamily(child.props.fontFamily);
 
         const nestedEdges: RenderNode[] = [];
@@ -612,9 +646,19 @@ export function parseRenderGraph(data: RenderGraphResponse): ParsedRenderGraph |
 
         nestedEdges.forEach(
           (edgeChild: RenderNode, edgeIndex: number) => {
+            const rawTargetId = edgeChild.props.to;
+            if (!rawTargetId) {
+              return;
+            }
             const sourceId = resolveNodeId(
               fromToEndpointValue(edgeChild.props.from) || nodeId,
               mindmapId,
+              child.props.__mindmapEmbedScope,
+            );
+            const targetId = resolveNodeId(
+              rawTargetId,
+              mindmapId,
+              child.props.__mindmapEmbedScope,
             );
             const edgeFontFamily = normalizeFontFamily(edgeChild.props.fontFamily);
 
@@ -623,7 +667,7 @@ export function parseRenderGraph(data: RenderGraphResponse): ParsedRenderGraph |
                 edgeChild.props.id ||
                 `nested-edge-${nodeId}-${edgeIndex}`,
               source: sourceId,
-              target: edgeChild.props.to,
+              target: targetId,
               label: edgeChild.props.label,
               style: {
                 stroke: edgeChild.props.stroke || '#94a3b8',
@@ -801,5 +845,6 @@ export function parseRenderGraph(data: RenderGraphResponse): ParsedRenderGraph |
     canvasBackground,
     canvasFontFamily,
     sourceVersion: data.sourceVersion ?? null,
+    sourceVersions: data.sourceVersions,
   };
 }

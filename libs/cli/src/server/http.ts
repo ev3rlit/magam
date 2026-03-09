@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { createHash } from 'crypto';
 import glob from 'fast-glob';
-import { transpile } from '../core/transpiler';
+import { transpileWithMetadata } from '../core/transpiler';
 import { execute } from '../core/executor';
 import { ChatHandler } from '../chat/handler';
 import type { ChatPermissionMode, ProviderId, SendChatRequest, StopChatRequest } from '@magam/shared';
@@ -30,7 +30,9 @@ interface RenderPipelineTiming {
 interface RenderPipelineResult {
   graph: RenderLikeNode;
   sourceVersion: string;
+  sourceVersions: Record<string, string>;
   timing: RenderPipelineTiming;
+  cacheState: 'hit' | 'miss' | 'dedupe-hit';
 }
 
 interface RenderCacheEntry extends RenderPipelineResult {
@@ -89,7 +91,7 @@ function setRenderCacheEntry(key: string, value: RenderPipelineResult): RenderCa
 
 function logRenderPipeline(
   filePath: string,
-  cache: 'hit' | 'miss' | 'dedupe-hit',
+  cache: RenderPipelineResult['cacheState'],
   timing: RenderPipelineTiming,
   sourceVersion: string,
 ) {
@@ -102,6 +104,85 @@ function logRenderPipeline(
     transpileMs: timing.transpileMs,
     executeMs: timing.executeMs,
   });
+}
+
+function hashSourceContent(content: string): string {
+  return `sha256:${createHash('sha256').update(content).digest('hex')}`;
+}
+
+function listWorkspaceRelativeCandidates(
+  targetDir: string,
+  candidatePath: string | undefined,
+  fallbackPath: string,
+): string[] {
+  const workspaceName = path.basename(path.resolve(targetDir));
+  const candidates: string[] = [];
+  const seen = new Set<string>();
+
+  const pushCandidate = (value: string | undefined) => {
+    if (!value) return;
+    const normalized = value
+      .replace(/\\/g, '/')
+      .replace(/^\.\//, '')
+      .replace(/^\/+/, '');
+    if (!normalized || seen.has(normalized)) return;
+    seen.add(normalized);
+    candidates.push(normalized);
+  };
+
+  if (candidatePath && path.isAbsolute(candidatePath)) {
+    const relativePath = path.relative(targetDir, path.normalize(candidatePath));
+    if (relativePath && !relativePath.startsWith('..') && !path.isAbsolute(relativePath)) {
+      pushCandidate(relativePath.split(path.sep).join('/'));
+    }
+  } else {
+    pushCandidate(candidatePath);
+    let stripped = (candidatePath || '').replace(/\\/g, '/').replace(/^\.\//, '');
+    while (stripped === workspaceName || stripped.startsWith(`${workspaceName}/`)) {
+      stripped = stripped === workspaceName ? '' : stripped.slice(workspaceName.length + 1);
+      pushCandidate(stripped);
+    }
+  }
+
+  pushCandidate(fallbackPath);
+  return candidates;
+}
+
+function normalizeWorkspacePath(targetDir: string, candidatePath: string | undefined, fallbackPath: string): string {
+  const candidates = listWorkspaceRelativeCandidates(targetDir, candidatePath, fallbackPath);
+  if (candidates.length === 0) {
+    return fallbackPath.replace(/\\/g, '/');
+  }
+
+  for (const relativePath of candidates) {
+    const resolvedCandidate = path.resolve(targetDir, relativePath);
+    if (!resolvedCandidate.startsWith(path.resolve(targetDir))) {
+      continue;
+    }
+    return relativePath;
+  }
+
+  return fallbackPath.replace(/\\/g, '/');
+}
+
+function resolveWorkspaceFilePath(targetDir: string, requestedPath: string): {
+  absolutePath: string;
+  workspacePath: string;
+} {
+  const candidates = listWorkspaceRelativeCandidates(targetDir, requestedPath, requestedPath);
+
+  for (const workspacePath of candidates) {
+    const absolutePath = path.resolve(targetDir, workspacePath);
+    if (fs.existsSync(absolutePath)) {
+      return { absolutePath, workspacePath };
+    }
+  }
+
+  const workspacePath = candidates[0] || requestedPath.replace(/\\/g, '/');
+  return {
+    absolutePath: path.resolve(targetDir, workspacePath),
+    workspacePath,
+  };
 }
 
 /**
@@ -209,65 +290,34 @@ async function handleRender(req: http.IncomingMessage, res: http.ServerResponse,
     return;
   }
 
-  const absolutePath = path.resolve(targetDir, body.filePath);
+  const resolvedRequest = resolveWorkspaceFilePath(targetDir, body.filePath);
+  const absolutePath = resolvedRequest.absolutePath;
   if (!fs.existsSync(absolutePath)) {
     res.writeHead(404, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: `File not found: ${body.filePath}`, type: 'FILE_NOT_FOUND' }));
+    res.end(JSON.stringify({ error: `File not found: ${resolvedRequest.workspacePath}`, type: 'FILE_NOT_FOUND' }));
     return;
   }
 
   try {
-    const requestStart = performance.now();
-    const hashStart = performance.now();
-    const fileContents = fs.readFileSync(absolutePath, 'utf-8');
-    const sourceVersion = `sha256:${createHash('sha256').update(fileContents).digest('hex')}`;
-    const hashMs = performance.now() - hashStart;
-    const cacheKey = createRenderCacheKey(absolutePath, sourceVersion);
-    const cached = getRenderCacheEntry(cacheKey);
-
-    if (cached) {
-      const timing: RenderPipelineTiming = {
-        ...cached.timing,
-        hashMs,
-        totalMs: performance.now() - requestStart,
-      };
-      logRenderPipeline(body.filePath, 'hit', timing, sourceVersion);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ graph: cached.graph, sourceVersion }));
-      return;
-    }
-
-    const inFlight = renderInFlight.get(cacheKey);
-    if (inFlight) {
-      const deduped = await inFlight;
-      const timing: RenderPipelineTiming = {
-        ...deduped.timing,
-        hashMs,
-        totalMs: performance.now() - requestStart,
-      };
-      logRenderPipeline(body.filePath, 'dedupe-hit', timing, sourceVersion);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ graph: deduped.graph, sourceVersion: deduped.sourceVersion }));
-      return;
-    }
-
-    const renderPromise = runRenderPipeline({
+    const pipelineResult = await runRenderPipeline({
       absolutePath,
-      sourceVersion,
-      hashMs,
-      requestStart,
+      requestedFilePath: resolvedRequest.workspacePath,
+      targetDir,
+      requestStart: performance.now(),
     });
-    renderInFlight.set(cacheKey, renderPromise);
 
-    try {
-      const pipelineResult = await renderPromise;
-      const cachedEntry = setRenderCacheEntry(cacheKey, pipelineResult);
-      logRenderPipeline(body.filePath, 'miss', cachedEntry.timing, sourceVersion);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ graph: cachedEntry.graph, sourceVersion: cachedEntry.sourceVersion }));
-    } finally {
-      renderInFlight.delete(cacheKey);
-    }
+    logRenderPipeline(
+      resolvedRequest.workspacePath,
+      pipelineResult.cacheState,
+      pipelineResult.timing,
+      pipelineResult.sourceVersion,
+    );
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      graph: pipelineResult.graph,
+      sourceVersion: pipelineResult.sourceVersion,
+      sourceVersions: pipelineResult.sourceVersions,
+    }));
   } catch (error: any) {
     console.error('Render Error:', error);
     res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -281,41 +331,118 @@ async function handleRender(req: http.IncomingMessage, res: http.ServerResponse,
 
 async function runRenderPipeline(input: {
   absolutePath: string;
-  sourceVersion: string;
-  hashMs: number;
+  requestedFilePath: string;
+  targetDir: string;
   requestStart: number;
 }): Promise<RenderPipelineResult> {
   const transpileStart = performance.now();
-  const transpiled = await transpile(input.absolutePath);
+  const transpiled = await transpileWithMetadata(input.absolutePath);
   const transpileMs = performance.now() - transpileStart;
 
+  const hashStart = performance.now();
+  const sourceVersions = Object.fromEntries(
+    transpiled.inputs
+      .map((filePath) => {
+        const normalizedPath = normalizeWorkspacePath(
+          input.targetDir,
+          filePath,
+          input.requestedFilePath,
+        );
+        const content = fs.readFileSync(filePath, 'utf-8');
+        return [normalizedPath, hashSourceContent(content)];
+      })
+      .sort(([left], [right]) => left.localeCompare(right)),
+  );
+  const hashMs = performance.now() - hashStart;
+  const requestedWorkspacePath = normalizeWorkspacePath(
+    input.targetDir,
+    input.absolutePath,
+    input.requestedFilePath,
+  );
+  const sourceVersion = sourceVersions[requestedWorkspacePath];
+
+  if (!sourceVersion) {
+    throw new Error(`Missing source version for ${requestedWorkspacePath}`);
+  }
+
+  const graphVersion = hashSourceContent(
+    Object.entries(sourceVersions)
+      .map(([filePath, version]) => `${filePath}:${version}`)
+      .join('\n'),
+  );
+  const cacheKey = createRenderCacheKey(input.absolutePath, graphVersion);
+  const cached = getRenderCacheEntry(cacheKey);
+
+  if (cached) {
+    return {
+      ...cached,
+      cacheState: 'hit',
+      timing: {
+        ...cached.timing,
+        hashMs,
+        transpileMs,
+        totalMs: performance.now() - input.requestStart,
+      },
+    };
+  }
+
+  const inFlight = renderInFlight.get(cacheKey);
+  if (inFlight) {
+    const deduped = await inFlight;
+    return {
+      ...deduped,
+      cacheState: 'dedupe-hit',
+      timing: {
+        ...deduped.timing,
+        hashMs,
+        transpileMs,
+        totalMs: performance.now() - input.requestStart,
+      },
+    };
+  }
+
   const executeStart = performance.now();
-  const result = await execute(transpiled);
-  const executeMs = performance.now() - executeStart;
+  const renderPromise = (async (): Promise<RenderPipelineResult> => {
+    const result = await execute(transpiled.code);
+    const executeMs = performance.now() - executeStart;
 
-  if (!result.isOk()) {
-    console.error('[HttpServer] Execution failed:', result.error);
-    const error = new Error(result.error.message);
-    (error as Error & { type?: string; details?: unknown }).type = result.error.type || 'EXECUTION_ERROR';
-    (error as Error & { details?: unknown }).details = result.error.originalError;
-    throw error;
+    if (!result.isOk()) {
+      console.error('[HttpServer] Execution failed:', result.error);
+      const error = new Error(result.error.message);
+      (error as Error & { type?: string; details?: unknown }).type = result.error.type || 'EXECUTION_ERROR';
+      (error as Error & { details?: unknown }).details = result.error.originalError;
+      throw error;
+    }
+
+    const graph = result.value as RenderLikeNode;
+    for (const child of graph.children ?? []) {
+      injectSourceMeta(child, {
+        targetDir: input.targetDir,
+        fallbackFilePath: input.requestedFilePath,
+      });
+    }
+
+    return {
+      graph,
+      sourceVersion,
+      sourceVersions,
+      timing: {
+        hashMs,
+        transpileMs,
+        executeMs,
+        totalMs: performance.now() - input.requestStart,
+      },
+      cacheState: 'miss',
+    };
+  })();
+
+  renderInFlight.set(cacheKey, renderPromise);
+
+  try {
+    return setRenderCacheEntry(cacheKey, await renderPromise);
+  } finally {
+    renderInFlight.delete(cacheKey);
   }
-
-  const graph = result.value as RenderLikeNode;
-  for (const child of graph.children ?? []) {
-    injectSourceMeta(child);
-  }
-
-  return {
-    graph,
-    sourceVersion: input.sourceVersion,
-    timing: {
-      hashMs: input.hashMs,
-      transpileMs,
-      executeMs,
-      totalMs: performance.now() - input.requestStart,
-    },
-  };
 }
 
 type RenderLikeNode = {
@@ -324,11 +451,24 @@ type RenderLikeNode = {
   children?: RenderLikeNode[];
 };
 
-function injectSourceMeta(node: RenderLikeNode, mindmapScopeId?: string): void {
+function injectSourceMeta(
+  node: RenderLikeNode,
+  input: {
+    targetDir: string;
+    fallbackFilePath: string;
+  },
+  mindmapScopeId?: string,
+): void {
   if (!node || !node.props) return;
 
   const isMindmap = node.type === 'graph-mindmap';
   const nextScopeId = isMindmap ? (node.props.id as string | undefined) : mindmapScopeId;
+  const jsxSource = node.props.__source as { fileName?: string; lineNumber?: number; columnNumber?: number } | undefined;
+  const sourceFilePath = normalizeWorkspacePath(
+    input.targetDir,
+    jsxSource?.fileName,
+    input.fallbackFilePath,
+  );
 
   const isRenderableNode =
     node.type === 'graph-node' ||
@@ -341,15 +481,24 @@ function injectSourceMeta(node: RenderLikeNode, mindmapScopeId?: string): void {
 
   if (isRenderableNode) {
     const sourceId = (node.props.id as string | undefined) ?? '';
+    const existingSourceMeta = (
+      node.props.sourceMeta && typeof node.props.sourceMeta === 'object'
+        ? node.props.sourceMeta as Record<string, unknown>
+        : {}
+    );
     node.props.sourceMeta = {
+      ...existingSourceMeta,
       sourceId,
+      filePath: sourceFilePath,
       kind: nextScopeId ? 'mindmap' : 'canvas',
       ...(nextScopeId ? { scopeId: nextScopeId } : {}),
     };
   }
 
+  delete node.props.__source;
+
   for (const child of node.children ?? []) {
-    injectSourceMeta(child, nextScopeId);
+    injectSourceMeta(child, input, nextScopeId);
   }
 }
 

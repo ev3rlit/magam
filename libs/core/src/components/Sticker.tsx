@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useInMindMap } from '../context/MindMapContext';
 import { MagamError } from '../errors';
-import { useNodeId } from '../hooks/useNodeId';
+import { useMindMapEmbedMeta, useMindMapScopedId } from '../hooks/useMindMapScopedProps';
 import type { FontFamilyPreset } from '../types/font';
 import type { FromProp } from './Node';
 
@@ -43,7 +43,8 @@ export interface StickerProps {
 }
 
 export const Sticker: React.FC<StickerProps> = (props) => {
-  const scopedId = useNodeId(props.id);
+  const scopedId = useMindMapScopedId(props.id);
+  const embedMeta = useMindMapEmbedMeta(props.from);
   const inMindMap = useInMindMap();
 
   if (!scopedId) {
@@ -58,5 +59,5 @@ export const Sticker: React.FC<StickerProps> = (props) => {
     throw new MagamError("Sticker requires either 'x' and 'y' coordinates or 'anchor' positioning", 'props');
   }
 
-  return React.createElement('graph-sticker', { ...props, id: scopedId }, props.children);
+  return React.createElement('graph-sticker', { ...props, ...embedMeta, id: scopedId }, props.children);
 };

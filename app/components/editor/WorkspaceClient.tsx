@@ -32,6 +32,7 @@ import {
   buildTextDraftPatch,
   canCommitTextEdit,
   mapEditRpcErrorToToast,
+  resolveNodeEditTarget,
 } from './workspaceEditUtils';
 
 type PendingTabCloseRequest = {
@@ -70,6 +71,7 @@ export function WorkspaceClient() {
     setFiles,
     setGraph,
     currentFile,
+    sourceVersions,
     files,
     nodes,
     selectedNodeIds,
@@ -143,13 +145,18 @@ export function WorkspaceClient() {
     }
   }, [setFiles]);
 
+  const dependencyFiles = useMemo(
+    () => Object.keys(sourceVersions).filter((filePath) => filePath !== currentFile),
+    [currentFile, sourceVersions],
+  );
+
   // File sync with reload callback for file list changes
   const {
     updateNode,
     moveNode,
     undoLastEdit,
     redoLastEdit,
-  } = useFileSync(currentFile, handleFileChange, loadFiles);
+  } = useFileSync(currentFile, handleFileChange, loadFiles, dependencyFiles);
 
   // Initial file load
   useEffect(() => {
@@ -227,7 +234,18 @@ export function WorkspaceClient() {
   const handleWashiPresetChange = useCallback(
     async (nodeIds: string[], presetId: string) => {
       await Promise.all(
-        nodeIds.map((nodeId) => updateNode(nodeId, { pattern: { type: 'preset', id: presetId } })),
+        nodeIds.map((nodeId) => {
+          const node = useGraphStore.getState().nodes.find((item) => item.id === nodeId);
+          if (!node) {
+            return Promise.resolve();
+          }
+          const editTarget = resolveNodeEditTarget(node, useGraphStore.getState().currentFile);
+          return updateNode(
+            editTarget.nodeId,
+            { pattern: { type: 'preset', id: presetId } },
+            editTarget.filePath,
+          );
+        }),
       );
     },
     [updateNode],
@@ -255,8 +273,11 @@ export function WorkspaceClient() {
     if (!targetNode) {
       throw new RpcClientError(40401, 'NODE_NOT_FOUND', { nodeId: payload.nodeId });
     }
-    const baseVersion = runtime.sourceVersion;
-    const targetFile = runtime.currentFile;
+    const editTarget = resolveNodeEditTarget(targetNode, runtime.currentFile);
+    const baseVersion = editTarget.filePath
+      ? runtime.sourceVersions[editTarget.filePath] ?? null
+      : null;
+    const targetFile = editTarget.filePath;
     if (!baseVersion || !targetFile) {
       throw new Error('SOURCE_VERSION_NOT_READY');
     }
@@ -275,13 +296,15 @@ export function WorkspaceClient() {
       const previousData = (targetNode.data || {}) as Record<string, unknown>;
       useGraphStore.getState().updateNodeData(payload.nodeId, relativeUpdate.props);
       try {
-        const result = await updateNode(payload.nodeId, relativeUpdate.props);
-        const nextVersion = result.newVersion ?? useGraphStore.getState().sourceVersion ?? baseVersion;
+        const result = await updateNode(editTarget.nodeId, relativeUpdate.props, targetFile);
+        const nextVersion = result.newVersion
+          ?? useGraphStore.getState().sourceVersions[targetFile]
+          ?? baseVersion;
         const commandId = result.commandId ?? crypto.randomUUID();
         pushEditCompletionEvent({
           eventId: crypto.randomUUID(),
           type: 'ATTACH_RELATIVE_COMMITTED',
-          nodeId: payload.nodeId,
+          nodeId: editTarget.nodeId,
           filePath: targetFile,
           commandId,
           baseVersion,
@@ -297,13 +320,15 @@ export function WorkspaceClient() {
       return;
     }
 
-    const result = await moveNode(payload.nodeId, payload.x, payload.y);
-    const nextVersion = result.newVersion ?? useGraphStore.getState().sourceVersion ?? baseVersion;
+    const result = await moveNode(editTarget.nodeId, payload.x, payload.y, targetFile);
+    const nextVersion = result.newVersion
+      ?? useGraphStore.getState().sourceVersions[targetFile]
+      ?? baseVersion;
     const commandId = result.commandId ?? crypto.randomUUID();
     pushEditCompletionEvent({
       eventId: crypto.randomUUID(),
       type: 'ABSOLUTE_MOVE_COMMITTED',
-      nodeId: payload.nodeId,
+      nodeId: editTarget.nodeId,
       filePath: targetFile,
       commandId,
       baseVersion,
@@ -602,7 +627,15 @@ export function WorkspaceClient() {
 
       const runtime = useGraphStore.getState();
       const node = runtime.nodes.find((item) => item.id === pendingTextEditAction.nodeId);
-      if (!node || !runtime.currentFile || !runtime.sourceVersion) {
+      if (!node) {
+        clearTextEditSession();
+        return;
+      }
+      const editTarget = resolveNodeEditTarget(node, runtime.currentFile);
+      const baseVersion = editTarget.filePath
+        ? runtime.sourceVersions[editTarget.filePath] ?? null
+        : null;
+      if (!editTarget.filePath || !baseVersion) {
         clearTextEditSession();
         return;
       }
@@ -621,17 +654,23 @@ export function WorkspaceClient() {
       );
 
       try {
-        const result = await updateNode(node.id, { content: nextContent });
-        const nextVersion = result.newVersion ?? useGraphStore.getState().sourceVersion ?? runtime.sourceVersion;
+        const result = await updateNode(
+          editTarget.nodeId,
+          { content: nextContent },
+          editTarget.filePath,
+        );
+        const nextVersion = result.newVersion
+          ?? useGraphStore.getState().sourceVersions[editTarget.filePath]
+          ?? baseVersion;
         const commandId = result.commandId ?? crypto.randomUUID();
 
         pushEditCompletionEvent({
           eventId: crypto.randomUUID(),
           type: 'TEXT_EDIT_COMMITTED',
-          nodeId: node.id,
-          filePath: runtime.currentFile,
+          nodeId: editTarget.nodeId,
+          filePath: editTarget.filePath,
           commandId,
-          baseVersion: runtime.sourceVersion,
+          baseVersion,
           nextVersion,
           before: { content: beforeContent },
           after: { content: nextContent },
@@ -640,8 +679,8 @@ export function WorkspaceClient() {
         clearTextEditSession();
       } catch (error) {
         editDebugLog('text-edit-commit', error, {
-          nodeId: node.id,
-          filePath: runtime.currentFile,
+          nodeId: editTarget.nodeId,
+          filePath: editTarget.filePath,
           beforeContent,
           nextContent,
         });

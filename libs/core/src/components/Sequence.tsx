@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNodeId } from '../hooks/useNodeId';
+import { useMindMapEmbedMeta, useMindMapScopedId } from '../hooks/useMindMapScopedProps';
 import type { FromProp } from './Node';
 
 export interface SequenceProps {
@@ -39,7 +39,8 @@ export const Sequence: React.FC<SequenceProps> = ({
   messageSpacing = 60,
   ...rest
 }) => {
-  const scopedId = useNodeId(id);
+  const scopedId = useMindMapScopedId(id);
+  const embedMeta = useMindMapEmbedMeta(rest.from as FromProp | undefined);
   return React.createElement('graph-sequence', {
     id: scopedId,
     x,
@@ -50,6 +51,7 @@ export const Sequence: React.FC<SequenceProps> = ({
     align,
     participantSpacing,
     messageSpacing,
+    ...embedMeta,
     ...rest,
   });
 };

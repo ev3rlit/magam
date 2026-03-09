@@ -8,6 +8,7 @@ import { Markdown } from '../components/Markdown';
 import { Edge } from '../components/Edge';
 import { Group } from '../components/Group';
 import { MindMap } from '../components/MindMap';
+import { MindMapEmbed } from '../components/MindMapEmbed';
 import { Node } from '../components/Node';
 import { Sticker } from '../components/Sticker';
 import { WashiTape } from '../components/WashiTape';
@@ -201,6 +202,63 @@ describe('Magam Renderer', () => {
         },
       ],
     });
+  });
+
+  it('should mount reusable child subtrees inside a MindMap with local IDs', async () => {
+    function ServiceBranch({ label }: { label: string }) {
+      return (
+        <>
+          <Node id="root">{label}</Node>
+          <Node id="details" from="root">{label} Details</Node>
+        </>
+      );
+    }
+
+    const element = (
+      <canvas>
+        <MindMap id="system">
+          <Node id="platform">Platform</Node>
+          <MindMapEmbed id="auth" from="platform">
+            <ServiceBranch label="Auth" />
+          </MindMapEmbed>
+          <MindMapEmbed id="billing" from="platform">
+            <ServiceBranch label="Billing" />
+          </MindMapEmbed>
+        </MindMap>
+      </canvas>
+    );
+
+    const result = unwrapOrThrow(await renderToGraph(element));
+    const mindmapChildren = result.children[0].children[0].children;
+
+    expect(mindmapChildren).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'graph-node',
+          props: expect.objectContaining({ id: 'platform' }),
+        }),
+        expect.objectContaining({
+          type: 'graph-node',
+          props: expect.objectContaining({ id: 'auth.root', from: 'platform' }),
+        }),
+        expect.objectContaining({
+          type: 'graph-node',
+          props: expect.objectContaining({ id: 'auth.details', from: 'auth.root' }),
+        }),
+        expect.objectContaining({
+          type: 'graph-node',
+          props: expect.objectContaining({ id: 'billing.root', from: 'platform' }),
+        }),
+        expect.objectContaining({
+          type: 'graph-node',
+          props: expect.objectContaining({ id: 'billing.details', from: 'billing.root' }),
+        }),
+      ]),
+    );
+
+    expect(
+      mindmapChildren.some((child: any) => '__mindmapEmbedMountFrom' in child.props),
+    ).toBe(false);
   });
 
   it('should propagate errors from the render phase', async () => {

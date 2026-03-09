@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { MagamError } from '../errors';
-import { useNodeId } from '../hooks/useNodeId';
+import { useMindMapScopedId } from '../hooks/useMindMapScopedProps';
 import type { FontSizeInput } from '../lib/size';
 import type { FontFamilyPreset } from '../types/font';
 
@@ -31,7 +31,7 @@ export interface TextProps {
 }
 
 export const Text: React.FC<TextProps> = (props) => {
-  const scopedId = useNodeId(props.id);
+  const scopedId = useMindMapScopedId(props.id);
 
   return React.createElement('graph-text', { ...props, id: scopedId }, props.children);
 };

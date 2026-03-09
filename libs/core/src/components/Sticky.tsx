@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useInMindMap } from '../context/MindMapContext';
 import { MagamError } from '../errors';
-import { useNodeId } from '../hooks/useNodeId';
+import { useMindMapEmbedMeta, useMindMapScopedId } from '../hooks/useMindMapScopedProps';
 import type { ObjectSizeInput } from '../lib/size';
 import type { PaperMaterial } from '../material/types';
 import type { FontFamilyPreset } from '../types/font';
@@ -29,7 +29,8 @@ export interface StickyProps {
 }
 
 export const Sticky: React.FC<StickyProps> = (props) => {
-  const scopedId = useNodeId(props.id);
+  const scopedId = useMindMapScopedId(props.id);
+  const embedMeta = useMindMapEmbedMeta(props.from);
   const inMindMap = useInMindMap();
 
   if (!scopedId) {
@@ -45,5 +46,5 @@ export const Sticky: React.FC<StickyProps> = (props) => {
     );
   }
 
-  return React.createElement('graph-sticky', { ...props, id: scopedId }, props.children);
+  return React.createElement('graph-sticky', { ...props, ...embedMeta, id: scopedId }, props.children);
 };

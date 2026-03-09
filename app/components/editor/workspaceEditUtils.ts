@@ -1,8 +1,33 @@
+import type { Node } from 'reactflow';
+
 type RpcLikeError = {
   code?: number;
   message?: string;
   data?: unknown;
 };
+
+type NodeSourceMeta = {
+  sourceId?: unknown;
+  filePath?: unknown;
+};
+
+export function resolveNodeEditTarget(
+  node: Pick<Node, 'id' | 'data'>,
+  currentFile: string | null,
+): { nodeId: string; filePath: string | null } {
+  const sourceMeta = ((node.data || {}) as { sourceMeta?: NodeSourceMeta }).sourceMeta;
+  const sourceId = typeof sourceMeta?.sourceId === 'string' && sourceMeta.sourceId.length > 0
+    ? sourceMeta.sourceId
+    : node.id;
+  const filePath = typeof sourceMeta?.filePath === 'string' && sourceMeta.filePath.length > 0
+    ? sourceMeta.filePath
+    : currentFile;
+
+  return {
+    nodeId: sourceId,
+    filePath,
+  };
+}
 
 export function mapEditRpcErrorToToast(error: unknown): string | null {
   const rpc = error as RpcLikeError;

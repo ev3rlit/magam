@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useInMindMap } from '../context/MindMapContext';
 import { MagamError } from '../errors';
-import { useNodeId } from '../hooks/useNodeId';
+import { useMindMapEmbedMeta, useMindMapScopedId } from '../hooks/useMindMapScopedProps';
 import type { ObjectSizeInput } from '../lib/size';
 import type { FontFamilyPreset } from '../types/font';
 import type { FromProp } from './Node';
@@ -44,7 +44,8 @@ export interface ShapeProps {
 }
 
 export const Shape: React.FC<ShapeProps> = (props) => {
-  const scopedId = useNodeId(props.id);
+  const scopedId = useMindMapScopedId(props.id);
+  const embedMeta = useMindMapEmbedMeta(props.from);
   const inMindMap = useInMindMap();
 
   if (!scopedId) {
@@ -60,5 +61,5 @@ export const Shape: React.FC<ShapeProps> = (props) => {
     throw new MagamError("Shape requires either 'x' and 'y' coordinates or 'anchor' positioning", 'props');
   }
 
-  return React.createElement('graph-shape', { ...props, id: scopedId }, props.children);
+  return React.createElement('graph-shape', { ...props, ...embedMeta, id: scopedId }, props.children);
 };

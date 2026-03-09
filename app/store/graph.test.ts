@@ -21,16 +21,28 @@ const resetSearchState = () => {
 };
 
 describe('graph metadata state', () => {
-  it('clientId는 초기화 후 고정되고 sourceVersion/lastAppliedCommandId를 저장할 수 있다', () => {
+  it('clientId는 초기화 후 고정되고 sourceVersion/sourceVersions를 저장할 수 있다', () => {
     const firstClientId = useGraphStore.getState().clientId;
     expect(typeof firstClientId).toBe('string');
 
-    useGraphStore.getState().setGraph({ nodes: [], edges: [], sourceVersion: 'sha256:v1' });
+    useGraphStore.getState().setCurrentFile('examples/main.tsx');
+    useGraphStore.getState().setGraph({
+      nodes: [],
+      edges: [],
+      sourceVersion: 'sha256:v1',
+      sourceVersions: {
+        'examples/main.tsx': 'sha256:v1',
+        'examples/components/auth.tsx': 'sha256:v2',
+      },
+    });
+    useGraphStore.getState().setSourceVersionForFile('examples/components/auth.tsx', 'sha256:v3');
     useGraphStore.getState().setLastAppliedCommandId('cmd-1');
 
     const state = useGraphStore.getState();
     expect(state.clientId).toBe(firstClientId);
     expect(state.sourceVersion).toBe('sha256:v1');
+    expect(state.sourceVersions['examples/main.tsx']).toBe('sha256:v1');
+    expect(state.sourceVersions['examples/components/auth.tsx']).toBe('sha256:v3');
     expect(state.lastAppliedCommandId).toBe('cmd-1');
   });
 });

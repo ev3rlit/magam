@@ -9,7 +9,15 @@ export async function transpile(entryPoint: string): Promise<string> {
       platform: 'node',
       format: 'cjs',
       write: false,
-      external: ['react', 'magam', '@magam/core'],
+      jsx: 'automatic',
+      jsxDev: true,
+      external: [
+        'react',
+        'react/jsx-runtime',
+        'react/jsx-dev-runtime',
+        'magam',
+        '@magam/core',
+      ],
       // Set outfile to establish path resolution context
       outfile: path.join(path.dirname(entryPoint), 'bundled.js'),
     });

@@ -13,6 +13,8 @@ export interface ResolvedPaths {
   reactPath?: string;
   /** Path to react/jsx-runtime module */
   reactJsxPath?: string;
+  /** Path to react/jsx-dev-runtime module */
+  reactJsxDevPath?: string;
 }
 
 /**
@@ -71,6 +73,7 @@ export function resolveModulePaths(baseDir: string): ResolvedPaths {
     try {
       result.reactPath = require.resolve('react');
       result.reactJsxPath = require.resolve('react/jsx-runtime');
+      result.reactJsxDevPath = require.resolve('react/jsx-dev-runtime');
     } catch {
       console.warn('Could not resolve react paths');
     }
@@ -165,13 +168,14 @@ export function generateRequireShim(paths: ResolvedPaths): string {
     return `module.paths.push('${paths.modulesPath.replace(/\\/g, '/')}');\n`;
   }
 
-  if (paths.localDistPath && paths.reactPath && paths.reactJsxPath) {
+  if (paths.localDistPath && paths.reactPath && paths.reactJsxPath && paths.reactJsxDevPath) {
     // For local development, inject full require shim
     return `
 const _originalRequire = require;
 const _localCore = _originalRequire('${paths.localDistPath.replace(/\\/g, '/')}');
 const _react = _originalRequire('${paths.reactPath.replace(/\\/g, '/')}');
 const _reactJsx = _originalRequire('${paths.reactJsxPath.replace(/\\/g, '/')}');
+const _reactJsxDev = _originalRequire('${paths.reactJsxDevPath.replace(/\\/g, '/')}');
 
 // Polyfill global React just in case it's needed by transpiled code
 global.React = _react;
@@ -180,6 +184,7 @@ require = function(id) {
   if (id === '@magam/core') return _localCore;
   if (id === 'react') return _react;
   if (id === 'react/jsx-runtime') return _reactJsx;
+  if (id === 'react/jsx-dev-runtime') return _reactJsxDev;
   return _originalRequire.apply(this, arguments);
 };
 Object.assign(require, _originalRequire);
@@ -217,10 +222,12 @@ export function setupWorkerModuleResolution(
     // Load modules and create interceptor
     const reactPath = require.resolve('react');
     const reactJsxPath = require.resolve('react/jsx-runtime');
+    const reactJsxDevPath = require.resolve('react/jsx-dev-runtime');
 
     const _localCore = require(localDistPath);
     const _react = require(reactPath);
     const _reactJsx = require(reactJsxPath);
+    const _reactJsxDev = require(reactJsxDevPath);
 
     // Set global React
     (global as Record<string, unknown>)['React'] = _react;
@@ -230,6 +237,7 @@ export function setupWorkerModuleResolution(
       '@magam/core': _localCore,
       react: _react,
       'react/jsx-runtime': _reactJsx,
+      'react/jsx-dev-runtime': _reactJsxDev,
     });
   }
 

@@ -114,7 +114,7 @@ async function mutateWithContract(
     ctx: RpcContext,
     common: { filePath: string; resolvedFilePath: string; baseVersion: string; originId: string; commandId: string },
     mutator: () => Promise<void>,
-): Promise<{ success: boolean; newVersion: string; commandId: string }> {
+): Promise<{ success: boolean; newVersion: string; commandId: string; filePath: string }> {
     return runWithOptionalFileMutex(common.resolvedFilePath, async () => {
         await ensureBaseVersion(common.resolvedFilePath, common.baseVersion);
         await mutator();
@@ -125,7 +125,12 @@ async function mutateWithContract(
             originId: common.originId,
             commandId: common.commandId,
         });
-        return { success: true, newVersion, commandId: common.commandId };
+        return {
+            success: true,
+            newVersion,
+            commandId: common.commandId,
+            filePath: common.filePath,
+        };
     });
 }
 
@@ -144,7 +149,7 @@ async function handleFileUnsubscribe(params: Record<string, unknown>, ctx: RpcCo
 async function handleNodeUpdate(
     params: Record<string, unknown>,
     ctx: RpcContext,
-): Promise<{ success: boolean; newVersion: string; commandId: string }> {
+): Promise<{ success: boolean; newVersion: string; commandId: string; filePath: string }> {
     const common = ensureCommonParams(params);
     const nodeId = ensureString(params.nodeId, 'nodeId');
     const props = params.props as NodeProps | undefined;
@@ -177,7 +182,7 @@ async function handleNodeUpdate(
 async function handleNodeMove(
     params: Record<string, unknown>,
     ctx: RpcContext,
-): Promise<{ success: boolean; newVersion: string; commandId: string }> {
+): Promise<{ success: boolean; newVersion: string; commandId: string; filePath: string }> {
     const common = ensureCommonParams(params);
     const nodeId = ensureString(params.nodeId, 'nodeId');
     const x = ensureNumber(params.x, 'x');
@@ -203,7 +208,7 @@ async function handleNodeMove(
 async function handleNodeCreate(
     params: Record<string, unknown>,
     ctx: RpcContext,
-): Promise<{ success: boolean; newVersion: string; commandId: string }> {
+): Promise<{ success: boolean; newVersion: string; commandId: string; filePath: string }> {
     const common = ensureCommonParams(params);
     const node = params.node as CreateNodeInput | undefined;
 
@@ -234,7 +239,7 @@ async function handleNodeCreate(
 async function handleNodeReparent(
     params: Record<string, unknown>,
     ctx: RpcContext,
-): Promise<{ success: boolean; newVersion: string; commandId: string }> {
+): Promise<{ success: boolean; newVersion: string; commandId: string; filePath: string }> {
     const common = ensureCommonParams(params);
     const nodeId = ensureString(params.nodeId, 'nodeId');
     const newParentId = ensureOptionalString(params.newParentId, 'newParentId');

@@ -49,6 +49,59 @@ describe('parseRenderGraph mindmap roots', () => {
     expect(parsed!.nodes.map((n) => n.id)).toEqual(['map.root-a', 'map.root-b']);
     expect(parsed!.edges).toHaveLength(0);
   });
+
+  it('preserves embedded subtree namespaces within one mindmap', () => {
+    const parsed = parseRenderGraph({
+      graph: {
+        children: [
+          {
+            type: 'graph-mindmap',
+            props: { id: 'map' },
+            children: [
+              { type: 'graph-node', props: { id: 'platform', text: 'Platform' }, children: [] },
+              {
+                type: 'graph-node',
+                props: { id: 'auth.root', from: 'platform', text: 'Auth', __mindmapEmbedScope: 'auth' },
+                children: [],
+              },
+              {
+                type: 'graph-node',
+                props: { id: 'auth.jwt', from: 'auth.root', text: 'JWT', __mindmapEmbedScope: 'auth' },
+                children: [],
+              },
+              {
+                type: 'graph-node',
+                props: { id: 'billing.root', from: 'platform', text: 'Billing', __mindmapEmbedScope: 'billing' },
+                children: [],
+              },
+              {
+                type: 'graph-node',
+                props: { id: 'billing.invoice', from: 'billing.root', text: 'Invoice', __mindmapEmbedScope: 'billing' },
+                children: [],
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(parsed).not.toBeNull();
+    expect(parsed!.nodes.map((node) => node.id)).toEqual([
+      'map.platform',
+      'map.auth.root',
+      'map.auth.jwt',
+      'map.billing.root',
+      'map.billing.invoice',
+    ]);
+    expect(parsed!.edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ source: 'map.platform', target: 'map.auth.root' }),
+        expect.objectContaining({ source: 'map.auth.root', target: 'map.auth.jwt' }),
+        expect.objectContaining({ source: 'map.platform', target: 'map.billing.root' }),
+        expect.objectContaining({ source: 'map.billing.root', target: 'map.billing.invoice' }),
+      ]),
+    );
+  });
 });
 
 describe('parseRenderGraph standardized sizes', () => {

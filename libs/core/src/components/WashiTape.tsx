@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useInMindMap } from '../context/MindMapContext';
 import { MagamError } from '../errors';
-import { useNodeId } from '../hooks/useNodeId';
+import { useMindMapEmbedMeta, useMindMapScopedId } from '../hooks/useMindMapScopedProps';
 import type { PaperMaterial } from '../material/types';
 import type { AtDef, EdgeDef, TextureDef } from './WashiTape.helpers';
 import type { FromProp } from './Node';
@@ -40,7 +40,8 @@ function resolveFallbackAt(props: WashiTapeProps): Record<string, unknown> {
 }
 
 export const WashiTape: React.FC<WashiTapeProps> = (props) => {
-  const scopedId = useNodeId(props.id);
+  const scopedId = useMindMapScopedId(props.id);
+  const embedMeta = useMindMapEmbedMeta(props.from);
   const inMindMap = useInMindMap();
 
   if (!scopedId) {
@@ -61,7 +62,7 @@ export const WashiTape: React.FC<WashiTapeProps> = (props) => {
 
   return React.createElement(
     'graph-washi-tape',
-    { ...props, id: scopedId, at },
+    { ...props, ...embedMeta, id: scopedId, at },
     props.children,
   );
 };

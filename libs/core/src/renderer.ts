@@ -3,6 +3,7 @@ import * as React from 'react';
 import * as HostConfig from './reconciler/hostConfig';
 import { Container } from './reconciler/hostConfig';
 import { applyLayout } from './layout/elk';
+import { resolveMindMapEmbeds } from './reconciler/resolveMindMapEmbeds';
 import { resolveTreeAnchors } from './reconciler/resolveTreeAnchors';
 import { extractCanvasMeta } from './reconciler/extractCanvasMeta';
 
@@ -73,6 +74,6 @@ export function renderToGraph(element: React.ReactNode): ResultAsync<Container, 
     if (status === 'ERROR' || capturedError) {
       return err(new RenderError('Reconciliation failed', capturedError));
     }
-    return ok(resolveTreeAnchors(extractCanvasMeta(container)));
+    return ok(resolveTreeAnchors(resolveMindMapEmbeds(extractCanvasMeta(container))));
   }).andThen(applyLayout);
 }

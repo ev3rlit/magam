@@ -37,6 +37,7 @@ export interface RpcMutationResult {
     success?: boolean;
     newVersion?: string;
     commandId?: string;
+    filePath?: string;
 }
 
 type VersionConflictData = {
@@ -264,14 +265,16 @@ export function createPerFileMutationExecutor(input: CreateMutationExecutorInput
 export function shouldReloadForFileChange(input: {
     changedFile: string;
     currentFile: string | null;
+    watchedFiles: Set<string>;
     incomingOriginId?: unknown;
     incomingCommandId?: unknown;
     clientId: string;
     lastAppliedCommandId?: string;
 }): boolean {
-    if (input.changedFile !== input.currentFile) return false;
+    if (!input.watchedFiles.has(input.changedFile)) return false;
 
     const isSelfEvent =
+        input.changedFile === input.currentFile &&
         input.incomingOriginId === input.clientId &&
         typeof input.incomingCommandId === 'string' &&
         input.incomingCommandId === input.lastAppliedCommandId;
@@ -283,6 +286,7 @@ export function useFileSync(
     filePath: string | null,
     onFileChange: () => void,
     onFilesChange?: () => void,
+    dependencyFiles: string[] = [],
 ) {
     const wsRef = useRef<WebSocket | null>(null);
     const pendingRequestsRef = useRef<Map<number, {
@@ -290,6 +294,10 @@ export function useFileSync(
         reject: (error: Error) => void;
     }>>(new Map());
     const currentFileRef = useRef<string | null>(null);
+    const watchedFilesRef = useRef<Set<string>>(new Set());
+    const watchedFiles = useMemo(() => Array.from(new Set(
+        [filePath, ...dependencyFiles].filter((value): value is string => typeof value === 'string' && value.length > 0),
+    )).sort(), [dependencyFiles, filePath]);
 
     const sendRequest = useCallback(async (method: string, params: Record<string, unknown>): Promise<unknown> => {
         return new Promise((resolve, reject) => {
@@ -337,19 +345,20 @@ export function useFileSync(
 
         if (data.method === 'file.changed') {
             const changedFile = data.params?.filePath as string;
-            if (changedFile === currentFileRef.current) {
+            if (watchedFilesRef.current.has(changedFile)) {
                 const incomingVersion = data.params?.version;
                 const incomingOriginId = data.params?.originId;
                 const incomingCommandId = data.params?.commandId;
-                const { clientId, lastAppliedCommandId, setSourceVersion } = useGraphStore.getState();
+                const { clientId, lastAppliedCommandId, setSourceVersionForFile } = useGraphStore.getState();
 
                 if (typeof incomingVersion === 'string') {
-                    setSourceVersion(incomingVersion);
+                    setSourceVersionForFile(changedFile, incomingVersion);
                 }
 
                 const shouldReload = shouldReloadForFileChange({
                     changedFile,
                     currentFile: currentFileRef.current,
+                    watchedFiles: watchedFilesRef.current,
                     incomingOriginId,
                     incomingCommandId,
                     clientId,
@@ -371,14 +380,17 @@ export function useFileSync(
     }, [onFileChange, onFilesChange]);
 
     useEffect(() => {
-        if (!filePath) return;
+        if (watchedFiles.length === 0) return;
 
         currentFileRef.current = filePath;
+        watchedFilesRef.current = new Set(watchedFiles);
         const ws = new WebSocket(WS_URL);
         wsRef.current = ws;
 
         ws.onopen = () => {
-            sendRequest('file.subscribe', { filePath }).catch((err) => console.error('[FileSync] Subscribe failed:', err));
+            watchedFiles.forEach((watchedFilePath) => {
+                sendRequest('file.subscribe', { filePath: watchedFilePath }).catch((err) => console.error('[FileSync] Subscribe failed:', err));
+            });
         };
 
         ws.onmessage = handleMessage;
@@ -387,16 +399,26 @@ export function useFileSync(
 
         return () => {
             if (ws.readyState === WebSocket.OPEN) {
-                sendRequest('file.unsubscribe', { filePath }).catch(() => { });
+                watchedFiles.forEach((watchedFilePath) => {
+                    sendRequest('file.unsubscribe', { filePath: watchedFilePath }).catch(() => { });
+                });
             }
             ws.close();
             wsRef.current = null;
+            watchedFilesRef.current = new Set();
         };
-    }, [filePath, sendRequest, handleMessage]);
+    }, [filePath, handleMessage, sendRequest, watchedFiles]);
 
     const withCommon = useCallback((params: Record<string, unknown>) => {
-        const { sourceVersion, clientId } = useGraphStore.getState();
-        if (!sourceVersion) {
+        const targetFilePath = typeof params.filePath === 'string' ? params.filePath : filePath;
+        if (!targetFilePath) {
+            throw new Error('FILE_PATH_NOT_READY');
+        }
+
+        const { sourceVersion, sourceVersions, clientId } = useGraphStore.getState();
+        const baseVersion = sourceVersions[targetFilePath]
+            ?? (targetFilePath === filePath ? sourceVersion : null);
+        if (!baseVersion) {
             throw new Error('SOURCE_VERSION_NOT_READY');
         }
         const commandId = crypto.randomUUID();
@@ -404,16 +426,20 @@ export function useFileSync(
 
         return {
             ...params,
-            baseVersion: sourceVersion,
+            baseVersion,
             originId: clientId,
             commandId,
         };
-    }, []);
+    }, [filePath]);
 
     const applyResultVersion = useCallback((result: unknown): RpcMutationResult => {
         const typed = result as RpcMutationResult;
         if (typed?.newVersion) {
-            useGraphStore.getState().setSourceVersion(typed.newVersion);
+            if (typed.filePath) {
+                useGraphStore.getState().setSourceVersionForFile(typed.filePath, typed.newVersion);
+            } else {
+                useGraphStore.getState().setSourceVersion(typed.newVersion);
+            }
         }
         if (typed?.commandId) {
             useGraphStore.getState().setLastAppliedCommandId(typed.commandId);
@@ -463,39 +489,52 @@ export function useFileSync(
         };
     }, [mutationExecutor]);
 
-    const updateNode = useCallback(async (nodeId: string, props: Record<string, unknown>): Promise<RpcMutationResult> => {
-        if (!filePath) return {};
+    const updateNode = useCallback(async (
+        nodeId: string,
+        props: Record<string, unknown>,
+        targetFilePath: string | null = filePath,
+    ): Promise<RpcMutationResult> => {
+        if (!targetFilePath) return {};
         return mutationExecutor.enqueueMutation({
             method: 'node.update',
-            filePath,
-            buildParams: () => ({ filePath, nodeId, props }),
+            filePath: targetFilePath,
+            buildParams: () => ({ filePath: targetFilePath, nodeId, props }),
         });
     }, [filePath, mutationExecutor]);
 
-    const moveNode = useCallback(async (nodeId: string, x: number, y: number): Promise<RpcMutationResult> => {
-        if (!filePath) return {};
+    const moveNode = useCallback(async (
+        nodeId: string,
+        x: number,
+        y: number,
+        targetFilePath: string | null = filePath,
+    ): Promise<RpcMutationResult> => {
+        if (!targetFilePath) return {};
         return mutationExecutor.enqueueMutation({
             method: 'node.move',
-            filePath,
-            buildParams: () => ({ filePath, nodeId, x, y }),
+            filePath: targetFilePath,
+            buildParams: () => ({ filePath: targetFilePath, nodeId, x, y }),
         });
     }, [filePath, mutationExecutor]);
 
-    const createNode = useCallback(async (node: Record<string, unknown>) => {
-        if (!filePath) return;
+    const createNode = useCallback(async (node: Record<string, unknown>, targetFilePath: string | null = filePath) => {
+        if (!targetFilePath) return;
         await mutationExecutor.enqueueMutation({
             method: 'node.create',
-            filePath,
-            buildParams: () => ({ filePath, node }),
+            filePath: targetFilePath,
+            buildParams: () => ({ filePath: targetFilePath, node }),
         });
     }, [filePath, mutationExecutor]);
 
-    const reparentNode = useCallback(async (nodeId: string, newParentId?: string) => {
-        if (!filePath) return;
+    const reparentNode = useCallback(async (
+        nodeId: string,
+        newParentId?: string,
+        targetFilePath: string | null = filePath,
+    ) => {
+        if (!targetFilePath) return;
         await mutationExecutor.enqueueMutation({
             method: 'node.reparent',
-            filePath,
-            buildParams: () => ({ filePath, nodeId, newParentId }),
+            filePath: targetFilePath,
+            buildParams: () => ({ filePath: targetFilePath, nodeId, newParentId }),
         });
     }, [filePath, mutationExecutor]);
 
@@ -511,7 +550,7 @@ export function useFileSync(
             if (typeof x !== 'number' || typeof y !== 'number') {
                 throw new Error('INVALID_EVENT_SNAPSHOT');
             }
-            await moveNode(event.nodeId, x, y);
+            await moveNode(event.nodeId, x, y, event.filePath);
             return;
         }
 
@@ -520,7 +559,7 @@ export function useFileSync(
             if (typeof content !== 'string') {
                 throw new Error('INVALID_EVENT_SNAPSHOT');
             }
-            await updateNode(event.nodeId, { content });
+            await updateNode(event.nodeId, { content }, event.filePath);
             return;
         }
 
@@ -534,7 +573,7 @@ export function useFileSync(
         if (Object.keys(patchProps).length === 0) {
             throw new Error('INVALID_EVENT_SNAPSHOT');
         }
-        await updateNode(event.nodeId, patchProps);
+        await updateNode(event.nodeId, patchProps, event.filePath);
     }, [moveNode, updateNode]);
 
     const undoLastEdit = useCallback(async (): Promise<boolean> => {
