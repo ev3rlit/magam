@@ -141,6 +141,31 @@ describe('runCompactLayout', () => {
         expect(new Set(rightChildXs).size).toBeGreaterThan(1);
     });
 
+    it('keeps the northeast corridor open between up-sector and right-sector root children', () => {
+        const fixture = createProjectStressFixture();
+        const detailed = runCompactLayoutDetailed(fixture.nodes, fixture.edges, fixture.spacing);
+        const rootFrame = detailed.placementFrames.find((frame) => frame.parentId === 'root');
+        const upChildIds = Array.from(rootFrame?.directions.entries() ?? [])
+            .filter(([, direction]) => direction === 'up')
+            .map(([childId]) => childId);
+        const rightChildIds = Array.from(rootFrame?.directions.entries() ?? [])
+            .filter(([, direction]) => direction === 'right')
+            .map(([childId]) => childId);
+
+        expect(upChildIds.length).toBeGreaterThan(0);
+        expect(rightChildIds.length).toBeGreaterThan(0);
+
+        const rightmostUpEdge = Math.max(...upChildIds.map((childId) => {
+            const rect = getNodeRect(fixture.nodes, detailed.positions, childId);
+            return rect.x + rect.width;
+        }));
+        const leftmostRightEdge = Math.min(...rightChildIds.map((childId) =>
+            getNodeRect(fixture.nodes, detailed.positions, childId).x,
+        ));
+
+        expect(leftmostRightEdge - rightmostUpEdge).toBeLessThanOrEqual(fixture.spacing);
+    });
+
     it('compresses deep and shallow sibling gaps using contour-aware packing', () => {
         const fixture = createContourCompressionFixture();
         const compact = runCompactLayout(fixture.nodes, fixture.edges, fixture.spacing);

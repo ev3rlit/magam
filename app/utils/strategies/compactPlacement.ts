@@ -900,24 +900,56 @@ function placeHorizontalSector(
         return [];
     }
 
-    const totalWidth = entries.reduce((sum, entry) => sum + entry.layout.bounds.width, 0)
+    const totalWidth = entries.reduce((sum, entry) => sum + entry.layout.rootWidth, 0)
         + (entries.length - 1) * options.crossGap;
     let cursor = (options.parentWidth / 2) - (totalWidth / 2);
+    const placedRects: LayoutRect[] = [];
 
-    return entries.map((entry) => {
-        const x = cursor - entry.layout.bounds.minX;
+    const placements = entries.map((entry) => {
+        const baseX = cursor + getHorizontalSectorRootBias(entry.layout, options.crossGap);
+        const candidateRects = shiftRects(entry.layout.rects, baseX, 0);
+        const deltaX = placedRects.length === 0
+            ? 0
+            : resolveRightwardClearanceDelta(candidateRects, placedRects, options.crossGap);
+        const x = baseX + deltaX;
         const y = direction === 'down'
             ? options.parentHeight + options.outwardGap
             : -options.outwardGap - entry.layout.rootHeight;
-        cursor += entry.layout.bounds.width + options.crossGap;
-        return {
+        cursor += entry.layout.rootWidth + options.crossGap;
+        const placement = {
             layout: entry.layout,
             x,
             y,
             direction,
             order: entry.order,
         };
+        placedRects.push(...shiftRects(entry.layout.rects, x, 0));
+        return placement;
     });
+
+    const rootBounds = getPlacedRootBounds(placements);
+    if (!rootBounds) {
+        return placements;
+    }
+
+    const rootShiftX = (options.parentWidth / 2) - ((rootBounds.minX + rootBounds.maxX) / 2);
+    if (rootShiftX === 0) {
+        return placements;
+    }
+
+    return placements.map((placement) => ({
+        ...placement,
+        x: placement.x + rootShiftX,
+    }));
+}
+
+function getHorizontalSectorRootBias(layout: SubtreeLayout, gap: number): number {
+    const leftExtent = Math.max(0, -layout.bounds.minX);
+    const rightExtent = Math.max(0, layout.bounds.maxX - layout.rootWidth);
+    const skew = leftExtent - rightExtent;
+    const maxBias = Math.max(gap, Math.round(layout.rootWidth * 0.35));
+
+    return Math.max(-maxBias, Math.min(maxBias, Math.round(skew * 0.3)));
 }
 
 function mirrorSubtreeLayout(
