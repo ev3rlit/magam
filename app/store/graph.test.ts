@@ -82,6 +82,70 @@ describe('font hierarchy state', () => {
   });
 });
 
+describe('mind map layout state', () => {
+  it('setGraph defaults layoutType to compact when no explicit layout metadata is provided', () => {
+    useGraphStore.getState().setGraph({
+      nodes: [],
+      edges: [],
+    });
+
+    expect(useGraphStore.getState().layoutType).toBe('compact');
+  });
+
+  it('setGraph infers compact layoutType and defaults omitted group spacing to 50', () => {
+    useGraphStore.getState().setGraph({
+      nodes: [],
+      edges: [],
+      needsAutoLayout: true,
+      mindMapGroups: [
+        {
+          id: 'map',
+          layoutType: 'compact',
+          basePosition: { x: 0, y: 0 },
+        },
+      ],
+    });
+
+    const state = useGraphStore.getState();
+    expect(state.needsAutoLayout).toBe(true);
+    expect(state.layoutType).toBe('compact');
+    expect(state.mindMapGroups).toEqual([
+      {
+        id: 'map',
+        layoutType: 'compact',
+        basePosition: { x: 0, y: 0 },
+        spacing: 50,
+      },
+    ]);
+  });
+
+  it('setGraph preserves explicit compact group spacing overrides', () => {
+    useGraphStore.getState().setGraph({
+      nodes: [],
+      edges: [],
+      needsAutoLayout: true,
+      layoutType: 'compact',
+      mindMapGroups: [
+        {
+          id: 'map',
+          layoutType: 'compact',
+          basePosition: { x: 10, y: 20 },
+          spacing: 72,
+        },
+      ],
+    });
+
+    expect(useGraphStore.getState().mindMapGroups).toEqual([
+      {
+        id: 'map',
+        layoutType: 'compact',
+        basePosition: { x: 10, y: 20 },
+        spacing: 72,
+      },
+    ]);
+  });
+});
+
 describe('search state', () => {
   beforeEach(() => {
     resetSearchState();

@@ -27,6 +27,8 @@ import {
   type FromProp,
 } from '@/app/mindmapParser';
 
+const DEFAULT_MINDMAP_SPACING = 50;
+
 export interface RenderNode {
   type: string;
   props: {
@@ -286,7 +288,7 @@ export function parseRenderGraph(data: RenderGraphResponse): ParsedRenderGraph |
             | 'treemap-pack'
             | 'quadrant-pack'
             | 'voronoi-pack') ||
-          'tree';
+          'compact';
         const baseX = child.props.x ?? 0;
         const baseY = child.props.y ?? 0;
 
@@ -294,7 +296,7 @@ export function parseRenderGraph(data: RenderGraphResponse): ParsedRenderGraph |
           id: mmId,
           layoutType,
           basePosition: { x: baseX, y: baseY },
-          spacing: child.props.spacing,
+          spacing: child.props.spacing ?? DEFAULT_MINDMAP_SPACING,
           density: child.props.density,
           anchor: child.props.anchor,
           anchorPosition: child.props.position,
