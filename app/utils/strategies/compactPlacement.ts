@@ -68,14 +68,27 @@ interface SectorEntry {
     order: number;
 }
 
+// Fallback spacing used when the caller omits spacing or passes an invalid value.
+// This is the broadest density knob because every derived gap ultimately starts here.
 const DEFAULT_SPACING = 60;
+// Hard floor for horizontal sibling clearance so dense packing does not collapse into overlap.
 const MIN_HORIZONTAL_GAP = 28;
+// Hard floor for vertical sibling clearance. Kept lower than horizontal to preserve compact stacking.
 const MIN_VERTICAL_GAP = 14;
+// Main horizontal density multiplier for child subtree composition.
+// Raising this spreads siblings wider; lowering it makes the layout more aggressive.
 const CHILD_HORIZONTAL_GAP_RATIO = 0.9;
+// Vertical density multiplier for child subtree composition.
+// This primarily changes how tightly sibling rows stack before fan-out takes over.
 const CHILD_VERTICAL_GAP_RATIO = 0.28;
+// Outward gap multiplier between separate top-level roots in a multi-root forest.
 const ROOT_CLUSTER_GAP_RATIO = 0.3;
+// Fan-out strength for normal parent -> child composition.
+// Larger values produce more triangular spread; smaller values keep branches flatter and tighter.
 const FANOUT_RATIO = 0.4;
+// Stronger fan-out for the top-level root cluster so independent roots do not visually merge.
 const ROOT_CLUSTER_FANOUT_RATIO = 0.95;
+// Synthetic frame id used when recording placement metadata for the forest-level root cluster.
 const ROOT_CLUSTER_FRAME_PARENT_ID = '__root_cluster__';
 
 export function runCompactLayout(
