@@ -424,6 +424,10 @@ export function parseRenderGraph(data: RenderGraphResponse): ParsedRenderGraph |
         const markdownSize = markdownChild?.props?.size as
           | MarkdownSizeInput
           | undefined;
+        const resolvedMarkdownSize =
+          markdownChild && markdownSize === undefined
+            ? { token: 'auto' as const }
+            : markdownSize;
 
         const hasMarkdown = rendererChildren.some(
           (c: RenderNode) =>
@@ -461,7 +465,7 @@ export function parseRenderGraph(data: RenderGraphResponse): ParsedRenderGraph |
             fontFamily: nodeFontFamily,
             children: parsedChildren,
             bubble: nodeBubble,
-            size: markdownSize,
+            size: resolvedMarkdownSize,
           },
         });
 
