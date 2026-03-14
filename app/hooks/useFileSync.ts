@@ -15,7 +15,12 @@ export const MAX_VERSION_CONFLICT_RETRY = 1;
 export const VERSION_CONFLICT_METRIC_WINDOW_MS = 10 * 60 * 1000;
 export const VERSION_CONFLICT_RATE_THRESHOLD = 0.02;
 
-type MutationMethod = 'node.update' | 'node.move' | 'node.create' | 'node.reparent';
+type MutationMethod = 'node.update' | 'node.move' | 'node.create' | 'node.delete' | 'node.reparent';
+type UpdateNodeCommandType =
+    | 'node.move.relative'
+    | 'node.content.update'
+    | 'node.style.update'
+    | 'node.rename';
 
 interface JsonRpcRequest {
     jsonrpc: '2.0';
@@ -38,6 +43,23 @@ export interface RpcMutationResult {
     newVersion?: string;
     commandId?: string;
     filePath?: string;
+}
+
+export interface UpdateNodeMutationOptions {
+    commandType?: UpdateNodeCommandType;
+}
+
+export interface EditEventMutators {
+    moveNode: (nodeId: string, x: number, y: number, targetFilePath?: string | null) => Promise<unknown>;
+    updateNode: (
+        nodeId: string,
+        props: Record<string, unknown>,
+        targetFilePath?: string | null,
+        options?: UpdateNodeMutationOptions,
+    ) => Promise<unknown>;
+    createNode: (node: Record<string, unknown>, targetFilePath?: string | null) => Promise<unknown>;
+    deleteNode: (nodeId: string, targetFilePath?: string | null) => Promise<unknown>;
+    reparentNode: (nodeId: string, newParentId?: string | null, targetFilePath?: string | null) => Promise<unknown>;
 }
 
 type VersionConflictData = {
@@ -260,6 +282,104 @@ export function createPerFileMutationExecutor(input: CreateMutationExecutorInput
         getMetricsSnapshot: () => metrics.getSnapshot(),
         resetMetrics: () => metrics.reset(),
     };
+}
+
+export function shouldReloadAfterHistoryReplay(event: EditCompletionEvent): boolean {
+    return (
+        event.type === 'NODE_RENAMED'
+        || event.type === 'NODE_CREATED'
+        || event.type === 'NODE_REPARENTED'
+    );
+}
+
+export async function applyEditCompletionSnapshot(
+    event: EditCompletionEvent,
+    direction: 'before' | 'after',
+    mutators: EditEventMutators,
+): Promise<void> {
+    const snapshot = direction === 'before' ? event.before : event.after;
+
+    if (event.type === 'ABSOLUTE_MOVE_COMMITTED') {
+        const x = snapshot.x;
+        const y = snapshot.y;
+        if (typeof x !== 'number' || typeof y !== 'number') {
+            throw new Error('INVALID_EVENT_SNAPSHOT');
+        }
+        await mutators.moveNode(event.nodeId, x, y, event.filePath);
+        return;
+    }
+
+    if (event.type === 'TEXT_EDIT_COMMITTED' || event.type === 'CONTENT_UPDATED') {
+        const content = snapshot.content;
+        if (typeof content !== 'string') {
+            throw new Error('INVALID_EVENT_SNAPSHOT');
+        }
+        await mutators.updateNode(event.nodeId, { content }, event.filePath, {
+            commandType: 'node.content.update',
+        });
+        return;
+    }
+
+    if (event.type === 'STYLE_UPDATED') {
+        await mutators.updateNode(event.nodeId, snapshot, event.filePath, {
+            commandType: 'node.style.update',
+        });
+        return;
+    }
+
+    if (event.type === 'NODE_RENAMED') {
+        const beforeId = event.before.id;
+        const afterId = event.after.id;
+        if (typeof beforeId !== 'string' || typeof afterId !== 'string') {
+            throw new Error('INVALID_EVENT_SNAPSHOT');
+        }
+        const targetNodeId = direction === 'before' ? afterId : beforeId;
+        const nextId = direction === 'before' ? beforeId : afterId;
+        await mutators.updateNode(targetNodeId, { id: nextId }, event.filePath, {
+            commandType: 'node.rename',
+        });
+        return;
+    }
+
+    if (event.type === 'NODE_CREATED') {
+        const createInput = event.after.create;
+        if (!createInput || typeof createInput !== 'object') {
+            throw new Error('INVALID_EVENT_SNAPSHOT');
+        }
+        if (direction === 'before') {
+            const createdId = (createInput as { id?: unknown }).id;
+            if (typeof createdId !== 'string') {
+                throw new Error('INVALID_EVENT_SNAPSHOT');
+            }
+            await mutators.deleteNode(createdId, event.filePath);
+            return;
+        }
+        await mutators.createNode(createInput as Record<string, unknown>, event.filePath);
+        return;
+    }
+
+    if (event.type === 'NODE_REPARENTED') {
+        const parentId = 'parentId' in snapshot ? snapshot.parentId : undefined;
+        if (parentId !== null && parentId !== undefined && typeof parentId !== 'string') {
+            throw new Error('INVALID_EVENT_SNAPSHOT');
+        }
+        await mutators.reparentNode(event.nodeId, parentId ?? undefined, event.filePath);
+        return;
+    }
+
+    const patchProps: Record<string, unknown> = {};
+    if ('gap' in snapshot && typeof snapshot.gap === 'number') {
+        patchProps.gap = snapshot.gap;
+    }
+    if ('at' in snapshot && snapshot.at && typeof snapshot.at === 'object') {
+        patchProps.at = snapshot.at;
+    }
+    if (Object.keys(patchProps).length === 0) {
+        throw new Error('INVALID_EVENT_SNAPSHOT');
+    }
+    await mutators.updateNode(event.nodeId, patchProps, event.filePath, {
+        commandType: 'node.move.relative',
+    });
 }
 
 export function shouldReloadForFileChange(input: {
@@ -493,12 +613,18 @@ export function useFileSync(
         nodeId: string,
         props: Record<string, unknown>,
         targetFilePath: string | null = filePath,
+        options?: UpdateNodeMutationOptions,
     ): Promise<RpcMutationResult> => {
         if (!targetFilePath) return {};
         return mutationExecutor.enqueueMutation({
             method: 'node.update',
             filePath: targetFilePath,
-            buildParams: () => ({ filePath: targetFilePath, nodeId, props }),
+            buildParams: () => ({
+                filePath: targetFilePath,
+                nodeId,
+                props,
+                ...(options?.commandType ? { commandType: options.commandType } : {}),
+            }),
         });
     }, [filePath, mutationExecutor]);
 
@@ -516,25 +642,44 @@ export function useFileSync(
         });
     }, [filePath, mutationExecutor]);
 
-    const createNode = useCallback(async (node: Record<string, unknown>, targetFilePath: string | null = filePath) => {
+    const createNode = useCallback(async (
+        node: Record<string, unknown>,
+        targetFilePath: string | null = filePath,
+    ): Promise<RpcMutationResult> => {
         if (!targetFilePath) return;
-        await mutationExecutor.enqueueMutation({
+        return mutationExecutor.enqueueMutation({
             method: 'node.create',
             filePath: targetFilePath,
             buildParams: () => ({ filePath: targetFilePath, node }),
         });
     }, [filePath, mutationExecutor]);
 
+    const deleteNode = useCallback(async (
+        nodeId: string,
+        targetFilePath: string | null = filePath,
+    ): Promise<RpcMutationResult> => {
+        if (!targetFilePath) return {};
+        return mutationExecutor.enqueueMutation({
+            method: 'node.delete',
+            filePath: targetFilePath,
+            buildParams: () => ({ filePath: targetFilePath, nodeId }),
+        });
+    }, [filePath, mutationExecutor]);
+
     const reparentNode = useCallback(async (
         nodeId: string,
-        newParentId?: string,
+        newParentId?: string | null,
         targetFilePath: string | null = filePath,
-    ) => {
-        if (!targetFilePath) return;
-        await mutationExecutor.enqueueMutation({
+    ): Promise<RpcMutationResult> => {
+        if (!targetFilePath) return {};
+        return mutationExecutor.enqueueMutation({
             method: 'node.reparent',
             filePath: targetFilePath,
-            buildParams: () => ({ filePath: targetFilePath, nodeId, newParentId }),
+            buildParams: () => ({
+                filePath: targetFilePath,
+                nodeId,
+                ...(newParentId ? { newParentId } : {}),
+            }),
         });
     }, [filePath, mutationExecutor]);
 
@@ -542,39 +687,14 @@ export function useFileSync(
         event: EditCompletionEvent,
         direction: 'before' | 'after',
     ): Promise<void> => {
-        const snapshot = direction === 'before' ? event.before : event.after;
-
-        if (event.type === 'ABSOLUTE_MOVE_COMMITTED') {
-            const x = snapshot.x;
-            const y = snapshot.y;
-            if (typeof x !== 'number' || typeof y !== 'number') {
-                throw new Error('INVALID_EVENT_SNAPSHOT');
-            }
-            await moveNode(event.nodeId, x, y, event.filePath);
-            return;
-        }
-
-        if (event.type === 'TEXT_EDIT_COMMITTED') {
-            const content = snapshot.content;
-            if (typeof content !== 'string') {
-                throw new Error('INVALID_EVENT_SNAPSHOT');
-            }
-            await updateNode(event.nodeId, { content }, event.filePath);
-            return;
-        }
-
-        const patchProps: Record<string, unknown> = {};
-        if ('gap' in snapshot && typeof snapshot.gap === 'number') {
-            patchProps.gap = snapshot.gap;
-        }
-        if ('at' in snapshot && snapshot.at && typeof snapshot.at === 'object') {
-            patchProps.at = snapshot.at;
-        }
-        if (Object.keys(patchProps).length === 0) {
-            throw new Error('INVALID_EVENT_SNAPSHOT');
-        }
-        await updateNode(event.nodeId, patchProps, event.filePath);
-    }, [moveNode, updateNode]);
+        await applyEditCompletionSnapshot(event, direction, {
+            moveNode,
+            updateNode,
+            createNode,
+            deleteNode,
+            reparentNode,
+        });
+    }, [createNode, deleteNode, moveNode, reparentNode, updateNode]);
 
     const undoLastEdit = useCallback(async (): Promise<boolean> => {
         const state = useGraphStore.getState();
@@ -584,8 +704,11 @@ export function useFileSync(
         }
         await applyEventSnapshot(event, 'before');
         useGraphStore.getState().commitUndoEventSuccess(event.eventId);
+        if (shouldReloadAfterHistoryReplay(event)) {
+            onFileChange();
+        }
         return true;
-    }, [applyEventSnapshot]);
+    }, [applyEventSnapshot, onFileChange]);
 
     const redoLastEdit = useCallback(async (): Promise<boolean> => {
         const state = useGraphStore.getState();
@@ -595,8 +718,11 @@ export function useFileSync(
         }
         await applyEventSnapshot(event, 'after');
         useGraphStore.getState().commitRedoEventSuccess(event.eventId);
+        if (shouldReloadAfterHistoryReplay(event)) {
+            onFileChange();
+        }
         return true;
-    }, [applyEventSnapshot]);
+    }, [applyEventSnapshot, onFileChange]);
 
-    return { updateNode, moveNode, createNode, reparentNode, undoLastEdit, redoLastEdit };
+    return { updateNode, moveNode, createNode, deleteNode, reparentNode, undoLastEdit, redoLastEdit };
 }
