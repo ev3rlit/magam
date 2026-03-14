@@ -7,9 +7,11 @@ import {
 } from './GraphCanvas.relayout';
 import {
   resolveEditHistoryShortcut,
+  resolveMindMapDragFeedback,
   resolveMindMapReparentIntent,
   shouldCommitDragStop,
   shouldHandlePaneCreate,
+  shouldSuppressDragStopErrorToast,
 } from './GraphCanvas.drag';
 
 describe('GraphCanvas auto relayout policy', () => {
@@ -225,5 +227,50 @@ describe('GraphCanvas mindmap reparent intent', () => {
       kind: 'rejected',
       reason: 'NO_VALID_PARENT',
     });
+  });
+
+  it('drag feedback는 reparent 후보가 있으면 ready 상태를 준다', () => {
+    expect(resolveMindMapDragFeedback({
+      draggedNode: {
+        ...baseNode,
+        id: 'child',
+        position: { x: 0, y: 0 },
+        data: { groupId: 'map', editMeta: { family: 'mindmap-member' } },
+      },
+      allNodes: [
+        {
+          ...baseNode,
+          id: 'child',
+          position: { x: 0, y: 0 },
+          data: { groupId: 'map', editMeta: { family: 'mindmap-member' } },
+        },
+        {
+          ...baseNode,
+          id: 'parent',
+          position: { x: 200, y: 100 },
+          data: { groupId: 'map', editMeta: { family: 'mindmap-member' } },
+        },
+      ],
+      dropPosition: { x: 210, y: 110 },
+    })).toEqual({
+      kind: 'reparent-ready',
+      newParentNodeId: 'parent',
+    });
+  });
+});
+
+describe('GraphCanvas drag error toast suppression', () => {
+  it('NO_VALID_PARENT 는 drag-stop toast를 띄우지 않는다', () => {
+    expect(shouldSuppressDragStopErrorToast({
+      code: 42201,
+      message: 'EDIT_NOT_ALLOWED',
+      data: { reason: 'NO_VALID_PARENT' },
+    })).toBe(true);
+  });
+
+  it('일반 에러는 suppress 하지 않는다', () => {
+    expect(shouldSuppressDragStopErrorToast({
+      message: 'Request timeout: node.move',
+    })).toBe(false);
   });
 });

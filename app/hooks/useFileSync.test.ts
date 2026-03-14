@@ -5,6 +5,9 @@ import {
   createVersionConflictMetricsTracker,
   MAX_VERSION_CONFLICT_RETRY,
   RpcClientError,
+  buildWatchedFilesSignature,
+  normalizeWatchedFiles,
+  resolveFileSyncWsUrl,
   shouldReloadAfterHistoryReplay,
   shouldReloadForFileChange,
   VERSION_CONFLICT_METRIC_WINDOW_MS,
@@ -15,6 +18,51 @@ async function waitForAsyncTurn(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
+describe('useFileSync ws url resolution', () => {
+  it('브라우저 location을 기준으로 ws url을 만든다', () => {
+    expect(resolveFileSyncWsUrl({
+      port: '3012',
+      location: {
+        protocol: 'http:',
+        hostname: '127.0.0.1',
+      },
+    })).toBe('ws://127.0.0.1:3012');
+  });
+
+  it('https 환경이면 wss를 사용한다', () => {
+    expect(resolveFileSyncWsUrl({
+      port: '4444',
+      location: {
+        protocol: 'https:',
+        hostname: 'dev.local',
+      },
+    })).toBe('wss://dev.local:4444');
+  });
+});
+
+describe('useFileSync watched files normalization', () => {
+  it('현재 파일과 의존 파일을 unique + stable sort로 정규화한다', () => {
+    expect(normalizeWatchedFiles('examples/a.tsx', [
+      'examples/b.tsx',
+      'examples/a.tsx',
+      'examples/b.tsx',
+    ])).toEqual([
+      'examples/a.tsx',
+      'examples/b.tsx',
+    ]);
+  });
+
+  it('watch signature는 같은 파일 집합이면 동일 문자열을 만든다', () => {
+    expect(buildWatchedFilesSignature([
+      'examples/a.tsx',
+      'examples/b.tsx',
+    ])).toBe(buildWatchedFilesSignature([
+      'examples/a.tsx',
+      'examples/b.tsx',
+    ]));
+  });
+});
+
 describe('useFileSync notification guard', () => {
   it('self-origin + same command 는 무시한다', () => {
     const shouldReload = shouldReloadForFileChange({
@@ -24,6 +72,7 @@ describe('useFileSync notification guard', () => {
       incomingOriginId: 'client-1',
       incomingCommandId: 'cmd-1',
       clientId: 'client-1',
+      recentOwnCommandIds: new Set(['cmd-1']),
       lastAppliedCommandId: 'cmd-1',
     });
 
@@ -38,6 +87,7 @@ describe('useFileSync notification guard', () => {
       incomingOriginId: 'external',
       incomingCommandId: 'cmd-x',
       clientId: 'client-1',
+      recentOwnCommandIds: new Set(['cmd-1']),
       lastAppliedCommandId: 'cmd-1',
     });
 
@@ -52,6 +102,7 @@ describe('useFileSync notification guard', () => {
       incomingOriginId: 'external',
       incomingCommandId: 'cmd-x',
       clientId: 'client-1',
+      recentOwnCommandIds: new Set(['cmd-1']),
       lastAppliedCommandId: 'cmd-1',
     });
 
@@ -66,10 +117,26 @@ describe('useFileSync notification guard', () => {
       incomingOriginId: 'client-1',
       incomingCommandId: 'cmd-1',
       clientId: 'client-1',
+      recentOwnCommandIds: new Set(),
       lastAppliedCommandId: 'cmd-1',
     });
 
     expect(shouldReload).toBe(true);
+  });
+
+  it('self-origin dependency file change도 own command면 리렌더하지 않는다', () => {
+    const shouldReload = shouldReloadForFileChange({
+      changedFile: 'components/auth.tsx',
+      currentFile: 'examples/a.tsx',
+      watchedFiles: new Set(['examples/a.tsx', 'components/auth.tsx']),
+      incomingOriginId: 'client-1',
+      incomingCommandId: 'cmd-2',
+      clientId: 'client-1',
+      recentOwnCommandIds: new Set(['cmd-2']),
+      lastAppliedCommandId: 'cmd-1',
+    });
+
+    expect(shouldReload).toBe(false);
   });
 });
 

@@ -55,8 +55,10 @@ import { getWashiPresetPatternCatalog, resolvePresetPatternId } from '@/utils/wa
 import type { MaterialPresetId } from '@/types/washiTape';
 import {
   resolveEditHistoryShortcut,
+  resolveMindMapDragFeedback,
   shouldCommitDragStop,
   shouldHandlePaneCreate,
+  shouldSuppressDragStopErrorToast,
   type GraphCanvasCreateMode,
 } from './GraphCanvas.drag';
 import type { CreatePayload } from '@/features/editing/commands';
@@ -83,6 +85,30 @@ type GraphCanvasProps = {
     frameScope?: string;
   }) => Promise<void> | void;
 };
+
+type DragOriginState = {
+  x: number;
+  y: number;
+  generation: number;
+};
+
+type DragFeedbackState =
+  | { kind: 'reparent-ready'; parentLabel: string }
+  | { kind: 'reparent-hint' }
+  | null;
+
+function getCanvasNodeLabel(node: Pick<FlowNode, 'id' | 'data'> | null | undefined): string {
+  if (!node) {
+    return '새 부모';
+  }
+
+  const data = (node.data || {}) as Record<string, unknown>;
+  const label = typeof data.label === 'string' && data.label.trim().length > 0
+    ? data.label.trim()
+    : node.id;
+
+  return label.length > 24 ? `${label.slice(0, 24)}...` : label;
+}
 
 function GraphCanvasContent({
   onNodeDragStop,
@@ -157,6 +183,7 @@ function GraphCanvasContent({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [interactionMode, setInteractionMode] = useState<InteractionMode>('pointer');
   const [createMode, setCreateMode] = useState<GraphCanvasCreateMode>(null);
+  const [dragFeedback, setDragFeedback] = useState<DragFeedbackState>(null);
   const hasLayouted = useRef(false);
   const lastLayoutedGraphId = useRef<string | null>(null);
   const lastSizeSignaturesRef = useRef<Map<string, string>>(new Map());
@@ -168,7 +195,8 @@ function GraphCanvasContent({
     past: [],
     future: [],
   });
-  const dragOriginPositions = useRef<Map<string, { x: number; y: number }>>(new Map());
+  const dragOriginPositions = useRef<Map<string, DragOriginState>>(new Map());
+  const dragGenerationRef = useRef<Map<string, number>>(new Map());
   const washiPresets = useMemo(() => getWashiPresetPatternCatalog(), []);
   const selectedWashiNodeIds = useMemo(
     () => nodes
@@ -553,9 +581,47 @@ function GraphCanvasContent({
 
   const onHandleNodeDragStart = useCallback(
     (_event: React.MouseEvent, node: FlowNode) => {
-      dragOriginPositions.current.set(node.id, { x: node.position.x, y: node.position.y });
+      const nextGeneration = (dragGenerationRef.current.get(node.id) ?? 0) + 1;
+      dragGenerationRef.current.set(node.id, nextGeneration);
+      dragOriginPositions.current.set(node.id, {
+        x: node.position.x,
+        y: node.position.y,
+        generation: nextGeneration,
+      });
     },
     [],
+  );
+
+  const updateDragFeedback = useCallback((node: FlowNode) => {
+    const allNodes = getNodes();
+    const feedback = resolveMindMapDragFeedback({
+      draggedNode: node as never,
+      allNodes: allNodes as never,
+      dropPosition: node.position,
+    });
+
+    if (!feedback) {
+      setDragFeedback(null);
+      return;
+    }
+
+    if (feedback.kind === 'reparent-hint') {
+      setDragFeedback({ kind: 'reparent-hint' });
+      return;
+    }
+
+    const parentNode = allNodes.find((item) => item.id === feedback.newParentNodeId);
+    setDragFeedback({
+      kind: 'reparent-ready',
+      parentLabel: getCanvasNodeLabel(parentNode),
+    });
+  }, [getNodes]);
+
+  const onHandleNodeDrag = useCallback(
+    (_event: React.MouseEvent, node: FlowNode) => {
+      updateDragFeedback(node);
+    },
+    [updateDragFeedback],
   );
 
   const onHandleNodeDragStop = useCallback(
@@ -563,12 +629,22 @@ function GraphCanvasContent({
       if (!onNodeDragStop) return;
 
       const original = dragOriginPositions.current.get(node.id);
+      const generation = original?.generation ?? dragGenerationRef.current.get(node.id) ?? 0;
+      const isLatestDragAttempt = () => (dragGenerationRef.current.get(node.id) ?? 0) === generation;
+
       if (!shouldCommitDragStop({
-        origin: original,
+        origin: original ? { x: original.x, y: original.y } : undefined,
         current: { x: node.position.x, y: node.position.y },
       })) {
-        dragOriginPositions.current.delete(node.id);
+        if (isLatestDragAttempt()) {
+          dragOriginPositions.current.delete(node.id);
+          setDragFeedback(null);
+        }
         return;
+      }
+
+      if (isLatestDragAttempt()) {
+        setDragFeedback(null);
       }
 
       try {
@@ -579,6 +655,10 @@ function GraphCanvasContent({
           originX: original?.x ?? node.position.x,
           originY: original?.y ?? node.position.y,
         });
+
+        if (!isLatestDragAttempt()) {
+          return;
+        }
 
         const currentNodes = getNodes();
         const hasAnchors = currentNodes.some((n) => {
@@ -595,14 +675,26 @@ function GraphCanvasContent({
           setNodes(resolved);
         }
       } catch (error) {
+        if (!isLatestDragAttempt()) {
+          return;
+        }
+
         editDebugLog('node-drag-stop', error, {
           nodeId: node.id,
           attemptedPosition: { x: node.position.x, y: node.position.y },
-          originalPosition: original ?? null,
+          originalPosition: original ? { x: original.x, y: original.y } : null,
         });
 
         if (original) {
-          setNodes((prev) => prev.map((n) => (n.id === node.id ? { ...n, position: original } : n)));
+          setNodes((prev) => prev.map((n) => (
+            n.id === node.id
+              ? { ...n, position: { x: original.x, y: original.y } }
+              : n
+          )));
+        }
+
+        if (shouldSuppressDragStopErrorToast(error)) {
+          return;
         }
 
         const mapped = mapEditErrorToToast?.(error);
@@ -620,7 +712,9 @@ function GraphCanvasContent({
           showToast('편집 실패: 이전 상태로 롤백되었습니다.');
         }
       } finally {
-        dragOriginPositions.current.delete(node.id);
+        if (isLatestDragAttempt()) {
+          dragOriginPositions.current.delete(node.id);
+        }
       }
     },
     [getNodes, mapEditErrorToToast, onNodeDragStop, setNodes],
@@ -852,6 +946,7 @@ function GraphCanvasContent({
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onNodeDragStart={onHandleNodeDragStart}
+          onNodeDrag={onHandleNodeDrag}
           onNodeDragStop={onHandleNodeDragStop}
           onNodeContextMenu={onNodeContextMenu}
           onPaneClick={onPaneClick}
@@ -922,6 +1017,21 @@ function GraphCanvasContent({
 
         {/* Bubble overlay - renders all bubbles above nodes */}
         <BubbleOverlay />
+
+        {dragFeedback && (
+          <div className="absolute top-24 left-1/2 z-[100] -translate-x-1/2 animate-in fade-in slide-in-from-top-2">
+            <div className={[
+              'rounded-full border px-4 py-2 text-sm font-medium shadow-lg backdrop-blur',
+              dragFeedback.kind === 'reparent-ready'
+                ? 'border-emerald-200 bg-emerald-50/95 text-emerald-700'
+                : 'border-amber-200 bg-amber-50/95 text-amber-700',
+            ].join(' ')}>
+              {dragFeedback.kind === 'reparent-ready'
+                ? `${dragFeedback.parentLabel} 아래로 놓으면 부모가 바뀝니다.`
+                : '다른 MindMap 노드 위에 놓으면 부모를 바꿀 수 있습니다.'}
+            </div>
+          </div>
+        )}
 
         {/* Toast Notification */}
         {toastMessage && (

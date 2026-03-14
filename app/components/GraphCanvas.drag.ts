@@ -31,6 +31,12 @@ export function resolveEditHistoryShortcut(input: {
 
 export type GraphCanvasCreateMode = CreatableNodeType | null;
 
+type RpcLikeError = {
+  code?: unknown;
+  message?: unknown;
+  data?: unknown;
+};
+
 type DragNodeLike = {
   id: string;
   position: { x: number; y: number };
@@ -116,4 +122,34 @@ export function resolveMindMapReparentIntent(input: {
     kind: 'reparent',
     newParentNodeId: bestCandidate.nodeId,
   };
+}
+
+export function resolveMindMapDragFeedback(input: {
+  draggedNode: DragNodeLike;
+  allNodes: DragNodeLike[];
+  dropPosition: { x: number; y: number };
+  thresholdPx?: number;
+}): { kind: 'reparent-ready'; newParentNodeId: string } | { kind: 'reparent-hint' } | null {
+  const intent = resolveMindMapReparentIntent(input);
+  if (!intent) {
+    return null;
+  }
+  if (intent.kind === 'reparent') {
+    return {
+      kind: 'reparent-ready',
+      newParentNodeId: intent.newParentNodeId,
+    };
+  }
+  return { kind: 'reparent-hint' };
+}
+
+export function shouldSuppressDragStopErrorToast(error: unknown): boolean {
+  const rpc = error as RpcLikeError;
+  const data = rpc.data && typeof rpc.data === 'object'
+    ? rpc.data as { reason?: unknown }
+    : undefined;
+  return (
+    (rpc.code === 42201 || rpc.message === 'EDIT_NOT_ALLOWED')
+    && data?.reason === 'NO_VALID_PARENT'
+  );
 }

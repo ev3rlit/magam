@@ -95,6 +95,12 @@ export function getAllowedNodeStylePatch(
 
 export function mapEditRpcErrorToToast(error: unknown): string | null {
   const rpc = error as RpcLikeError;
+  if (rpc.message === 'WebSocket not connected') {
+    return '편집 서버 연결이 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.';
+  }
+  if (typeof rpc.message === 'string' && rpc.message.startsWith('Request timeout:')) {
+    return '편집 저장 응답이 지연되고 있습니다. 연결 상태를 확인한 뒤 다시 시도해주세요.';
+  }
   if (rpc.code === 40901 || rpc.message === 'VERSION_CONFLICT') {
     return '외부 수정 감지: 최신 상태로 다시 동기화 후 다시 시도해주세요.';
   }
