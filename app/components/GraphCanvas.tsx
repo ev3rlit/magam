@@ -53,7 +53,14 @@ import {
 import { editDebugLog } from '@/utils/editDebug';
 import { getWashiPresetPatternCatalog, resolvePresetPatternId } from '@/utils/washiTapeDefaults';
 import type { MaterialPresetId } from '@/types/washiTape';
-import { shouldCommitDragStop } from './GraphCanvas.drag';
+import {
+  resolveEditHistoryShortcut,
+  shouldCommitDragStop,
+  shouldHandlePaneCreate,
+  type GraphCanvasCreateMode,
+} from './GraphCanvas.drag';
+import type { CreatePayload } from '@/features/editing/commands';
+import type { CreatableNodeType } from '@/types/contextMenu';
 
 type GraphCanvasProps = {
   onNodeDragStop?: (payload: {
@@ -67,6 +74,14 @@ type GraphCanvasProps = {
   onUndoEditStep?: () => Promise<boolean> | boolean;
   onRedoEditStep?: () => Promise<boolean> | boolean;
   mapEditErrorToToast?: (error: unknown) => string | null;
+  onRenameNode?: (nodeId: string) => Promise<void> | void;
+  onCreateNode?: (input: {
+    nodeType: CreatableNodeType;
+    placement: CreatePayload['placement'];
+    filePath?: string;
+    scopeId?: string;
+    frameScope?: string;
+  }) => Promise<void> | void;
 };
 
 function GraphCanvasContent({
@@ -75,6 +90,8 @@ function GraphCanvasContent({
   onUndoEditStep,
   onRedoEditStep,
   mapEditErrorToToast,
+  onRenameNode,
+  onCreateNode,
 }: GraphCanvasProps) {
   const nodeTypes = useMemo(
     () => ({
@@ -125,7 +142,7 @@ function GraphCanvasContent({
 
   const { calculateLayout, isLayouting } = useLayout();
   const nodesInitialized = useNodesInitialized();
-  const { zoomIn, zoomOut, fitView, getZoom, setNodes, getNodes } = useReactFlow();
+  const { zoomIn, zoomOut, fitView, getZoom, setNodes, getNodes, screenToFlowPosition } = useReactFlow();
   const { isOpen: isContextMenuOpen, context: contextMenuContext, items: contextMenuItems, openMenu, closeMenu } = useContextMenu();
   const { copyImageToClipboard } = useExportImage();
   const [exportDialog, setExportDialog] = useState<{
@@ -139,6 +156,7 @@ function GraphCanvasContent({
   const [isGraphVisible, setIsGraphVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [interactionMode, setInteractionMode] = useState<InteractionMode>('pointer');
+  const [createMode, setCreateMode] = useState<GraphCanvasCreateMode>(null);
   const hasLayouted = useRef(false);
   const lastLayoutedGraphId = useRef<string | null>(null);
   const lastSizeSignaturesRef = useRef<Map<string, string>>(new Map());
@@ -246,7 +264,57 @@ function GraphCanvasContent({
       });
     },
     selectMindMapGroupByNodeId,
-  }), [copyImageToClipboard, handleFitView, selectMindMapGroupByNodeId]);
+    renameNode: (nodeId: string) => onRenameNode?.(nodeId),
+    createCanvasNode: (nodeType: CreatableNodeType, screenPosition: { x: number; y: number }) => {
+      if (!onCreateNode) {
+        return;
+      }
+      const position = screenToFlowPosition(screenPosition);
+      return onCreateNode({
+        nodeType,
+        placement: { mode: 'canvas-absolute', x: position.x, y: position.y },
+      });
+    },
+    createMindMapChild: (renderedNodeId: string) => {
+      if (!onCreateNode) {
+        return;
+      }
+      const targetNode = useGraphStore.getState().nodes.find((item) => item.id === renderedNodeId);
+      const sourceMeta = (targetNode?.data as { sourceMeta?: Record<string, unknown> } | undefined)?.sourceMeta;
+      const parentId = typeof sourceMeta?.sourceId === 'string' ? sourceMeta.sourceId : renderedNodeId;
+      return onCreateNode({
+        nodeType: 'shape',
+        placement: { mode: 'mindmap-child', parentId },
+        filePath: typeof sourceMeta?.filePath === 'string' ? sourceMeta.filePath : undefined,
+        scopeId: typeof sourceMeta?.scopeId === 'string' ? sourceMeta.scopeId : undefined,
+        frameScope: typeof sourceMeta?.frameScope === 'string' ? sourceMeta.frameScope : undefined,
+      });
+    },
+    createMindMapSibling: (renderedNodeId: string) => {
+      if (!onCreateNode) {
+        return;
+      }
+      const runtime = useGraphStore.getState();
+      const targetNode = runtime.nodes.find((item) => item.id === renderedNodeId);
+      const sourceMeta = (targetNode?.data as { sourceMeta?: Record<string, unknown> } | undefined)?.sourceMeta;
+      const parentEdge = runtime.edges.find((edge) => edge.target === renderedNodeId);
+      const parentNode = parentEdge
+        ? runtime.nodes.find((item) => item.id === parentEdge.source)
+        : null;
+      const parentSourceMeta = (parentNode?.data as { sourceMeta?: Record<string, unknown> } | undefined)?.sourceMeta;
+      const parentId = parentSourceMeta && typeof parentSourceMeta.sourceId === 'string'
+        ? parentSourceMeta.sourceId
+        : null;
+      const siblingOf = typeof sourceMeta?.sourceId === 'string' ? sourceMeta.sourceId : renderedNodeId;
+      return onCreateNode({
+        nodeType: 'shape',
+        placement: { mode: 'mindmap-sibling', siblingOf, parentId },
+        filePath: typeof sourceMeta?.filePath === 'string' ? sourceMeta.filePath : undefined,
+        scopeId: typeof sourceMeta?.scopeId === 'string' ? sourceMeta.scopeId : undefined,
+        frameScope: typeof sourceMeta?.frameScope === 'string' ? sourceMeta.frameScope : undefined,
+      });
+    },
+  }), [copyImageToClipboard, handleFitView, onCreateNode, onRenameNode, screenToFlowPosition, selectMindMapGroupByNodeId]);
 
   const onNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: FlowNode) => {
@@ -259,6 +327,7 @@ function GraphCanvasContent({
         type: 'node',
         position: { x: event.clientX, y: event.clientY },
         nodeId: node.id,
+        nodeFamily: (node.data as { editMeta?: { family?: string } } | undefined)?.editMeta?.family,
         selectedNodeIds: nextSelectedIds,
         actions: contextMenuActions,
       });
@@ -282,6 +351,28 @@ function GraphCanvasContent({
   const onCloseContextMenu = useCallback(() => {
     closeMenu();
   }, [closeMenu]);
+
+  const onPaneClick = useCallback(
+    async (event: React.MouseEvent) => {
+      if (!shouldHandlePaneCreate({ interactionMode, createMode }) || !onCreateNode) {
+        return;
+      }
+
+      const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+      try {
+        await onCreateNode({
+          nodeType: createMode,
+          placement: { mode: 'canvas-absolute', x: position.x, y: position.y },
+        });
+        setCreateMode(null);
+        showToast('새 오브젝트를 생성했습니다.');
+      } catch (error) {
+        const mapped = mapEditErrorToToast?.(error);
+        showToast(mapped ?? '오브젝트 생성에 실패했습니다.');
+      }
+    },
+    [createMode, interactionMode, mapEditErrorToToast, onCreateNode, screenToFlowPosition],
+  );
 
 
   // Reset layout state when new graph is loaded
@@ -540,28 +631,6 @@ function GraphCanvasContent({
       if (selectedWashiNodeIds.length === 0) return;
       const presetId = resolvePresetPatternId(presetIdInput);
 
-      const selectedIdSet = new Set(selectedWashiNodeIds);
-      const previousData = new Map(
-        nodes
-          .filter((node) => selectedIdSet.has(node.id))
-          .map((node) => [node.id, node.data]),
-      );
-
-      useGraphStore.setState((state) => ({
-        nodes: state.nodes.map((node) => {
-          if (!selectedIdSet.has(node.id)) {
-            return node;
-          }
-          return {
-            ...node,
-            data: {
-              ...(node.data || {}),
-              pattern: { type: 'preset', id: presetId },
-            },
-          };
-        }),
-      }));
-
       try {
         await onWashiPresetChange?.(selectedWashiNodeIds, presetId);
       } catch (error) {
@@ -569,16 +638,6 @@ function GraphCanvasContent({
           nodeIds: selectedWashiNodeIds,
           presetId,
         });
-
-        useGraphStore.setState((state) => ({
-          nodes: state.nodes.map((node) => {
-            const previous = previousData.get(node.id);
-            if (!previous) {
-              return node;
-            }
-            return { ...node, data: previous };
-          }),
-        }));
 
         const code = (error as { code?: number })?.code;
         if (code === 40901) {
@@ -588,7 +647,7 @@ function GraphCanvasContent({
         }
       }
     },
-    [nodes, onWashiPresetChange, selectedWashiNodeIds, showToast],
+    [onWashiPresetChange, selectedWashiNodeIds, showToast],
   );
 
   useEffect(() => {
@@ -612,9 +671,14 @@ function GraphCanvasContent({
 
       const isCopy = (e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'c';
       const isPaste = (e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'v';
-      const isUndo = (e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'z';
-      const isRedo = (e.metaKey || e.ctrlKey)
-        && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'));
+      const historyShortcut = resolveEditHistoryShortcut({
+        key: e.key,
+        metaKey: e.metaKey,
+        ctrlKey: e.ctrlKey,
+        shiftKey: e.shiftKey,
+      });
+      const isUndo = historyShortcut === 'undo';
+      const isRedo = historyShortcut === 'redo';
       const isFocusNextWashi = (e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'f';
       const isSelectAllWashi = (e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'g';
 
@@ -790,6 +854,7 @@ function GraphCanvasContent({
           onNodeDragStart={onHandleNodeDragStart}
           onNodeDragStop={onHandleNodeDragStop}
           onNodeContextMenu={onNodeContextMenu}
+          onPaneClick={onPaneClick}
           onPaneContextMenu={onPaneContextMenu}
           onSelectionChange={onSelectionChange}
           nodeTypes={nodeTypes}
@@ -826,6 +891,8 @@ function GraphCanvasContent({
           <FloatingToolbar
             interactionMode={interactionMode}
             onInteractionModeChange={setInteractionMode}
+            createMode={createMode}
+            onCreateModeChange={setCreateMode}
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
             onFitView={handleFitView}
@@ -876,6 +943,8 @@ export function GraphCanvas({
   onUndoEditStep,
   onRedoEditStep,
   mapEditErrorToToast,
+  onRenameNode,
+  onCreateNode,
 }: GraphCanvasProps) {
   return (
     <div className="w-full h-full min-h-[500px] flex-1 relative">
@@ -889,6 +958,8 @@ export function GraphCanvas({
                 onUndoEditStep={onUndoEditStep}
                 onRedoEditStep={onRedoEditStep}
                 mapEditErrorToToast={mapEditErrorToToast}
+                onRenameNode={onRenameNode}
+                onCreateNode={onCreateNode}
               />
             </BubbleProvider>
           </ZoomProvider>

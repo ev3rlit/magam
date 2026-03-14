@@ -5,7 +5,12 @@ import {
   getEligibleAutoRelayoutGroupIds,
   shouldScheduleAutoRelayout,
 } from './GraphCanvas.relayout';
-import { shouldCommitDragStop } from './GraphCanvas.drag';
+import {
+  resolveEditHistoryShortcut,
+  resolveMindMapReparentIntent,
+  shouldCommitDragStop,
+  shouldHandlePaneCreate,
+} from './GraphCanvas.drag';
 
 describe('GraphCanvas auto relayout policy', () => {
   const baseInput = {
@@ -127,5 +132,98 @@ describe('GraphCanvas drag-stop commit policy', () => {
         current: { x: 130, y: 210 },
       }),
     ).toBe(true);
+  });
+});
+
+describe('GraphCanvas create mode helpers', () => {
+  it('pointer 모드에서만 pane click create를 허용한다', () => {
+    expect(shouldHandlePaneCreate({ interactionMode: 'pointer', createMode: 'shape' })).toBe(true);
+    expect(shouldHandlePaneCreate({ interactionMode: 'hand', createMode: 'shape' })).toBe(false);
+    expect(shouldHandlePaneCreate({ interactionMode: 'pointer', createMode: null })).toBe(false);
+  });
+});
+
+describe('GraphCanvas history shortcuts', () => {
+  it('cmd/ctrl+z 를 undo 로 해석한다', () => {
+    expect(resolveEditHistoryShortcut({
+      key: 'z',
+      metaKey: true,
+      ctrlKey: false,
+      shiftKey: false,
+    })).toBe('undo');
+  });
+
+  it('cmd/ctrl+shift+z 와 cmd/ctrl+y 를 redo 로 해석한다', () => {
+    expect(resolveEditHistoryShortcut({
+      key: 'z',
+      metaKey: true,
+      ctrlKey: false,
+      shiftKey: true,
+    })).toBe('redo');
+    expect(resolveEditHistoryShortcut({
+      key: 'y',
+      metaKey: false,
+      ctrlKey: true,
+      shiftKey: false,
+    })).toBe('redo');
+  });
+});
+
+describe('GraphCanvas mindmap reparent intent', () => {
+  const baseNode = {
+    width: 120,
+    height: 60,
+  };
+
+  it('같은 group 내 드롭 후보를 부모 변경 intent로 해석한다', () => {
+    expect(resolveMindMapReparentIntent({
+      draggedNode: {
+        ...baseNode,
+        id: 'child',
+        position: { x: 0, y: 0 },
+        data: { groupId: 'map', editMeta: { family: 'mindmap-member' } },
+      },
+      allNodes: [
+        {
+          ...baseNode,
+          id: 'child',
+          position: { x: 0, y: 0 },
+          data: { groupId: 'map', editMeta: { family: 'mindmap-member' } },
+        },
+        {
+          ...baseNode,
+          id: 'parent',
+          position: { x: 200, y: 100 },
+          data: { groupId: 'map', editMeta: { family: 'mindmap-member' } },
+        },
+      ],
+      dropPosition: { x: 210, y: 110 },
+    })).toEqual({
+      kind: 'reparent',
+      newParentNodeId: 'parent',
+    });
+  });
+
+  it('후보가 없으면 rejected intent를 반환한다', () => {
+    expect(resolveMindMapReparentIntent({
+      draggedNode: {
+        ...baseNode,
+        id: 'child',
+        position: { x: 0, y: 0 },
+        data: { groupId: 'map', editMeta: { family: 'mindmap-member' } },
+      },
+      allNodes: [
+        {
+          ...baseNode,
+          id: 'child',
+          position: { x: 0, y: 0 },
+          data: { groupId: 'map', editMeta: { family: 'mindmap-member' } },
+        },
+      ],
+      dropPosition: { x: 500, y: 500 },
+    })).toEqual({
+      kind: 'rejected',
+      reason: 'NO_VALID_PARENT',
+    });
   });
 });
