@@ -108,6 +108,52 @@ describe('workspace-styling/interpreter', () => {
     });
   });
 
+  it('applies expanded typography, spacing, alpha, and border tokens', () => {
+    const interpreted = interpretWorkspaceStyle({
+      styleInput: makeInput({
+        className: 'bg-white/80 text-lg font-semibold italic tracking-[0.15em] px-4 py-2 m-auto gap-2 border-l-4 border-dashed border-violet-500',
+      }),
+      eligibleProfile: makeEligibleProfile(),
+    });
+
+    expect(interpreted.result.status).toBe('applied');
+    expect(interpreted.result.appliedCategories).toEqual(['basic-visual']);
+    expect(interpreted.result.resolvedStylePayload?.style).toMatchObject({
+      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+      fontSize: '1.125rem',
+      fontWeight: 600,
+      fontStyle: 'italic',
+      letterSpacing: '0.15em',
+      paddingLeft: '1rem',
+      paddingRight: '1rem',
+      paddingTop: '0.5rem',
+      paddingBottom: '0.5rem',
+      margin: 'auto',
+      gap: '0.5rem',
+      borderLeftWidth: '4px',
+      borderStyle: 'dashed',
+      borderColor: '#8b5cf6',
+      borderWidth: '1px',
+    });
+  });
+
+  it('supports font family aliases and not-italic reset tokens', () => {
+    const interpreted = interpretWorkspaceStyle({
+      styleInput: makeInput({
+        className: 'text-sm font-mono not-italic tracking-wide',
+      }),
+      eligibleProfile: makeEligibleProfile(),
+    });
+
+    expect(interpreted.result.status).toBe('applied');
+    expect(interpreted.result.resolvedStylePayload?.style).toMatchObject({
+      fontSize: '0.875rem',
+      fontFamily: 'monospace',
+      fontStyle: 'normal',
+      letterSpacing: '0.025em',
+    });
+  });
+
   it('returns partial and mixed diagnostics for mixed input', () => {
     const interpreted = interpretWorkspaceStyle({
       styleInput: makeInput({

@@ -205,26 +205,57 @@ function resolveWidthValue(token: string): { property: string; value: string } |
 }
 
 function resolveColorValue(rawToken: string): string | null {
+  const [baseToken, alphaToken] = rawToken.split('/');
   if (isArbitraryValue(rawToken)) {
     return unwrapArbitraryValue(rawToken);
   }
-  if (rawToken === 'white' || rawToken === 'black' || rawToken === 'transparent' || rawToken === 'current') {
-    return rawToken;
+  if (baseToken === 'white' || baseToken === 'black' || baseToken === 'transparent' || baseToken === 'current') {
+    if (!alphaToken) {
+      return baseToken;
+    }
+    const named = baseToken === 'white' ? '#ffffff' : baseToken === 'black' ? '#000000' : null;
+    if (!named) return baseToken;
+    const alpha = Number(alphaToken);
+    if (!Number.isFinite(alpha)) return named;
+    const normalizedAlpha = Math.max(0, Math.min(1, alpha / 100));
+    return `rgba(${baseToken === 'white' ? '255, 255, 255' : '0, 0, 0'}, ${normalizedAlpha})`;
   }
 
-  const segments = rawToken.split('-');
+  const segments = baseToken.split('-');
   const paletteName = segments[0];
   const shade = segments.slice(1).join('-');
   const palette = COLOR_PALETTES[paletteName];
 
   if (typeof palette === 'string' && shade.length === 0) {
-    return palette;
+    if (!alphaToken) {
+      return palette;
+    }
+    const alpha = Number(alphaToken);
+    if (!Number.isFinite(alpha) || !palette.startsWith('#')) {
+      return palette;
+    }
+    const normalizedAlpha = Math.max(0, Math.min(1, alpha / 100));
+    const r = parseInt(palette.slice(1, 3), 16);
+    const g = parseInt(palette.slice(3, 5), 16);
+    const b = parseInt(palette.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${normalizedAlpha})`;
   }
 
   if (palette && typeof palette === 'object') {
     const candidate = (palette as Record<string, string>)[shade];
     if (typeof candidate === 'string') {
-      return candidate;
+      if (!alphaToken) {
+        return candidate;
+      }
+      const alpha = Number(alphaToken);
+      if (!Number.isFinite(alpha) || !candidate.startsWith('#')) {
+        return candidate;
+      }
+      const normalizedAlpha = Math.max(0, Math.min(1, alpha / 100));
+      const r = parseInt(candidate.slice(1, 3), 16);
+      const g = parseInt(candidate.slice(3, 5), 16);
+      const b = parseInt(candidate.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${b}, ${normalizedAlpha})`;
     }
   }
 
@@ -241,6 +272,27 @@ function resolveBorderWidthValue(token: string): string | null {
   const numeric = Number(suffix);
   if (Number.isFinite(numeric)) {
     return `${numeric}px`;
+  }
+  return null;
+}
+
+function resolveDirectionalBorderWidth(token: string): { property: string; value: string } | null {
+  const mappings: Array<[prefix: string, property: string]> = [
+    ['border-l-', 'borderLeftWidth'],
+    ['border-r-', 'borderRightWidth'],
+    ['border-t-', 'borderTopWidth'],
+    ['border-b-', 'borderBottomWidth'],
+  ];
+  for (const [prefix, property] of mappings) {
+    if (!token.startsWith(prefix)) continue;
+    const suffix = token.slice(prefix.length);
+    if (isArbitraryValue(suffix)) {
+      return { property, value: unwrapArbitraryValue(suffix) };
+    }
+    const numeric = Number(suffix);
+    if (Number.isFinite(numeric)) {
+      return { property, value: `${numeric}px` };
+    }
   }
   return null;
 }
@@ -316,12 +368,122 @@ function applyBasicVisualToken(accumulator: StyleAccumulator, token: string): vo
   }
 
   if (token.startsWith('text-')) {
+    const sizeToken = token.slice('text-'.length);
+    const fontSizeByToken: Record<string, string> = {
+      xs: '0.75rem',
+      sm: '0.875rem',
+      base: '1rem',
+      lg: '1.125rem',
+      xl: '1.25rem',
+      '2xl': '1.5rem',
+      '3xl': '1.875rem',
+    };
+    if (fontSizeByToken[sizeToken]) {
+      accumulator.style.fontSize = fontSizeByToken[sizeToken];
+      return;
+    }
     const color = resolveColorValue(token.slice('text-'.length));
     if (color) accumulator.style.color = color;
     return;
   }
 
+  if (token.startsWith('font-')) {
+    const weight = token.slice('font-'.length);
+    const fontWeightByToken: Record<string, string | number> = {
+      thin: 100,
+      extralight: 200,
+      light: 300,
+      normal: 400,
+      medium: 500,
+      semibold: 600,
+      bold: 700,
+      extrabold: 800,
+      black: 900,
+      mono: 'monospace',
+      serif: 'serif',
+      sans: 'sans-serif',
+    };
+    const resolved = fontWeightByToken[weight];
+    if (resolved !== undefined) {
+      if (typeof resolved === 'number') {
+        accumulator.style.fontWeight = resolved;
+      } else {
+        accumulator.style.fontFamily = resolved;
+      }
+    }
+    return;
+  }
+
+  if (token === 'italic' || token === 'not-italic') {
+    accumulator.style.fontStyle = token === 'italic' ? 'italic' : 'normal';
+    return;
+  }
+
+  if (token.startsWith('tracking-')) {
+    const trackingToken = token.slice('tracking-'.length);
+    const trackingByToken: Record<string, string> = {
+      tighter: '-0.05em',
+      tight: '-0.025em',
+      normal: '0em',
+      wide: '0.025em',
+      wider: '0.05em',
+      widest: '0.1em',
+    };
+    const resolved = isArbitraryValue(trackingToken)
+      ? unwrapArbitraryValue(trackingToken)
+      : trackingByToken[trackingToken];
+    if (resolved) {
+      accumulator.style.letterSpacing = resolved;
+    }
+    return;
+  }
+
+  if (token.startsWith('gap-')) {
+    const gap = resolveSpacingLikeValue(token.slice('gap-'.length), 'width');
+    if (gap) accumulator.style.gap = gap;
+    return;
+  }
+
+  const directionalSpacingMappings: Array<[prefix: string, properties: string[]]> = [
+    ['px-', ['paddingLeft', 'paddingRight']],
+    ['py-', ['paddingTop', 'paddingBottom']],
+    ['pt-', ['paddingTop']],
+    ['pr-', ['paddingRight']],
+    ['pb-', ['paddingBottom']],
+    ['pl-', ['paddingLeft']],
+    ['p-', ['padding']],
+    ['mx-', ['marginLeft', 'marginRight']],
+    ['my-', ['marginTop', 'marginBottom']],
+    ['mt-', ['marginTop']],
+    ['mr-', ['marginRight']],
+    ['mb-', ['marginBottom']],
+    ['ml-', ['marginLeft']],
+    ['m-', ['margin']],
+  ];
+  for (const [prefix, properties] of directionalSpacingMappings) {
+    if (!token.startsWith(prefix)) continue;
+    const resolved = resolveSpacingLikeValue(token.slice(prefix.length), 'width');
+    if (!resolved) return;
+    properties.forEach((property) => {
+      accumulator.style[property] = resolved;
+    });
+    return;
+  }
+
   if (token.startsWith('border')) {
+    const directional = resolveDirectionalBorderWidth(token);
+    if (directional) {
+      accumulator.style[directional.property] = directional.value;
+      accumulator.style.borderStyle = 'solid';
+      return;
+    }
+    if (token === 'border-dashed' || token === 'border-solid' || token === 'border-dotted') {
+      accumulator.style.borderStyle = token.slice('border-'.length);
+      if (!('borderWidth' in accumulator.style)) {
+        accumulator.style.borderWidth = '1px';
+      }
+      return;
+    }
     const borderWidth = resolveBorderWidthValue(token);
     if (borderWidth) {
       accumulator.style.borderWidth = borderWidth;
@@ -456,6 +618,25 @@ function buildPayload(appliedTokensByCategory: Map<WorkspaceStyleCategory, strin
     if (
       token.startsWith('bg-')
       || token.startsWith('text-')
+      || token.startsWith('font-')
+      || token === 'italic'
+      || token === 'not-italic'
+      || token.startsWith('tracking-')
+      || token.startsWith('gap-')
+      || token.startsWith('p-')
+      || token.startsWith('px-')
+      || token.startsWith('py-')
+      || token.startsWith('pt-')
+      || token.startsWith('pr-')
+      || token.startsWith('pb-')
+      || token.startsWith('pl-')
+      || token.startsWith('m-')
+      || token.startsWith('mx-')
+      || token.startsWith('my-')
+      || token.startsWith('mt-')
+      || token.startsWith('mr-')
+      || token.startsWith('mb-')
+      || token.startsWith('ml-')
       || token.startsWith('border')
       || token.startsWith('rounded')
       || token.startsWith('opacity-')

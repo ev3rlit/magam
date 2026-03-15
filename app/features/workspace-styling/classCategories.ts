@@ -15,7 +15,20 @@ const CATEGORY_DEFINITIONS: ClassCategoryDefinition[] = [
     category: 'basic-visual',
     priority: 20,
     status: 'supported',
-    tokenPatterns: ['bg-*', 'text-*', 'border*', 'rounded*', 'opacity-*'],
+    tokenPatterns: [
+      'bg-*',
+      'text-*',
+      'font-*',
+      'italic',
+      'not-italic',
+      'tracking-*',
+      'border*',
+      'rounded*',
+      'opacity-*',
+      'p*',
+      'm*',
+      'gap-*',
+    ],
   },
   {
     category: 'shadow-elevation',
@@ -32,7 +45,7 @@ const CATEGORY_DEFINITIONS: ClassCategoryDefinition[] = [
 ];
 
 const SIZE_TOKEN_PATTERN = /^(?:w|h|min-w|min-h|max-w|max-h)-.+$/;
-const BASIC_VISUAL_TOKEN_PATTERN = /^(?:bg|text|opacity)-.+$|^(?:border(?:-.+)?)$|^(?:rounded(?:-.+)?)$/;
+const BASIC_VISUAL_TOKEN_PATTERN = /^(?:bg|text|font|tracking|opacity|gap)-.+$|^(?:italic|not-italic)$|^(?:border(?:-.+)?)$|^(?:rounded(?:-.+)?)$|^(?:[mp][trblxy]?-.+)$/;
 const SHADOW_TOKEN_PATTERN = /^(?:shadow(?:-.+)?)$/;
 const OUTLINE_TOKEN_PATTERN = /^(?:outline(?:-.+)?)$|^(?:ring(?:-.+)?)$|^(?:ring-offset(?:-.+)?)$/;
 
@@ -129,4 +142,3 @@ export function classifyTokens(tokens: string[]): ClassifiedToken[] {
 export function sortCategoriesByPriority(categories: WorkspaceStyleCategory[]): WorkspaceStyleCategory[] {
   return [...categories].sort((left, right) => getCategoryPriority(left) - getCategoryPriority(right));
 }
-

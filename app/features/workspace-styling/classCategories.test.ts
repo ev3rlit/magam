@@ -26,6 +26,11 @@ describe('workspace-styling/classCategories', () => {
   it('resolves category from base tokens', () => {
     expect(resolveTokenCategory('w-32')).toBe('size');
     expect(resolveTokenCategory('bg-slate-100')).toBe('basic-visual');
+    expect(resolveTokenCategory('text-sm')).toBe('basic-visual');
+    expect(resolveTokenCategory('px-4')).toBe('basic-visual');
+    expect(resolveTokenCategory('font-semibold')).toBe('basic-visual');
+    expect(resolveTokenCategory('tracking-wide')).toBe('basic-visual');
+    expect(resolveTokenCategory('border-l-4')).toBe('basic-visual');
     expect(resolveTokenCategory('shadow-lg')).toBe('shadow-elevation');
     expect(resolveTokenCategory('ring-2')).toBe('outline-emphasis');
     expect(resolveTokenCategory('unknown-token')).toBeNull();
@@ -62,4 +67,3 @@ describe('workspace-styling/classCategories', () => {
     expect(result.map((item) => item.baseToken)).toEqual(['w-10', 'border', 'shadow-sm']);
   });
 });
-

@@ -28,6 +28,11 @@ Define eligible object rules and category support surface for workspace `classNa
 
 - `size`
 - `basic-visual`
+  - background, text color and size
+  - font weight/family/style and tracking
+  - border width/style/color and radius
+  - opacity
+  - padding, margin, and gap
 - `shadow-elevation`
 - `outline-emphasis` (including sticker-outline-like emphasis)
 

@@ -112,7 +112,7 @@ v1 우선 지원 class category:
 
 1. size: `w-*`, `h-*`, `min/max-*` 등 현재 사이즈 변경과 직접 대응되는 범위
 2. spacing/layout basics: padding, margin, gap, flex/grid의 기본 배치 범위 중 현재 오브젝트 표면에 안전하게 대응 가능한 범위
-3. visual styling basics: background, text color, border, radius, opacity
+3. visual styling basics: background, text color and size, font weight/family/style, tracking, border, radius, opacity
 4. shadow/elevation: 일반 shadow 계열과 시각 강조 계열
 5. outline/emphasis: 특히 sticker outline처럼 현재 제품에서 자주 쓰는 강조 표현
 

@@ -23,7 +23,7 @@ bun run dev
 3. Confirm current selection and editor context stay stable.
 4. Apply three rapid consecutive edits on the same object and confirm last-write-wins behavior.
 5. Validate v1 priority category: size (`w-*`, `h-*`, `min/max-*`) updates correctly.
-6. Validate v1 priority category: basic visual styling (background/text/border/radius/opacity) updates correctly.
+6. Validate v1 priority category: basic visual styling (background/text color and size/font/tracking/border/radius/opacity plus padding-margin-gap basics) updates correctly.
 7. Validate v1 priority category: shadow/elevation updates correctly.
 8. Validate v1 priority category: outline/emphasis updates correctly, including sticker-outline-like emphasis.
 9. Reopen/rerender canvas and confirm last accepted style state is preserved.

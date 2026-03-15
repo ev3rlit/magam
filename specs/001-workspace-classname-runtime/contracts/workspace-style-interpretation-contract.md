@@ -17,7 +17,7 @@ Define how raw workspace `className` input is interpreted into deterministic, ca
   - ignored token set
   - status: `applied | partial | reset | unsupported`
   - render-consumable style payload (when applicable)
-  - style payload fields may include width/height constraints, colors, border/radius, opacity, outline, and composed box-shadow
+  - style payload fields may include width/height constraints, colors, typography, spacing, border/radius, opacity, outline, and composed box-shadow
 
 ## Behavioral guarantees
 
@@ -39,6 +39,7 @@ Define how raw workspace `className` input is interpreted into deterministic, ca
 ## Current implementation notes
 
 - Arbitrary values are supported for the current priority categories when they can be mapped directly to style payload values.
+- Current `basic-visual` coverage includes text sizing, font weight/family/style, tracking, padding, margin, gap, border-side width, and border style in addition to background/text color, radius, and opacity.
 - Variant-prefixed tokens such as `md:` or `hover:` are currently classified but treated as unsupported in v1.
 - Mixed input keeps supported tokens in priority order and emits diagnostics for ignored tokens.
 
