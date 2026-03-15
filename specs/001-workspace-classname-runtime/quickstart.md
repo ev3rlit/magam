@@ -30,11 +30,12 @@ bun run dev
 10. Validate `dark:`, `md:`, `lg:`, `xl:`, and `2xl:` tokens only activate when runtime context matches.
 11. Validate `hover:` tokens apply only on pointer hover and do not overwrite the base inline style payload at rest.
 12. Validate `focus:` tokens apply only when the node root is focused and that eligible nodes expose a focusable runtime surface.
-13. Enter mixed supported/unsupported category input and confirm partial apply with diagnostics.
-14. Apply `className=""` or remove class input and confirm style reset is applied.
-15. Apply class input to a non-eligible object and confirm out-of-scope diagnostic behavior.
-16. Start dev bootstrap with runtime styling path enabled and confirm safelist generation still executes.
-17. Confirm workspace style edits do not regress the existing safelist/bootstrap development flow.
+13. Validate `active:` tokens apply only while pointer press is active on the node root.
+14. Enter mixed supported/unsupported category input and confirm partial apply with diagnostics.
+15. Apply `className=""` or remove class input and confirm style reset is applied.
+16. Apply class input to a non-eligible object and confirm out-of-scope diagnostic behavior.
+17. Start dev bootstrap with runtime styling path enabled and confirm safelist generation still executes.
+18. Confirm workspace style edits do not regress the existing safelist/bootstrap development flow.
 
 ## Suggested automated verification targets
 
@@ -73,6 +74,7 @@ bun run dev
 - 2026-03-16: live browser smoke on `examples/runtime_interactions.tsx` via `http://localhost:3005`
 - Hover smoke: baseline vs hover screenshot diff `2.70%`
 - Focus smoke: baseline vs focus screenshot diff `2.70%`, active element was `DIV` with `tabIndex=0`
+- Active smoke: baseline vs active screenshot diff `0.73%`
 
 ## Smoke expectations for real surfaces
 

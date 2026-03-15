@@ -8,7 +8,7 @@ export default function RuntimeInteractionsExample() {
       </Text>
 
       <Text id="hint" x={80} y={72} className="text-sm text-slate-500">
-        Hover nodes with a pointer, then press Tab to move focus across focus-enabled nodes.
+        Hover nodes, press and hold for active styles, then press Tab to move focus across focus-enabled nodes.
       </Text>
 
       <Shape
@@ -35,9 +35,9 @@ export default function RuntimeInteractionsExample() {
         id="combo-card"
         x={120}
         y={380}
-        className="w-40 md:w-52 lg:w-64 bg-violet-100 text-slate-700 shadow-md hover:bg-violet-200 focus:bg-violet-500 focus:text-white focus:ring-4 focus:ring-violet-500"
+        className="w-40 md:w-52 lg:w-64 bg-violet-100 text-slate-700 shadow-md hover:bg-violet-200 focus:bg-violet-500 focus:text-white focus:ring-4 focus:ring-violet-500 active:bg-violet-700 active:text-white active:shadow-xl"
       >
-        Hover + Focus + Responsive
+        Hover + Focus + Active + Responsive
       </Sticker>
 
       <Shape

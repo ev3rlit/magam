@@ -19,8 +19,12 @@ describe('BaseNode runtime style layering', () => {
       focusStyle: {
         outlineWidth: '2px',
       },
+      activeStyle: {
+        transform: 'scale(0.98)',
+      },
       isHovered: true,
       isFocused: false,
+      isActive: false,
     })).toEqual({
       backgroundColor: '#0f172a',
       opacity: 0.7,
@@ -39,6 +43,7 @@ describe('BaseNode runtime style layering', () => {
       },
       isHovered: false,
       isFocused: false,
+      isActive: false,
     })).toEqual({
       backgroundColor: '#fef3c7',
     });
@@ -55,9 +60,28 @@ describe('BaseNode runtime style layering', () => {
       },
       isHovered: false,
       isFocused: true,
+      isActive: false,
     })).toEqual({
       borderColor: '#06b6d4',
       boxShadow: '0 0 0 3px #cffafe',
+    });
+  });
+
+  it('applies active style while pointer press is active', () => {
+    expect(resolveBaseNodeInlineStyle({
+      runtimeStyle: {
+        transform: 'translateY(0px)',
+      },
+      activeStyle: {
+        transform: 'translateY(2px)',
+        boxShadow: 'none',
+      },
+      isHovered: false,
+      isFocused: false,
+      isActive: true,
+    })).toEqual({
+      transform: 'translateY(2px)',
+      boxShadow: 'none',
     });
   });
 });

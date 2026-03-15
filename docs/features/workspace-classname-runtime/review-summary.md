@@ -3,16 +3,16 @@
 ## Supported Today
 
 - Base runtime categories: size, basic visual styling, shadow/elevation, outline/emphasis
-- Interaction/runtime variants: `hover:`, `focus:`, `dark:`, `md:`, `lg:`, `xl:`, `2xl:`
-- Dedicated interaction layers: `hoverStyle` and `focusStyle` are applied separately from the base inline payload
-- Eligible node surfaces currently connected through `BaseNode`: Text, Markdown, Shape, Sticky, Sticker
+- Interaction/runtime variants: `hover:`, `focus:`, `active:`, `dark:`, `md:`, `lg:`, `xl:`, `2xl:`
+- Dedicated interaction layers: `hoverStyle`, `focusStyle`, and `activeStyle` are applied separately from the base inline payload
+- Eligible node surfaces currently connected through `BaseNode`: Text, Markdown, Shape, Sticky, Sticker, SequenceDiagram
 
 ## Not Supported Yet
 
-- Interaction variants beyond the current subset, including `active:` and `group-hover:`
+- Interaction variants beyond the current subset, including `group-hover:`
 - `WashiTapeNode` runtime `className` styling
 - `ImageNode` runtime `className` styling
-- `SequenceDiagramNode` runtime payload application through the store/BaseNode path
+- `ImageNode` and `WashiTapeNode` runtime payload application through a `className` surface
 
 ## Verification
 
@@ -21,9 +21,10 @@
 - Live browser smoke: `examples/runtime_interactions.tsx` on `http://localhost:3005`
   - Hover diff from baseline: `2.70%`
   - Focus diff from baseline: `2.70%`
+  - Active diff from baseline: `0.73%`
   - Focus target became a `DIV` with `tabIndex=0`
 
 ## Review Risks
 
-- `SequenceDiagramNode` still declares `className`-like surfaces without consuming the runtime payload path.
-- `hover` and `focus` are intentionally single-interaction layers; combined tokens like `hover:focus:*` are diagnosed and ignored.
+- `group-hover:` still has no shared group-state runtime surface, so diagnostics intentionally reject it.
+- `hover`, `focus`, and `active` are intentionally single-interaction layers; combined tokens like `hover:focus:*` or `hover:active:*` are diagnosed and ignored.

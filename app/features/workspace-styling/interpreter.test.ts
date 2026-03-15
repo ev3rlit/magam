@@ -309,6 +309,35 @@ describe('workspace-styling/interpreter', () => {
     expect(String(interpreted.result.resolvedStylePayload?.focusStyle?.boxShadow)).toContain('#f59e0b');
   });
 
+  it('emits active style payload separately from base style', () => {
+    const interpreted = interpretWorkspaceStyle({
+      styleInput: makeInput({
+        className: 'bg-violet-100 text-slate-700 active:bg-violet-500 active:text-white active:ring-4 active:ring-violet-500 active:shadow-xl',
+      }),
+      eligibleProfile: makeEligibleProfile(),
+    });
+
+    expect(interpreted.result.status).toBe('applied');
+    expect(interpreted.result.appliedTokens).toEqual([
+      'bg-violet-100',
+      'text-slate-700',
+      'active:bg-violet-500',
+      'active:text-white',
+      'active:shadow-xl',
+      'active:ring-4',
+      'active:ring-violet-500',
+    ]);
+    expect(interpreted.result.resolvedStylePayload?.style).toMatchObject({
+      backgroundColor: '#ede9fe',
+      color: '#334155',
+    });
+    expect(interpreted.result.resolvedStylePayload?.activeStyle).toMatchObject({
+      backgroundColor: '#8b5cf6',
+      color: 'white',
+    });
+    expect(String(interpreted.result.resolvedStylePayload?.activeStyle?.boxShadow)).toContain('#8b5cf6');
+  });
+
   it('supports finer shadow and outline utilities', () => {
     const interpreted = interpretWorkspaceStyle({
       styleInput: makeInput({
@@ -354,14 +383,14 @@ describe('workspace-styling/interpreter', () => {
   it('rejects multiple interaction variants on a single token', () => {
     const interpreted = interpretWorkspaceStyle({
       styleInput: makeInput({
-        className: 'hover:focus:ring-2 bg-slate-100',
+        className: 'hover:active:ring-2 bg-slate-100',
       }),
       eligibleProfile: makeEligibleProfile(),
     });
 
     expect(interpreted.result.status).toBe('partial');
     expect(interpreted.result.appliedTokens).toEqual(['bg-slate-100']);
-    expect(interpreted.result.ignoredTokens).toEqual(['hover:focus:ring-2']);
+    expect(interpreted.result.ignoredTokens).toEqual(['hover:active:ring-2']);
     expect(interpreted.diagnostics.map((item) => item.code)).toEqual([
       'UNSUPPORTED_TOKEN',
       'MIXED_INPUT',

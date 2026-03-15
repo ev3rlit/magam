@@ -51,14 +51,17 @@ export function resolveBaseNodeInlineStyle(input: {
     runtimeStyle?: Record<string, string | number>;
     hoverStyle?: Record<string, string | number>;
     focusStyle?: Record<string, string | number>;
+    activeStyle?: Record<string, string | number>;
     isHovered: boolean;
     isFocused: boolean;
+    isActive: boolean;
 }): React.CSSProperties {
     return {
         ...(input.style || {}),
         ...(input.runtimeStyle || {}),
         ...(input.isHovered ? (input.hoverStyle || {}) : {}),
         ...(input.isFocused ? (input.focusStyle || {}) : {}),
+        ...(input.isActive ? (input.activeStyle || {}) : {}),
     };
 }
 
@@ -78,6 +81,7 @@ export const BaseNodeComponent = ({
     const nodeId = useNodeId();
     const [isHovered, setIsHovered] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
+    const [isActive, setIsActive] = useState(false);
     // Optimization: Only subscribe to this specific node's data
     // This prevents re-renders when other nodes are updated (e.g. selection drag)
     const node = useGraphStore(
@@ -94,9 +98,11 @@ export const BaseNodeComponent = ({
         runtimeStyle: runtimePayload?.style,
         hoverStyle: runtimePayload?.hoverStyle,
         focusStyle: runtimePayload?.focusStyle,
+        activeStyle: runtimePayload?.activeStyle,
         isHovered,
         isFocused,
-    }), [isFocused, isHovered, runtimePayload?.focusStyle, runtimePayload?.hoverStyle, runtimePayload?.style, style]);
+        isActive,
+    }), [isActive, isFocused, isHovered, runtimePayload?.activeStyle, runtimePayload?.focusStyle, runtimePayload?.hoverStyle, runtimePayload?.style, style]);
 
     const handleClasses = clsx(
         '!w-3 !h-3 !border-0 transition-opacity duration-200',
@@ -148,7 +154,10 @@ export const BaseNodeComponent = ({
             onMouseLeave={() => setIsHovered(false)}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            tabIndex={runtimePayload?.focusStyle ? 0 : undefined}
+            onMouseDown={() => setIsActive(true)}
+            onMouseUp={() => setIsActive(false)}
+            onMouseLeaveCapture={() => setIsActive(false)}
+            tabIndex={runtimePayload?.focusStyle || runtimePayload?.activeStyle ? 0 : undefined}
         >
             {/* Target handle */}
             {endHandle && (

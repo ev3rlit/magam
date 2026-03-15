@@ -46,6 +46,7 @@ export interface ResolvedStylePayload {
   style: Record<string, string | number>;
   hoverStyle?: Record<string, string | number>;
   focusStyle?: Record<string, string | number>;
+  activeStyle?: Record<string, string | number>;
 }
 
 export interface InterpretedStyleResult {

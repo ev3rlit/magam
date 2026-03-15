@@ -64,7 +64,7 @@ workspace `className`은 앱 UI용 Tailwind build와 분리된 별도 runtime in
 2. 모든 Tailwind utility와 plugin 생태계를 v1에서 완전 호환하지 않는다.
 3. workspace `className`을 위해 정적 전체 CSS 번들을 미리 생성하는 방향을 v1 기본 전략으로 채택하지 않는다.
 4. runtime interpreter 도입과 동시에 모든 노드/컨테이너 컴포넌트를 한 번에 이관하지 않는다.
-5. variant 전체를 v1 필수로 확정하지 않는다. 현재는 제한된 `hover:`/`focus:`/`dark:`/`md:`/`lg:`/`xl:`/`2xl:` subset만 우선 지원한다.
+5. variant 전체를 v1 필수로 확정하지 않는다. 현재는 제한된 `hover:`/`focus:`/`active:`/`dark:`/`md:`/`lg:`/`xl:`/`2xl:` subset만 우선 지원한다.
 
 ## 6. 사용자 스토리
 
@@ -152,7 +152,7 @@ v1 우선 지원 class category:
 ### Nice to Have (P1)
 
 - arbitrary value 일부 지원 (`w-[320px]`, `bg-[#1f2937]` 등)
-- variant 추가 확장 (`active:`/`group-hover:` 등 상호작용 variant와 더 넓은 responsive subset)
+- variant 추가 확장 (`group-hover:` 등 상호작용 variant와 더 넓은 responsive subset)
 - runtime class 결과 캐시 최적화
 - 지원되지 않는 class를 UI에서 더 직접적으로 노출하는 개발자 도구
 
@@ -211,7 +211,7 @@ PoC 종료 시 확인해야 할 것:
 ### Blocking
 
 1. v1에서 arbitrary value를 어디까지 지원할 것인가
-2. 현재 지원하는 `hover:`/`focus:`/`dark:`/`md:`/`lg:`/`xl:`/`2xl:` 이후에 어떤 pseudo/responsive variant까지 확장할 것인가
+2. 현재 지원하는 `hover:`/`focus:`/`active:`/`dark:`/`md:`/`lg:`/`xl:`/`2xl:` 이후에 어떤 pseudo/responsive variant까지 확장할 것인가
 
 ## 10.1 Current Capability Matrix
 
@@ -224,14 +224,15 @@ PoC 종료 시 확인해야 할 것:
 | `StickerNode` | Yes | Yes | Yes | Yes | `app/components/nodes/StickerNode.tsx` exposes `className` in data and renders through `BaseNode`. |
 | `WashiTapeNode` | No | No | No | No | `app/components/nodes/WashiTapeNode.tsx` has no `className` surface today. |
 | `ImageNode` | No | No | No | No | `app/components/nodes/ImageNode.tsx` uses `BaseNode`, but node data does not expose `className`. |
-| `SequenceDiagramNode` | Partial | Not yet | Not yet | Not yet | `app/components/nodes/SequenceDiagramNode.tsx` has `className` props but bypasses `BaseNode`, so runtime payload is not wired. |
+| `SequenceDiagramNode` | Yes | Yes | Yes | Yes | `app/components/nodes/SequenceDiagramNode.tsx` now routes its outer frame through `BaseNode`, so runtime payload applies to the diagram container. |
 
 ## 10.2 Latest Runtime Smoke
 
-- Added `examples/runtime_interactions.tsx` as the dedicated manual smoke surface for `hover:`, `focus:`, and wider responsive variants.
+- Added `examples/runtime_interactions.tsx` as the dedicated manual smoke surface for `hover:`, `focus:`, `active:`, and wider responsive variants.
 - Browser smoke on 2026-03-16 confirmed hover and focus state changes on the live canvas at `http://localhost:3005`.
 - Hover diff versus baseline: `2.70%` pixels changed after hovering `Hover Surface`.
 - Focus diff versus baseline: `2.70%` pixels changed after focusing the sticky surface, and the active element resolved to a `DIV` with `tabIndex=0`.
+- Active diff versus baseline: `0.73%` pixels changed while pointer press was held on `Hover + Focus + Active + Responsive`.
 3. class category별로 "현재 지원 props와 1:1 대응되는 범위"를 어디까지 볼 것인가
 4. runtime interpreter 결과를 inline style 중심으로 적용할지, 별도 stylesheet 삽입으로 적용할지 무엇이 더 안전한가
 

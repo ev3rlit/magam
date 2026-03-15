@@ -13,7 +13,7 @@ const DEFAULT_SEVERITY_BY_CODE: Record<StylingDiagnosticCode, StylingDiagnosticS
   STALE_UPDATE: 'info',
 };
 
-const SUPPORTED_VARIANTS = ['hover', 'focus', 'dark', 'md', 'lg', 'xl', '2xl'] as const;
+const SUPPORTED_VARIANTS = ['hover', 'focus', 'active', 'dark', 'md', 'lg', 'xl', '2xl'] as const;
 
 function getVariantDiagnosticMessage(input: {
   token: string;
@@ -33,9 +33,9 @@ function getVariantDiagnosticMessage(input: {
     return `Token "${input.token}" uses unsupported variant "${unsupportedVariants[0]}". Supported variants: ${SUPPORTED_VARIANTS.join(', ')}.`;
   }
 
-  const interactionVariants = variants.filter((variant) => variant === 'hover' || variant === 'focus');
+  const interactionVariants = variants.filter((variant) => variant === 'hover' || variant === 'focus' || variant === 'active');
   if (interactionVariants.length > 1) {
-    return `Token "${input.token}" combines multiple interaction variants. Use only one of hover or focus per token.`;
+    return `Token "${input.token}" combines multiple interaction variants. Use only one of hover, focus, or active per token.`;
   }
 
   return null;

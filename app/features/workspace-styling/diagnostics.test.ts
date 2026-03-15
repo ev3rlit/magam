@@ -39,11 +39,11 @@ describe('workspace-styling/diagnostics', () => {
     expect(createUnsupportedTokenDiagnostic({
       objectId: 'node-a',
       revision: 'rev-2',
-      token: 'active:w-4',
+      token: 'group-hover:w-4',
       category: 'size',
     })).toMatchObject({
       code: 'UNSUPPORTED_TOKEN',
-      token: 'active:w-4',
+      token: 'group-hover:w-4',
       category: 'size',
       severity: 'warning',
     });
@@ -53,14 +53,14 @@ describe('workspace-styling/diagnostics', () => {
     expect(createUnsupportedTokenDiagnostic({
       objectId: 'node-a',
       revision: 'rev-2',
-      token: 'active:w-4',
+      token: 'group-hover:w-4',
       category: 'size',
-    }).message).toContain('unsupported variant "active"');
+    }).message).toContain('unsupported variant "group-hover"');
 
     expect(createUnsupportedTokenDiagnostic({
       objectId: 'node-a',
       revision: 'rev-2',
-      token: 'hover:focus:ring-2',
+      token: 'hover:active:ring-2',
       category: 'outline-emphasis',
     }).message).toContain('multiple interaction variants');
   });

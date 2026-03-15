@@ -396,11 +396,13 @@ function areConditionalVariantsActive(
   });
 }
 
-function resolveInteractionLayer(variants: string[]): 'base' | 'hover' | 'focus' | 'unsupported' {
+function resolveInteractionLayer(variants: string[]): 'base' | 'hover' | 'focus' | 'active' | 'unsupported' {
   const hasHoverVariant = variants.includes('hover');
   const hasFocusVariant = variants.includes('focus');
+  const hasActiveVariant = variants.includes('active');
+  const interactionCount = [hasHoverVariant, hasFocusVariant, hasActiveVariant].filter(Boolean).length;
 
-  if (hasHoverVariant && hasFocusVariant) {
+  if (interactionCount > 1) {
     return 'unsupported';
   }
   if (hasHoverVariant) {
@@ -409,13 +411,16 @@ function resolveInteractionLayer(variants: string[]): 'base' | 'hover' | 'focus'
   if (hasFocusVariant) {
     return 'focus';
   }
+  if (hasActiveVariant) {
+    return 'active';
+  }
   return 'base';
 }
 
 function collectActiveTokensByCategory(
   classified: ClassifiedToken[],
   runtimeContext: WorkspaceStyleRuntimeContext,
-  interaction: 'base' | 'hover' | 'focus',
+  interaction: 'base' | 'hover' | 'focus' | 'active',
 ): Map<WorkspaceStyleCategory, string[]> {
   const activeTokensByCategory = new Map<WorkspaceStyleCategory, string[]>();
 
@@ -427,7 +432,7 @@ function collectActiveTokensByCategory(
       return;
     }
 
-    const conditionalVariants = item.variants.filter((variant) => variant !== 'hover' && variant !== 'focus');
+    const conditionalVariants = item.variants.filter((variant) => variant !== 'hover' && variant !== 'focus' && variant !== 'active');
     if (!areConditionalVariantsActive(conditionalVariants, runtimeContext)) {
       return;
     }
@@ -803,11 +808,13 @@ function buildPayload(input: {
   baseTokensByCategory: Map<WorkspaceStyleCategory, string[]>;
   hoverTokensByCategory: Map<WorkspaceStyleCategory, string[]>;
   focusTokensByCategory: Map<WorkspaceStyleCategory, string[]>;
+  activeTokensByCategory: Map<WorkspaceStyleCategory, string[]>;
 }): ResolvedStylePayload {
   const base = buildStyleFromTokensByCategory(input.baseTokensByCategory);
   const hover = buildStyleFromTokensByCategory(input.hoverTokensByCategory);
   const focus = buildStyleFromTokensByCategory(input.focusTokensByCategory);
-  const categories = Array.from(new Set([...base.categories, ...hover.categories, ...focus.categories])).sort(
+  const active = buildStyleFromTokensByCategory(input.activeTokensByCategory);
+  const categories = Array.from(new Set([...base.categories, ...hover.categories, ...focus.categories, ...active.categories])).sort(
     (left, right) => getCategoryPriority(left) - getCategoryPriority(right),
   );
   const tokensByCategory: Partial<Record<WorkspaceStyleCategory, string[]>> = {};
@@ -816,6 +823,7 @@ function buildPayload(input: {
       ...(base.tokensByCategory[category] ?? []),
       ...(hover.tokensByCategory[category] ?? []),
       ...(focus.tokensByCategory[category] ?? []),
+      ...(active.tokensByCategory[category] ?? []),
     ];
     if (combined.length > 0) {
       tokensByCategory[category] = combined;
@@ -829,6 +837,7 @@ function buildPayload(input: {
     style: base.style,
     ...(Object.keys(hover.style).length > 0 ? { hoverStyle: hover.style } : {}),
     ...(Object.keys(focus.style).length > 0 ? { focusStyle: focus.style } : {}),
+    ...(Object.keys(active.style).length > 0 ? { activeStyle: active.style } : {}),
   };
 }
 
@@ -926,6 +935,7 @@ export function interpretWorkspaceStyle(input: {
     baseTokensByCategory: collectActiveTokensByCategory(classified, runtimeContext, 'base'),
     hoverTokensByCategory: collectActiveTokensByCategory(classified, runtimeContext, 'hover'),
     focusTokensByCategory: collectActiveTokensByCategory(classified, runtimeContext, 'focus'),
+    activeTokensByCategory: collectActiveTokensByCategory(classified, runtimeContext, 'active'),
   });
   const hasAccepted = acceptedTokens.length > 0;
   const hasIgnored = ignoredTokens.length > 0;
