@@ -24,6 +24,7 @@ import {
   type InterpretedStyleResult,
   type StylingDiagnostic,
   type WorkspaceStyleInput,
+  type WorkspaceStyleRuntimeContext,
   type WorkspaceStyleSessionState,
 } from '@/features/workspace-styling';
 
@@ -279,6 +280,7 @@ function buildWorkspaceStyleSnapshot(input: {
   currentFile: string | null;
   previousSession: WorkspaceStyleSessionState;
   previousResults: Record<string, InterpretedStyleResult>;
+  runtimeContext: WorkspaceStyleRuntimeContext;
 }): WorkspaceStyleStateSnapshot {
   let workspaceStyleSession = input.previousSession;
   const workspaceStyleByNodeId: Record<string, InterpretedStyleResult> = {};
@@ -320,6 +322,7 @@ function buildWorkspaceStyleSnapshot(input: {
     const interpreted = interpretWorkspaceStyle({
       styleInput,
       eligibleProfile: resolveEligibleObjectProfileForNode(node),
+      runtimeContext: input.runtimeContext,
     });
 
     if (styleInput.className.trim().length > 0 || previousResult) {
@@ -334,6 +337,20 @@ function buildWorkspaceStyleSnapshot(input: {
     workspaceStyleSession,
     workspaceStyleByNodeId,
     workspaceStyleDiagnosticsByNodeId,
+  };
+}
+
+function resolveWorkspaceStyleRuntimeContext(): WorkspaceStyleRuntimeContext {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return {
+      colorScheme: 'light',
+      viewportWidth: 0,
+    };
+  }
+
+  return {
+    colorScheme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+    viewportWidth: window.innerWidth,
   };
 }
 
@@ -412,6 +429,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       currentFile: state.currentFile,
       previousSession: state.workspaceStyleSession,
       previousResults: state.workspaceStyleByNodeId,
+      runtimeContext: resolveWorkspaceStyleRuntimeContext(),
     });
     return {
       nodes,
@@ -446,6 +464,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       currentFile: state.currentFile,
       previousSession: state.workspaceStyleSession,
       previousResults: state.workspaceStyleByNodeId,
+      runtimeContext: resolveWorkspaceStyleRuntimeContext(),
     });
 
     return {
@@ -473,6 +492,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       currentFile,
       previousSession: state.workspaceStyleSession,
       previousResults: state.workspaceStyleByNodeId,
+      runtimeContext: resolveWorkspaceStyleRuntimeContext(),
     });
     return {
       currentFile,
@@ -551,6 +571,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
         currentFile: state.currentFile,
         previousSession: state.workspaceStyleSession,
         previousResults: state.workspaceStyleByNodeId,
+        runtimeContext: resolveWorkspaceStyleRuntimeContext(),
       }),
     };
   }),
@@ -912,5 +933,6 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     currentFile: state.currentFile,
     previousSession: state.workspaceStyleSession,
     previousResults: state.workspaceStyleByNodeId,
+    runtimeContext: resolveWorkspaceStyleRuntimeContext(),
   })),
 }));

@@ -13,6 +13,11 @@ export interface WorkspaceStyleInput {
   timestamp: number;
 }
 
+export interface WorkspaceStyleRuntimeContext {
+  colorScheme: 'light' | 'dark';
+  viewportWidth: number;
+}
+
 export interface EligibleObjectCapabilities {
   hasClassNameSurface: boolean;
   supportsStylingProps: boolean;

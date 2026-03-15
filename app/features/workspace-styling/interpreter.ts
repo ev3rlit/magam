@@ -10,21 +10,30 @@ import {
   dedupeDiagnostics,
 } from './diagnostics';
 import type {
+  ClassifiedToken,
   EligibleObjectProfile,
   InterpretedStyleResult,
   ResolvedStylePayload,
   StylingDiagnostic,
   WorkspaceStyleCategory,
   WorkspaceStyleInput,
+  WorkspaceStyleRuntimeContext,
 } from './types';
 
 type StyleAccumulator = {
   style: Record<string, string | number>;
   ringWidth: number;
+  ringInset: boolean;
   ringColor: string;
   ringOffsetWidth: number;
   ringOffsetColor: string;
   shadowValue?: string;
+  shadowColor?: string;
+};
+
+const DEFAULT_RUNTIME_CONTEXT: WorkspaceStyleRuntimeContext = {
+  colorScheme: 'light',
+  viewportWidth: 0,
 };
 
 const COLOR_PALETTES: Record<string, Record<string, string> | string> = {
@@ -331,6 +340,15 @@ function resolveRingOffsetValue(token: string): number | null {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
+function resolveOutlineOffsetValue(token: string): string | null {
+  const suffix = token.slice('outline-offset-'.length);
+  if (isArbitraryValue(suffix)) {
+    return unwrapArbitraryValue(suffix);
+  }
+  const numeric = Number(suffix);
+  return Number.isFinite(numeric) ? `${numeric}px` : null;
+}
+
 function resolveShadowValue(token: string): string | undefined {
   const shadowByToken: Record<string, string | undefined> = {
     shadow: '0 1px 3px 0 rgba(15, 23, 42, 0.12), 0 1px 2px -1px rgba(15, 23, 42, 0.12)',
@@ -339,10 +357,52 @@ function resolveShadowValue(token: string): string | undefined {
     'shadow-lg': '0 10px 15px -3px rgba(15, 23, 42, 0.14), 0 4px 6px -4px rgba(15, 23, 42, 0.14)',
     'shadow-xl': '0 20px 25px -5px rgba(15, 23, 42, 0.16), 0 8px 10px -6px rgba(15, 23, 42, 0.16)',
     'shadow-2xl': '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
+    'shadow-inner': 'inset 0 2px 4px 0 rgba(15, 23, 42, 0.08)',
     'shadow-none': 'none',
   };
 
+  if (token.startsWith('shadow-[') && token.endsWith(']')) {
+    return unwrapArbitraryValue(token.slice('shadow-'.length));
+  }
+
   return shadowByToken[token];
+}
+
+function applyShadowColor(shadowValue: string, color: string): string {
+  return shadowValue.replace(/rgba\([^)]+\)/g, color);
+}
+
+function areVariantsActive(variants: string[], runtimeContext: WorkspaceStyleRuntimeContext): boolean {
+  return variants.every((variant) => {
+    if (variant === 'dark') {
+      return runtimeContext.colorScheme === 'dark';
+    }
+    if (variant === 'md') {
+      return runtimeContext.viewportWidth >= 768;
+    }
+    return false;
+  });
+}
+
+function collectActiveTokensByCategory(
+  classified: ClassifiedToken[],
+  runtimeContext: WorkspaceStyleRuntimeContext,
+): Map<WorkspaceStyleCategory, string[]> {
+  const activeTokensByCategory = new Map<WorkspaceStyleCategory, string[]>();
+
+  classified.forEach((item) => {
+    if (!item.supported || !item.category) {
+      return;
+    }
+    if (!areVariantsActive(item.variants, runtimeContext)) {
+      return;
+    }
+    const current = activeTokensByCategory.get(item.category) ?? [];
+    current.push(item.baseToken);
+    activeTokensByCategory.set(item.category, current);
+  });
+
+  return activeTokensByCategory;
 }
 
 function ensureBorderStyle(style: Record<string, string | number>): void {
@@ -512,6 +572,13 @@ function applyBasicVisualToken(accumulator: StyleAccumulator, token: string): vo
 }
 
 function applyShadowToken(accumulator: StyleAccumulator, token: string): void {
+  if (token.startsWith('shadow-')) {
+    const color = resolveColorValue(token.slice('shadow-'.length));
+    if (color) {
+      accumulator.shadowColor = color;
+      return;
+    }
+  }
   const shadowValue = resolveShadowValue(token);
   if (shadowValue !== undefined) {
     accumulator.shadowValue = shadowValue;
@@ -519,6 +586,28 @@ function applyShadowToken(accumulator: StyleAccumulator, token: string): void {
 }
 
 function applyOutlineToken(accumulator: StyleAccumulator, token: string): void {
+  if (token === 'outline-none') {
+    accumulator.style.outlineStyle = 'none';
+    accumulator.style.outlineWidth = '0px';
+    return;
+  }
+
+  if (token === 'outline-dashed' || token === 'outline-solid' || token === 'outline-dotted') {
+    accumulator.style.outlineStyle = token.slice('outline-'.length);
+    if (!('outlineWidth' in accumulator.style)) {
+      accumulator.style.outlineWidth = '1px';
+    }
+    return;
+  }
+
+  if (token.startsWith('outline-offset-')) {
+    const offset = resolveOutlineOffsetValue(token);
+    if (offset) {
+      accumulator.style.outlineOffset = offset;
+    }
+    return;
+  }
+
   if (token.startsWith('outline')) {
     const outlineWidth = resolveOutlineWidthValue(token);
     if (outlineWidth) {
@@ -550,6 +639,10 @@ function applyOutlineToken(accumulator: StyleAccumulator, token: string): void {
   }
 
   if (token.startsWith('ring')) {
+    if (token === 'ring-inset') {
+      accumulator.ringInset = true;
+      return;
+    }
     const ringWidth = resolveRingWidthValue(token);
     if (ringWidth !== null) {
       accumulator.ringWidth = ringWidth;
@@ -569,12 +662,17 @@ function finalizeStyle(accumulator: StyleAccumulator): Record<string, string | n
     boxShadows.push(`0 0 0 ${accumulator.ringOffsetWidth}px ${accumulator.ringOffsetColor}`);
   }
   if (accumulator.ringWidth > 0) {
+    const ringPrefix = accumulator.ringInset ? 'inset ' : '';
     boxShadows.push(
-      `0 0 0 ${accumulator.ringOffsetWidth + accumulator.ringWidth}px ${accumulator.ringColor}`,
+      `${ringPrefix}0 0 0 ${accumulator.ringOffsetWidth + accumulator.ringWidth}px ${accumulator.ringColor}`,
     );
   }
   if (accumulator.shadowValue && accumulator.shadowValue !== 'none') {
-    boxShadows.push(accumulator.shadowValue);
+    boxShadows.push(
+      accumulator.shadowColor
+        ? applyShadowColor(accumulator.shadowValue, accumulator.shadowColor)
+        : accumulator.shadowValue,
+    );
   }
   if (accumulator.shadowValue === 'none' && boxShadows.length === 0) {
     accumulator.style.boxShadow = 'none';
@@ -598,6 +696,7 @@ function buildPayload(appliedTokensByCategory: Map<WorkspaceStyleCategory, strin
   const accumulator: StyleAccumulator = {
     style: {},
     ringWidth: 0,
+    ringInset: false,
     ringColor: '#6366f1',
     ringOffsetWidth: 0,
     ringOffsetColor: '#ffffff',
@@ -674,8 +773,10 @@ function createUnsupportedResult(objectId: string): InterpretedStyleResult {
 export function interpretWorkspaceStyle(input: {
   styleInput: WorkspaceStyleInput;
   eligibleProfile: EligibleObjectProfile;
+  runtimeContext?: WorkspaceStyleRuntimeContext;
 }): { result: InterpretedStyleResult; diagnostics: StylingDiagnostic[] } {
   const { styleInput, eligibleProfile } = input;
+  const runtimeContext = input.runtimeContext ?? DEFAULT_RUNTIME_CONTEXT;
   const diagnostics: StylingDiagnostic[] = [];
 
   if (!eligibleProfile.isEligible) {
@@ -705,7 +806,6 @@ export function interpretWorkspaceStyle(input: {
   }
 
   const classified = classifyTokens(tokens);
-  const appliedTokensByCategory = new Map<WorkspaceStyleCategory, string[]>();
   const ignoredTokens: string[] = [];
 
   classified.forEach((item) => {
@@ -727,18 +827,24 @@ export function interpretWorkspaceStyle(input: {
       }
       return;
     }
-
-    const current = appliedTokensByCategory.get(item.category) ?? [];
-    current.push(item.token);
-    appliedTokensByCategory.set(item.category, current);
   });
 
-  const payload = buildPayload(appliedTokensByCategory);
-  const appliedTokens = payload.className.length > 0 ? payload.className.split(/\s+/) : [];
-  const hasApplied = appliedTokens.length > 0;
+  const acceptedTokens = classified
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => item.supported && item.category)
+    .sort((left, right) => {
+      const leftCategory = left.item.category as WorkspaceStyleCategory;
+      const rightCategory = right.item.category as WorkspaceStyleCategory;
+      const priorityDelta = getCategoryPriority(leftCategory) - getCategoryPriority(rightCategory);
+      return priorityDelta !== 0 ? priorityDelta : left.index - right.index;
+    })
+    .map(({ item }) => item.token);
+
+  const payload = buildPayload(collectActiveTokensByCategory(classified, runtimeContext));
+  const hasAccepted = acceptedTokens.length > 0;
   const hasIgnored = ignoredTokens.length > 0;
 
-  if (hasApplied && hasIgnored) {
+  if (hasAccepted && hasIgnored) {
     diagnostics.push(createMixedInputDiagnostic({
       objectId: styleInput.objectId,
       revision: styleInput.sourceRevision,
@@ -746,7 +852,7 @@ export function interpretWorkspaceStyle(input: {
     }));
   }
 
-  const status: InterpretedStyleResult['status'] = hasApplied
+  const status: InterpretedStyleResult['status'] = hasAccepted
     ? (hasIgnored ? 'partial' : 'applied')
     : 'unsupported';
 
@@ -755,9 +861,9 @@ export function interpretWorkspaceStyle(input: {
       objectId: styleInput.objectId,
       status,
       appliedCategories: payload.categories,
-      appliedTokens,
+      appliedTokens: acceptedTokens,
       ignoredTokens,
-      ...(hasApplied ? { resolvedStylePayload: payload } : {}),
+      ...(hasAccepted ? { resolvedStylePayload: payload } : {}),
     },
     diagnostics: dedupeDiagnostics(diagnostics),
   };

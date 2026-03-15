@@ -39,11 +39,11 @@ describe('workspace-styling/diagnostics', () => {
     expect(createUnsupportedTokenDiagnostic({
       objectId: 'node-a',
       revision: 'rev-2',
-      token: 'md:w-4',
+      token: 'hover:w-4',
       category: 'size',
     })).toMatchObject({
       code: 'UNSUPPORTED_TOKEN',
-      token: 'md:w-4',
+      token: 'hover:w-4',
       category: 'size',
       severity: 'warning',
     });
@@ -79,4 +79,3 @@ describe('workspace-styling/diagnostics', () => {
     expect(dedupeDiagnostics([duplicate, duplicate])).toHaveLength(1);
   });
 });
-

@@ -4,6 +4,7 @@ import {
   classifyTokens,
   getClassCategoryDefinitions,
   getCategoryPriority,
+  isSupportedVariant,
   resolveTokenCategory,
   sortCategoriesByPriority,
 } from './classCategories';
@@ -36,12 +37,24 @@ describe('workspace-styling/classCategories', () => {
     expect(resolveTokenCategory('unknown-token')).toBeNull();
   });
 
-  it('marks variant tokens as unsupported in v1', () => {
+  it('accepts supported runtime variants', () => {
     const classified = classifyToken('md:w-32');
     expect(classified.category).toBe('size');
-    expect(classified.supported).toBe(false);
+    expect(classified.supported).toBe(true);
     expect(classified.variants).toEqual(['md']);
     expect(classified.baseToken).toBe('w-32');
+  });
+
+  it('keeps unsupported runtime variants rejected', () => {
+    expect(isSupportedVariant('dark')).toBe(true);
+    expect(isSupportedVariant('md')).toBe(true);
+    expect(isSupportedVariant('hover')).toBe(false);
+    expect(classifyToken('hover:bg-slate-100')).toMatchObject({
+      category: 'basic-visual',
+      supported: false,
+      variants: ['hover'],
+      baseToken: 'bg-slate-100',
+    });
   });
 
   it('classifies plain supported tokens', () => {

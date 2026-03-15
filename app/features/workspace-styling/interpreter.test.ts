@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'bun:test';
 import { resolveEligibleObjectProfile } from './eligibility';
 import { interpretWorkspaceStyle } from './interpreter';
-import type { EligibleObjectProfile, WorkspaceStyleInput } from './types';
+import type {
+  EligibleObjectProfile,
+  WorkspaceStyleInput,
+  WorkspaceStyleRuntimeContext,
+} from './types';
 
 function makeInput(overrides?: Partial<WorkspaceStyleInput>): WorkspaceStyleInput {
   return {
@@ -20,6 +24,16 @@ function makeEligibleProfile(overrides?: Partial<EligibleObjectProfile>): Eligib
     supportsStylingProps: true,
     supportsSizeProps: true,
     isEligible: true,
+    ...overrides,
+  };
+}
+
+function makeRuntimeContext(
+  overrides?: Partial<WorkspaceStyleRuntimeContext>,
+): WorkspaceStyleRuntimeContext {
+  return {
+    colorScheme: 'light',
+    viewportWidth: 640,
     ...overrides,
   };
 }
@@ -154,17 +168,80 @@ describe('workspace-styling/interpreter', () => {
     });
   });
 
+  it('activates dark and md variants only when runtime context matches', () => {
+    const darkAndWide = interpretWorkspaceStyle({
+      styleInput: makeInput({
+        className: 'dark:bg-slate-900 md:w-64 md:ring-2',
+      }),
+      eligibleProfile: makeEligibleProfile(),
+      runtimeContext: makeRuntimeContext({
+        colorScheme: 'dark',
+        viewportWidth: 960,
+      }),
+    });
+
+    expect(darkAndWide.result.status).toBe('applied');
+    expect(darkAndWide.result.appliedTokens).toEqual([
+      'md:w-64',
+      'dark:bg-slate-900',
+      'md:ring-2',
+    ]);
+    expect(darkAndWide.result.resolvedStylePayload?.style).toMatchObject({
+      backgroundColor: '#0f172a',
+      width: '16rem',
+    });
+    expect(String(darkAndWide.result.resolvedStylePayload?.style.boxShadow)).toContain('#6366f1');
+
+    const lightAndNarrow = interpretWorkspaceStyle({
+      styleInput: makeInput({
+        className: 'dark:bg-slate-900 md:w-64',
+      }),
+      eligibleProfile: makeEligibleProfile(),
+      runtimeContext: makeRuntimeContext(),
+    });
+
+    expect(lightAndNarrow.result.status).toBe('applied');
+    expect(lightAndNarrow.result.appliedTokens).toEqual([
+      'md:w-64',
+      'dark:bg-slate-900',
+    ]);
+    expect(lightAndNarrow.result.appliedCategories).toEqual([]);
+    expect(lightAndNarrow.result.resolvedStylePayload?.style).toEqual({});
+    expect(lightAndNarrow.diagnostics).toEqual([]);
+  });
+
+  it('supports finer shadow and outline utilities', () => {
+    const interpreted = interpretWorkspaceStyle({
+      styleInput: makeInput({
+        className: 'shadow-inner shadow-violet-500/40 ring-inset ring-[5px] ring-cyan-500 outline-dotted outline-offset-4',
+      }),
+      eligibleProfile: makeEligibleProfile(),
+    });
+
+    expect(interpreted.result.status).toBe('applied');
+    expect(interpreted.result.appliedCategories).toEqual([
+      'shadow-elevation',
+      'outline-emphasis',
+    ]);
+    expect(interpreted.result.resolvedStylePayload?.style).toMatchObject({
+      outlineStyle: 'dotted',
+      outlineOffset: '4px',
+    });
+    expect(String(interpreted.result.resolvedStylePayload?.style.boxShadow)).toContain('inset 0 0 0 5px #06b6d4');
+    expect(String(interpreted.result.resolvedStylePayload?.style.boxShadow)).toContain('rgba(139, 92, 246, 0.4)');
+  });
+
   it('returns partial and mixed diagnostics for mixed input', () => {
     const interpreted = interpretWorkspaceStyle({
       styleInput: makeInput({
-        className: 'w-20 foo-bar md:bg-red-100 shadow-sm',
+        className: 'w-20 foo-bar hover:bg-red-100 shadow-sm',
       }),
       eligibleProfile: makeEligibleProfile(),
     });
 
     expect(interpreted.result.status).toBe('partial');
     expect(interpreted.result.appliedTokens).toEqual(['w-20', 'shadow-sm']);
-    expect(interpreted.result.ignoredTokens).toEqual(['foo-bar', 'md:bg-red-100']);
+    expect(interpreted.result.ignoredTokens).toEqual(['foo-bar', 'hover:bg-red-100']);
     expect(interpreted.diagnostics.map((item) => item.code)).toEqual([
       'UNSUPPORTED_CATEGORY',
       'UNSUPPORTED_TOKEN',

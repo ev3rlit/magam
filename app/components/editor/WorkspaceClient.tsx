@@ -140,6 +140,7 @@ export function WorkspaceClient() {
     clearPendingTextEditAction,
     clearTextEditSession,
     pushEditCompletionEvent,
+    refreshWorkspaceStyles,
     workspaceStyleDiagnosticsByNodeId,
   } = useGraphStore();
   const isChatOpen = useChatUiStore((state) => state.isOpen);
@@ -220,6 +221,33 @@ export function WorkspaceClient() {
   useEffect(() => {
     loadFiles();
   }, [loadFiles]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return;
+    }
+
+    const handleRuntimeStyleContextChange = () => {
+      refreshWorkspaceStyles();
+    };
+
+    window.addEventListener('resize', handleRuntimeStyleContextChange);
+    const observer = new MutationObserver((mutations) => {
+      const classMutation = mutations.some((mutation) => mutation.attributeName === 'class');
+      if (classMutation) {
+        handleRuntimeStyleContextChange();
+      }
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => {
+      window.removeEventListener('resize', handleRuntimeStyleContextChange);
+      observer.disconnect();
+    };
+  }, [refreshWorkspaceStyles]);
 
   const executeCloseTabs = useCallback(
     (tabIds: string[]) => {
