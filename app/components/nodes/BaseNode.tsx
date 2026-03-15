@@ -65,6 +65,12 @@ export const BaseNodeComponent = ({
     const node = useGraphStore(
         useCallback((state) => state.nodes.find((n) => n.id === nodeId), [nodeId])
     );
+    const runtimeStyle = useGraphStore(
+        useCallback((state) => {
+            if (!nodeId) return undefined;
+            return state.workspaceStyleByNodeId[nodeId]?.resolvedStylePayload?.style;
+        }, [nodeId]),
+    );
 
     const handleClasses = clsx(
         '!w-3 !h-3 !border-0 transition-opacity duration-200',
@@ -108,7 +114,11 @@ export const BaseNodeComponent = ({
     // Bubble is now rendered in BubbleOverlay, not here
 
     return (
-        <div className={twMerge("relative group", className)} style={style} onDoubleClick={onDoubleClick}>
+        <div
+            className={twMerge("relative group", className)}
+            style={{ ...style, ...runtimeStyle }}
+            onDoubleClick={onDoubleClick}
+        >
             {/* Target handle */}
             {endHandle && (
                 <Handle

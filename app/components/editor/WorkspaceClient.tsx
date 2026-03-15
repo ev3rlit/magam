@@ -46,6 +46,7 @@ import {
   buildTextDraftPatch,
   canCommitTextEdit,
   canRunNodeCommand,
+  flattenWorkspaceStyleDiagnostics,
   getAllowedNodeStylePatch,
   mapEditRpcErrorToToast,
   resolveNodeEditContext,
@@ -70,6 +71,7 @@ type MagamTestHooks = {
   getActiveTabId: () => string | null;
   getOpenTabs: () => TabState[];
   markTabDirty: (tabId: string, dirty: boolean) => void;
+  openFile: (pageId: string) => boolean;
 };
 
 function getNodeLabel(node: { data?: unknown }): string {
@@ -138,6 +140,7 @@ export function WorkspaceClient() {
     clearPendingTextEditAction,
     clearTextEditSession,
     pushEditCompletionEvent,
+    workspaceStyleDiagnosticsByNodeId,
   } = useGraphStore();
   const isChatOpen = useChatUiStore((state) => state.isOpen);
   const toggleChat = useChatUiStore((state) => state.toggleOpen);
@@ -169,8 +172,12 @@ export function WorkspaceClient() {
       markTabDirty: (tabId, dirty) => {
         markTabDirty(tabId, dirty);
       },
+      openFile: (pageId) => {
+        const result = openTab(pageId);
+        return result.status !== 'blocked';
+      },
     };
-  }, [activeTabId, markTabDirty, openTabs]);
+  }, [activeTabId, markTabDirty, openTab, openTabs]);
 
   // File sync - triggers re-render when file changes externally
   const handleFileChange = useCallback(() => {
@@ -193,6 +200,10 @@ export function WorkspaceClient() {
   const dependencyFiles = useMemo(
     () => Object.keys(sourceVersions).filter((filePath) => filePath !== currentFile),
     [currentFile, sourceVersions],
+  );
+  const workspaceStyleDiagnostics = useMemo(
+    () => flattenWorkspaceStyleDiagnostics(workspaceStyleDiagnosticsByNodeId),
+    [workspaceStyleDiagnosticsByNodeId],
   );
 
   // File sync with reload callback for file list changes
@@ -1245,6 +1256,18 @@ export function WorkspaceClient() {
             onCreateNode={handleCreateNodeCommit}
           />
           <LazyStickerInspector onApplyStylePatch={handleNodeStyleCommit} />
+          {process.env.NODE_ENV !== 'production' && workspaceStyleDiagnostics.length > 0 ? (
+            <div className="absolute bottom-4 left-4 z-40 max-w-sm rounded-lg border border-amber-200 bg-amber-50/95 px-3 py-2 text-xs text-amber-950 shadow-lg backdrop-blur">
+              <div className="font-semibold">Workspace Style Diagnostics</div>
+              <ul className="mt-1 space-y-1">
+                {workspaceStyleDiagnostics.map((message, index) => (
+                  <li key={`${message}-${index}`}>
+                    {message}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </main>
 
         <Footer />
