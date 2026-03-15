@@ -44,6 +44,7 @@ export interface ResolvedStylePayload {
   categories: WorkspaceStyleCategory[];
   tokensByCategory: Partial<Record<WorkspaceStyleCategory, string[]>>;
   style: Record<string, string | number>;
+  hoverStyle?: Record<string, string | number>;
 }
 
 export interface InterpretedStyleResult {

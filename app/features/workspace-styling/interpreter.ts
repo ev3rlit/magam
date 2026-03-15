@@ -372,13 +372,25 @@ function applyShadowColor(shadowValue: string, color: string): string {
   return shadowValue.replace(/rgba\([^)]+\)/g, color);
 }
 
-function areVariantsActive(variants: string[], runtimeContext: WorkspaceStyleRuntimeContext): boolean {
+function areConditionalVariantsActive(
+  variants: string[],
+  runtimeContext: WorkspaceStyleRuntimeContext,
+): boolean {
   return variants.every((variant) => {
     if (variant === 'dark') {
       return runtimeContext.colorScheme === 'dark';
     }
     if (variant === 'md') {
       return runtimeContext.viewportWidth >= 768;
+    }
+    if (variant === 'lg') {
+      return runtimeContext.viewportWidth >= 1024;
+    }
+    if (variant === 'xl') {
+      return runtimeContext.viewportWidth >= 1280;
+    }
+    if (variant === '2xl') {
+      return runtimeContext.viewportWidth >= 1536;
     }
     return false;
   });
@@ -387,6 +399,7 @@ function areVariantsActive(variants: string[], runtimeContext: WorkspaceStyleRun
 function collectActiveTokensByCategory(
   classified: ClassifiedToken[],
   runtimeContext: WorkspaceStyleRuntimeContext,
+  interaction: 'base' | 'hover',
 ): Map<WorkspaceStyleCategory, string[]> {
   const activeTokensByCategory = new Map<WorkspaceStyleCategory, string[]>();
 
@@ -394,7 +407,16 @@ function collectActiveTokensByCategory(
     if (!item.supported || !item.category) {
       return;
     }
-    if (!areVariantsActive(item.variants, runtimeContext)) {
+    const hasHoverVariant = item.variants.includes('hover');
+    if (interaction === 'base' && hasHoverVariant) {
+      return;
+    }
+    if (interaction === 'hover' && !hasHoverVariant) {
+      return;
+    }
+
+    const conditionalVariants = item.variants.filter((variant) => variant !== 'hover');
+    if (!areConditionalVariantsActive(conditionalVariants, runtimeContext)) {
       return;
     }
     const current = activeTokensByCategory.get(item.category) ?? [];
@@ -682,7 +704,13 @@ function finalizeStyle(accumulator: StyleAccumulator): Record<string, string | n
   return accumulator.style;
 }
 
-function buildPayload(appliedTokensByCategory: Map<WorkspaceStyleCategory, string[]>): ResolvedStylePayload {
+function buildStyleFromTokensByCategory(
+  appliedTokensByCategory: Map<WorkspaceStyleCategory, string[]>,
+): {
+  categories: WorkspaceStyleCategory[];
+  tokensByCategory: Partial<Record<WorkspaceStyleCategory, string[]>>;
+  style: Record<string, string | number>;
+} {
   const categories = [...appliedTokensByCategory.keys()].sort(
     (left, right) => getCategoryPriority(left) - getCategoryPriority(right),
   );
@@ -753,10 +781,38 @@ function buildPayload(appliedTokensByCategory: Map<WorkspaceStyleCategory, strin
   });
 
   return {
-    className: orderedTokens.join(' '),
     categories,
     tokensByCategory,
     style: finalizeStyle(accumulator),
+  };
+}
+
+function buildPayload(input: {
+  baseTokensByCategory: Map<WorkspaceStyleCategory, string[]>;
+  hoverTokensByCategory: Map<WorkspaceStyleCategory, string[]>;
+}): ResolvedStylePayload {
+  const base = buildStyleFromTokensByCategory(input.baseTokensByCategory);
+  const hover = buildStyleFromTokensByCategory(input.hoverTokensByCategory);
+  const categories = Array.from(new Set([...base.categories, ...hover.categories])).sort(
+    (left, right) => getCategoryPriority(left) - getCategoryPriority(right),
+  );
+  const tokensByCategory: Partial<Record<WorkspaceStyleCategory, string[]>> = {};
+  categories.forEach((category) => {
+    const combined = [
+      ...(base.tokensByCategory[category] ?? []),
+      ...(hover.tokensByCategory[category] ?? []),
+    ];
+    if (combined.length > 0) {
+      tokensByCategory[category] = combined;
+    }
+  });
+
+  return {
+    className: categories.flatMap((category) => tokensByCategory[category] ?? []).join(' '),
+    categories,
+    tokensByCategory,
+    style: base.style,
+    ...(Object.keys(hover.style).length > 0 ? { hoverStyle: hover.style } : {}),
   };
 }
 
@@ -840,7 +896,10 @@ export function interpretWorkspaceStyle(input: {
     })
     .map(({ item }) => item.token);
 
-  const payload = buildPayload(collectActiveTokensByCategory(classified, runtimeContext));
+  const payload = buildPayload({
+    baseTokensByCategory: collectActiveTokensByCategory(classified, runtimeContext, 'base'),
+    hoverTokensByCategory: collectActiveTokensByCategory(classified, runtimeContext, 'hover'),
+  });
   const hasAccepted = acceptedTokens.length > 0;
   const hasIgnored = ignoredTokens.length > 0;
 

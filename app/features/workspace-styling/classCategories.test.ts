@@ -38,21 +38,23 @@ describe('workspace-styling/classCategories', () => {
   });
 
   it('accepts supported runtime variants', () => {
-    const classified = classifyToken('md:w-32');
+    const classified = classifyToken('lg:hover:w-32');
     expect(classified.category).toBe('size');
     expect(classified.supported).toBe(true);
-    expect(classified.variants).toEqual(['md']);
+    expect(classified.variants).toEqual(['lg', 'hover']);
     expect(classified.baseToken).toBe('w-32');
   });
 
   it('keeps unsupported runtime variants rejected', () => {
     expect(isSupportedVariant('dark')).toBe(true);
     expect(isSupportedVariant('md')).toBe(true);
-    expect(isSupportedVariant('hover')).toBe(false);
-    expect(classifyToken('hover:bg-slate-100')).toMatchObject({
+    expect(isSupportedVariant('lg')).toBe(true);
+    expect(isSupportedVariant('hover')).toBe(true);
+    expect(isSupportedVariant('focus')).toBe(false);
+    expect(classifyToken('focus:bg-slate-100')).toMatchObject({
       category: 'basic-visual',
       supported: false,
-      variants: ['hover'],
+      variants: ['focus'],
       baseToken: 'bg-slate-100',
     });
   });

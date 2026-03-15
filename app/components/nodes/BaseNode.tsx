@@ -1,4 +1,4 @@
-import React, { ReactNode, useMemo, useEffect, useCallback, memo } from 'react';
+import React, { ReactNode, useMemo, useEffect, useCallback, memo, useState } from 'react';
 import { Handle, Position, useNodeId } from 'reactflow';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -46,6 +46,19 @@ interface BaseNodeProps {
     onDoubleClick?: React.MouseEventHandler<HTMLDivElement>;
 }
 
+export function resolveBaseNodeInlineStyle(input: {
+    style?: React.CSSProperties;
+    runtimeStyle?: Record<string, string | number>;
+    hoverStyle?: Record<string, string | number>;
+    isHovered: boolean;
+}): React.CSSProperties {
+    return {
+        ...(input.style || {}),
+        ...(input.runtimeStyle || {}),
+        ...(input.isHovered ? (input.hoverStyle || {}) : {}),
+    };
+}
+
 export const BaseNodeComponent = ({
     children,
     className,
@@ -60,17 +73,24 @@ export const BaseNodeComponent = ({
 }: BaseNodeProps) => {
     const { registerBubble, unregisterBubble } = useBubbleActions();
     const nodeId = useNodeId();
+    const [isHovered, setIsHovered] = useState(false);
     // Optimization: Only subscribe to this specific node's data
     // This prevents re-renders when other nodes are updated (e.g. selection drag)
     const node = useGraphStore(
         useCallback((state) => state.nodes.find((n) => n.id === nodeId), [nodeId])
     );
-    const runtimeStyle = useGraphStore(
+    const runtimePayload = useGraphStore(
         useCallback((state) => {
             if (!nodeId) return undefined;
-            return state.workspaceStyleByNodeId[nodeId]?.resolvedStylePayload?.style;
+            return state.workspaceStyleByNodeId[nodeId]?.resolvedStylePayload;
         }, [nodeId]),
     );
+    const resolvedInlineStyle = useMemo(() => resolveBaseNodeInlineStyle({
+        style,
+        runtimeStyle: runtimePayload?.style,
+        hoverStyle: runtimePayload?.hoverStyle,
+        isHovered,
+    }), [isHovered, runtimePayload?.hoverStyle, runtimePayload?.style, style]);
 
     const handleClasses = clsx(
         '!w-3 !h-3 !border-0 transition-opacity duration-200',
@@ -116,8 +136,10 @@ export const BaseNodeComponent = ({
     return (
         <div
             className={twMerge("relative group", className)}
-            style={{ ...style, ...runtimeStyle }}
+            style={resolvedInlineStyle}
             onDoubleClick={onDoubleClick}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
         >
             {/* Target handle */}
             {endHandle && (

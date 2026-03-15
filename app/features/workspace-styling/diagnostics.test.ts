@@ -39,11 +39,11 @@ describe('workspace-styling/diagnostics', () => {
     expect(createUnsupportedTokenDiagnostic({
       objectId: 'node-a',
       revision: 'rev-2',
-      token: 'hover:w-4',
+      token: 'focus:w-4',
       category: 'size',
     })).toMatchObject({
       code: 'UNSUPPORTED_TOKEN',
-      token: 'hover:w-4',
+      token: 'focus:w-4',
       category: 'size',
       severity: 'warning',
     });

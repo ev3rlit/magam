@@ -27,12 +27,13 @@ bun run dev
 7. Validate v1 priority category: shadow/elevation updates correctly.
 8. Validate v1 priority category: outline/emphasis updates correctly, including sticker-outline-like emphasis.
 9. Reopen/rerender canvas and confirm last accepted style state is preserved.
-10. Validate `dark:` and `md:` tokens only activate when runtime context matches, and `hover:` remains diagnosable as unsupported.
-11. Enter mixed supported/unsupported category input and confirm partial apply with diagnostics.
-12. Apply `className=""` or remove class input and confirm style reset is applied.
-13. Apply class input to a non-eligible object and confirm out-of-scope diagnostic behavior.
-14. Start dev bootstrap with runtime styling path enabled and confirm safelist generation still executes.
-15. Confirm workspace style edits do not regress the existing safelist/bootstrap development flow.
+10. Validate `dark:`, `md:`, `lg:`, `xl:` tokens only activate when runtime context matches.
+11. Validate `hover:` tokens apply only on pointer hover and do not overwrite the base inline style payload at rest.
+12. Enter mixed supported/unsupported category input and confirm partial apply with diagnostics.
+13. Apply `className=""` or remove class input and confirm style reset is applied.
+14. Apply class input to a non-eligible object and confirm out-of-scope diagnostic behavior.
+15. Start dev bootstrap with runtime styling path enabled and confirm safelist generation still executes.
+16. Confirm workspace style edits do not regress the existing safelist/bootstrap development flow.
 
 ## Suggested automated verification targets
 

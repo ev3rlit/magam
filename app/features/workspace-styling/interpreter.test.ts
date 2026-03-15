@@ -210,10 +210,77 @@ describe('workspace-styling/interpreter', () => {
     expect(lightAndNarrow.diagnostics).toEqual([]);
   });
 
+  it('supports lg and xl breakpoints in the runtime context', () => {
+    const desktop = interpretWorkspaceStyle({
+      styleInput: makeInput({
+        className: 'md:w-48 lg:w-72 xl:w-96',
+      }),
+      eligibleProfile: makeEligibleProfile(),
+      runtimeContext: makeRuntimeContext({
+        viewportWidth: 1366,
+      }),
+    });
+
+    expect(desktop.result.status).toBe('applied');
+    expect(desktop.result.appliedTokens).toEqual([
+      'md:w-48',
+      'lg:w-72',
+      'xl:w-96',
+    ]);
+    expect(desktop.result.resolvedStylePayload?.style).toMatchObject({
+      width: '24rem',
+    });
+
+    const tablet = interpretWorkspaceStyle({
+      styleInput: makeInput({
+        className: 'md:w-48 lg:w-72 xl:w-96',
+      }),
+      eligibleProfile: makeEligibleProfile(),
+      runtimeContext: makeRuntimeContext({
+        viewportWidth: 900,
+      }),
+    });
+
+    expect(tablet.result.resolvedStylePayload?.style).toMatchObject({
+      width: '12rem',
+    });
+  });
+
+  it('emits hover style payload separately from base style', () => {
+    const interpreted = interpretWorkspaceStyle({
+      styleInput: makeInput({
+        className: 'bg-slate-100 text-slate-700 hover:bg-slate-900 hover:text-white lg:hover:ring-2 lg:hover:ring-cyan-500',
+      }),
+      eligibleProfile: makeEligibleProfile(),
+      runtimeContext: makeRuntimeContext({
+        viewportWidth: 1280,
+      }),
+    });
+
+    expect(interpreted.result.status).toBe('applied');
+    expect(interpreted.result.appliedTokens).toEqual([
+      'bg-slate-100',
+      'text-slate-700',
+      'hover:bg-slate-900',
+      'hover:text-white',
+      'lg:hover:ring-2',
+      'lg:hover:ring-cyan-500',
+    ]);
+    expect(interpreted.result.resolvedStylePayload?.style).toMatchObject({
+      backgroundColor: '#f1f5f9',
+      color: '#334155',
+    });
+    expect(interpreted.result.resolvedStylePayload?.hoverStyle).toMatchObject({
+      backgroundColor: '#0f172a',
+      color: 'white',
+    });
+    expect(String(interpreted.result.resolvedStylePayload?.hoverStyle?.boxShadow)).toContain('#06b6d4');
+  });
+
   it('supports finer shadow and outline utilities', () => {
     const interpreted = interpretWorkspaceStyle({
       styleInput: makeInput({
-        className: 'shadow-inner shadow-violet-500/40 ring-inset ring-[5px] ring-cyan-500 outline-dotted outline-offset-4',
+        className: 'shadow-inner shadow-violet-500/40 ring-inset ring-[5px] ring-cyan-500 ring-offset-2 ring-offset-slate-100 outline-dotted outline-offset-4',
       }),
       eligibleProfile: makeEligibleProfile(),
     });
@@ -227,7 +294,8 @@ describe('workspace-styling/interpreter', () => {
       outlineStyle: 'dotted',
       outlineOffset: '4px',
     });
-    expect(String(interpreted.result.resolvedStylePayload?.style.boxShadow)).toContain('inset 0 0 0 5px #06b6d4');
+    expect(String(interpreted.result.resolvedStylePayload?.style.boxShadow)).toContain('0 0 0 2px #f1f5f9');
+    expect(String(interpreted.result.resolvedStylePayload?.style.boxShadow)).toContain('inset 0 0 0 7px #06b6d4');
     expect(String(interpreted.result.resolvedStylePayload?.style.boxShadow)).toContain('rgba(139, 92, 246, 0.4)');
   });
 
@@ -237,14 +305,16 @@ describe('workspace-styling/interpreter', () => {
         className: 'w-20 foo-bar hover:bg-red-100 shadow-sm',
       }),
       eligibleProfile: makeEligibleProfile(),
+      runtimeContext: makeRuntimeContext({
+        viewportWidth: 640,
+      }),
     });
 
     expect(interpreted.result.status).toBe('partial');
-    expect(interpreted.result.appliedTokens).toEqual(['w-20', 'shadow-sm']);
-    expect(interpreted.result.ignoredTokens).toEqual(['foo-bar', 'hover:bg-red-100']);
+    expect(interpreted.result.appliedTokens).toEqual(['w-20', 'hover:bg-red-100', 'shadow-sm']);
+    expect(interpreted.result.ignoredTokens).toEqual(['foo-bar']);
     expect(interpreted.diagnostics.map((item) => item.code)).toEqual([
       'UNSUPPORTED_CATEGORY',
-      'UNSUPPORTED_TOKEN',
       'MIXED_INPUT',
     ]);
   });
