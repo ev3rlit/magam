@@ -39,14 +39,30 @@ describe('workspace-styling/diagnostics', () => {
     expect(createUnsupportedTokenDiagnostic({
       objectId: 'node-a',
       revision: 'rev-2',
-      token: 'focus:w-4',
+      token: 'active:w-4',
       category: 'size',
     })).toMatchObject({
       code: 'UNSUPPORTED_TOKEN',
-      token: 'focus:w-4',
+      token: 'active:w-4',
       category: 'size',
       severity: 'warning',
     });
+  });
+
+  it('explains unsupported or conflicting variants in token diagnostics', () => {
+    expect(createUnsupportedTokenDiagnostic({
+      objectId: 'node-a',
+      revision: 'rev-2',
+      token: 'active:w-4',
+      category: 'size',
+    }).message).toContain('unsupported variant "active"');
+
+    expect(createUnsupportedTokenDiagnostic({
+      objectId: 'node-a',
+      revision: 'rev-2',
+      token: 'hover:focus:ring-2',
+      category: 'outline-emphasis',
+    }).message).toContain('multiple interaction variants');
   });
 
   it('creates mixed/stale diagnostics with info severity', () => {

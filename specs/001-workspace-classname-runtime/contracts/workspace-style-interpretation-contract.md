@@ -40,8 +40,9 @@ Define how raw workspace `className` input is interpreted into deterministic, ca
 
 - Arbitrary values are supported for the current priority categories when they can be mapped directly to style payload values.
 - Current `basic-visual` coverage includes text sizing, font weight/family/style, tracking, padding, margin, gap, border-side width, and border style in addition to background/text color, radius, and opacity.
-- Variant-prefixed tokens currently support `hover:`, `dark:`, `md:`, `lg:`, `xl:`, and `2xl:` within the runtime surface.
-- `hover:` tokens are emitted into a dedicated interaction style layer instead of being folded into the base inline style payload.
+- Variant-prefixed tokens currently support `hover:`, `focus:`, `dark:`, `md:`, `lg:`, `xl:`, and `2xl:` within the runtime surface.
+- `hover:` and `focus:` tokens are emitted into dedicated interaction style layers instead of being folded into the base inline style payload.
+- Combined interaction tokens such as `hover:focus:*` are diagnosed and ignored.
 - Mixed input keeps supported tokens in priority order and emits diagnostics for ignored tokens.
 
 ## Out of scope

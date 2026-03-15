@@ -27,13 +27,14 @@ bun run dev
 7. Validate v1 priority category: shadow/elevation updates correctly.
 8. Validate v1 priority category: outline/emphasis updates correctly, including sticker-outline-like emphasis.
 9. Reopen/rerender canvas and confirm last accepted style state is preserved.
-10. Validate `dark:`, `md:`, `lg:`, `xl:` tokens only activate when runtime context matches.
+10. Validate `dark:`, `md:`, `lg:`, `xl:`, and `2xl:` tokens only activate when runtime context matches.
 11. Validate `hover:` tokens apply only on pointer hover and do not overwrite the base inline style payload at rest.
-12. Enter mixed supported/unsupported category input and confirm partial apply with diagnostics.
-13. Apply `className=""` or remove class input and confirm style reset is applied.
-14. Apply class input to a non-eligible object and confirm out-of-scope diagnostic behavior.
-15. Start dev bootstrap with runtime styling path enabled and confirm safelist generation still executes.
-16. Confirm workspace style edits do not regress the existing safelist/bootstrap development flow.
+12. Validate `focus:` tokens apply only when the node root is focused and that eligible nodes expose a focusable runtime surface.
+13. Enter mixed supported/unsupported category input and confirm partial apply with diagnostics.
+14. Apply `className=""` or remove class input and confirm style reset is applied.
+15. Apply class input to a non-eligible object and confirm out-of-scope diagnostic behavior.
+16. Start dev bootstrap with runtime styling path enabled and confirm safelist generation still executes.
+17. Confirm workspace style edits do not regress the existing safelist/bootstrap development flow.
 
 ## Suggested automated verification targets
 
@@ -64,6 +65,14 @@ bun run dev
 - 2026-03-15: running dev stack render smoke via `http://localhost:3005/api/render`
 - Sticky smoke: `status=200`, `nodeCount=24`, node types included `graph-text`, `graph-sticker`, `graph-sticky`, `graph-washi-tape`
 - Sticker smoke: `status=200`, `nodeCount=24`, node types were `graph-sticker`
+- 2026-03-16: `bun test app/features/workspace-styling/*.test.ts app/components/nodes/BaseNode.test.tsx`
+- Result: 41 passing, 0 failing
+- Covered slices: hover/focus interaction layers, wider responsive variants, unsupported variant diagnostics, BaseNode hover/focus style layering
+- 2026-03-16: `bun test app/components/editor/WorkspaceClient.test.tsx app/components/GraphCanvas.test.tsx scripts/dev/app-dev.test.ts app/hooks/useFileSync.test.ts`
+- Result: 60 passing, 0 failing
+- 2026-03-16: live browser smoke on `examples/runtime_interactions.tsx` via `http://localhost:3005`
+- Hover smoke: baseline vs hover screenshot diff `2.70%`
+- Focus smoke: baseline vs focus screenshot diff `2.70%`, active element was `DIV` with `tabIndex=0`
 
 ## Smoke expectations for real surfaces
 

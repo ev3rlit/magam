@@ -396,10 +396,26 @@ function areConditionalVariantsActive(
   });
 }
 
+function resolveInteractionLayer(variants: string[]): 'base' | 'hover' | 'focus' | 'unsupported' {
+  const hasHoverVariant = variants.includes('hover');
+  const hasFocusVariant = variants.includes('focus');
+
+  if (hasHoverVariant && hasFocusVariant) {
+    return 'unsupported';
+  }
+  if (hasHoverVariant) {
+    return 'hover';
+  }
+  if (hasFocusVariant) {
+    return 'focus';
+  }
+  return 'base';
+}
+
 function collectActiveTokensByCategory(
   classified: ClassifiedToken[],
   runtimeContext: WorkspaceStyleRuntimeContext,
-  interaction: 'base' | 'hover',
+  interaction: 'base' | 'hover' | 'focus',
 ): Map<WorkspaceStyleCategory, string[]> {
   const activeTokensByCategory = new Map<WorkspaceStyleCategory, string[]>();
 
@@ -407,15 +423,11 @@ function collectActiveTokensByCategory(
     if (!item.supported || !item.category) {
       return;
     }
-    const hasHoverVariant = item.variants.includes('hover');
-    if (interaction === 'base' && hasHoverVariant) {
-      return;
-    }
-    if (interaction === 'hover' && !hasHoverVariant) {
+    if (resolveInteractionLayer(item.variants) !== interaction) {
       return;
     }
 
-    const conditionalVariants = item.variants.filter((variant) => variant !== 'hover');
+    const conditionalVariants = item.variants.filter((variant) => variant !== 'hover' && variant !== 'focus');
     if (!areConditionalVariantsActive(conditionalVariants, runtimeContext)) {
       return;
     }
@@ -790,10 +802,12 @@ function buildStyleFromTokensByCategory(
 function buildPayload(input: {
   baseTokensByCategory: Map<WorkspaceStyleCategory, string[]>;
   hoverTokensByCategory: Map<WorkspaceStyleCategory, string[]>;
+  focusTokensByCategory: Map<WorkspaceStyleCategory, string[]>;
 }): ResolvedStylePayload {
   const base = buildStyleFromTokensByCategory(input.baseTokensByCategory);
   const hover = buildStyleFromTokensByCategory(input.hoverTokensByCategory);
-  const categories = Array.from(new Set([...base.categories, ...hover.categories])).sort(
+  const focus = buildStyleFromTokensByCategory(input.focusTokensByCategory);
+  const categories = Array.from(new Set([...base.categories, ...hover.categories, ...focus.categories])).sort(
     (left, right) => getCategoryPriority(left) - getCategoryPriority(right),
   );
   const tokensByCategory: Partial<Record<WorkspaceStyleCategory, string[]>> = {};
@@ -801,6 +815,7 @@ function buildPayload(input: {
     const combined = [
       ...(base.tokensByCategory[category] ?? []),
       ...(hover.tokensByCategory[category] ?? []),
+      ...(focus.tokensByCategory[category] ?? []),
     ];
     if (combined.length > 0) {
       tokensByCategory[category] = combined;
@@ -813,6 +828,7 @@ function buildPayload(input: {
     tokensByCategory,
     style: base.style,
     ...(Object.keys(hover.style).length > 0 ? { hoverStyle: hover.style } : {}),
+    ...(Object.keys(focus.style).length > 0 ? { focusStyle: focus.style } : {}),
   };
 }
 
@@ -883,11 +899,21 @@ export function interpretWorkspaceStyle(input: {
       }
       return;
     }
+    if (resolveInteractionLayer(item.variants) === 'unsupported') {
+      ignoredTokens.push(item.token);
+      diagnostics.push(createUnsupportedTokenDiagnostic({
+        objectId: styleInput.objectId,
+        revision: styleInput.sourceRevision,
+        category: item.category,
+        token: item.token,
+      }));
+      return;
+    }
   });
 
   const acceptedTokens = classified
     .map((item, index) => ({ item, index }))
-    .filter(({ item }) => item.supported && item.category)
+    .filter(({ item }) => item.supported && item.category && resolveInteractionLayer(item.variants) !== 'unsupported')
     .sort((left, right) => {
       const leftCategory = left.item.category as WorkspaceStyleCategory;
       const rightCategory = right.item.category as WorkspaceStyleCategory;
@@ -899,6 +925,7 @@ export function interpretWorkspaceStyle(input: {
   const payload = buildPayload({
     baseTokensByCategory: collectActiveTokensByCategory(classified, runtimeContext, 'base'),
     hoverTokensByCategory: collectActiveTokensByCategory(classified, runtimeContext, 'hover'),
+    focusTokensByCategory: collectActiveTokensByCategory(classified, runtimeContext, 'focus'),
   });
   const hasAccepted = acceptedTokens.length > 0;
   const hasIgnored = ignoredTokens.length > 0;

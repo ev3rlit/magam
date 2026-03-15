@@ -50,12 +50,15 @@ export function resolveBaseNodeInlineStyle(input: {
     style?: React.CSSProperties;
     runtimeStyle?: Record<string, string | number>;
     hoverStyle?: Record<string, string | number>;
+    focusStyle?: Record<string, string | number>;
     isHovered: boolean;
+    isFocused: boolean;
 }): React.CSSProperties {
     return {
         ...(input.style || {}),
         ...(input.runtimeStyle || {}),
         ...(input.isHovered ? (input.hoverStyle || {}) : {}),
+        ...(input.isFocused ? (input.focusStyle || {}) : {}),
     };
 }
 
@@ -74,6 +77,7 @@ export const BaseNodeComponent = ({
     const { registerBubble, unregisterBubble } = useBubbleActions();
     const nodeId = useNodeId();
     const [isHovered, setIsHovered] = useState(false);
+    const [isFocused, setIsFocused] = useState(false);
     // Optimization: Only subscribe to this specific node's data
     // This prevents re-renders when other nodes are updated (e.g. selection drag)
     const node = useGraphStore(
@@ -89,8 +93,10 @@ export const BaseNodeComponent = ({
         style,
         runtimeStyle: runtimePayload?.style,
         hoverStyle: runtimePayload?.hoverStyle,
+        focusStyle: runtimePayload?.focusStyle,
         isHovered,
-    }), [isHovered, runtimePayload?.hoverStyle, runtimePayload?.style, style]);
+        isFocused,
+    }), [isFocused, isHovered, runtimePayload?.focusStyle, runtimePayload?.hoverStyle, runtimePayload?.style, style]);
 
     const handleClasses = clsx(
         '!w-3 !h-3 !border-0 transition-opacity duration-200',
@@ -140,6 +146,9 @@ export const BaseNodeComponent = ({
             onDoubleClick={onDoubleClick}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            tabIndex={runtimePayload?.focusStyle ? 0 : undefined}
         >
             {/* Target handle */}
             {endHandle && (

@@ -13,6 +13,34 @@ const DEFAULT_SEVERITY_BY_CODE: Record<StylingDiagnosticCode, StylingDiagnosticS
   STALE_UPDATE: 'info',
 };
 
+const SUPPORTED_VARIANTS = ['hover', 'focus', 'dark', 'md', 'lg', 'xl', '2xl'] as const;
+
+function getVariantDiagnosticMessage(input: {
+  token: string;
+  category: WorkspaceStyleCategory;
+}): string | null {
+  const variants = input.token
+    .split(':')
+    .slice(0, -1)
+    .filter((variant) => variant.length > 0);
+
+  if (variants.length === 0) {
+    return null;
+  }
+
+  const unsupportedVariants = variants.filter((variant) => !SUPPORTED_VARIANTS.includes(variant as (typeof SUPPORTED_VARIANTS)[number]));
+  if (unsupportedVariants.length > 0) {
+    return `Token "${input.token}" uses unsupported variant "${unsupportedVariants[0]}". Supported variants: ${SUPPORTED_VARIANTS.join(', ')}.`;
+  }
+
+  const interactionVariants = variants.filter((variant) => variant === 'hover' || variant === 'focus');
+  if (interactionVariants.length > 1) {
+    return `Token "${input.token}" combines multiple interaction variants. Use only one of hover or focus per token.`;
+  }
+
+  return null;
+}
+
 export function createStylingDiagnostic(input: {
   objectId: string;
   revision: string;
@@ -67,13 +95,17 @@ export function createUnsupportedTokenDiagnostic(input: {
   token: string;
   category: WorkspaceStyleCategory;
 }): StylingDiagnostic {
+  const variantMessage = getVariantDiagnosticMessage({
+    token: input.token,
+    category: input.category,
+  });
   return createStylingDiagnostic({
     objectId: input.objectId,
     revision: input.revision,
     code: 'UNSUPPORTED_TOKEN',
     token: input.token,
     category: input.category,
-    message: `Token "${input.token}" is not supported in category "${input.category}".`,
+    message: variantMessage ?? `Token "${input.token}" is not supported in category "${input.category}".`,
   });
 }
 
@@ -117,4 +149,3 @@ export function dedupeDiagnostics(diagnostics: StylingDiagnostic[]): StylingDiag
   });
   return [...map.values()];
 }
-

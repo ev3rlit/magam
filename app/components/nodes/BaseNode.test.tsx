@@ -16,7 +16,11 @@ describe('BaseNode runtime style layering', () => {
         backgroundColor: '#0f172a',
         color: '#ffffff',
       },
+      focusStyle: {
+        outlineWidth: '2px',
+      },
       isHovered: true,
+      isFocused: false,
     })).toEqual({
       backgroundColor: '#0f172a',
       opacity: 0.7,
@@ -34,8 +38,26 @@ describe('BaseNode runtime style layering', () => {
         backgroundColor: '#f59e0b',
       },
       isHovered: false,
+      isFocused: false,
     })).toEqual({
       backgroundColor: '#fef3c7',
+    });
+  });
+
+  it('applies focus style without requiring hover state', () => {
+    expect(resolveBaseNodeInlineStyle({
+      runtimeStyle: {
+        borderColor: '#cbd5e1',
+      },
+      focusStyle: {
+        borderColor: '#06b6d4',
+        boxShadow: '0 0 0 3px #cffafe',
+      },
+      isHovered: false,
+      isFocused: true,
+    })).toEqual({
+      borderColor: '#06b6d4',
+      boxShadow: '0 0 0 3px #cffafe',
     });
   });
 });

@@ -277,6 +277,38 @@ describe('workspace-styling/interpreter', () => {
     expect(String(interpreted.result.resolvedStylePayload?.hoverStyle?.boxShadow)).toContain('#06b6d4');
   });
 
+  it('emits focus style payload separately from base style', () => {
+    const interpreted = interpretWorkspaceStyle({
+      styleInput: makeInput({
+        className: 'bg-amber-100 text-slate-700 focus:bg-amber-200 focus:text-slate-900 focus:ring-4 focus:ring-amber-500 focus:outline-dotted focus:outline-offset-4',
+      }),
+      eligibleProfile: makeEligibleProfile(),
+    });
+
+    expect(interpreted.result.status).toBe('applied');
+    expect(interpreted.result.appliedTokens).toEqual([
+      'bg-amber-100',
+      'text-slate-700',
+      'focus:bg-amber-200',
+      'focus:text-slate-900',
+      'focus:ring-4',
+      'focus:ring-amber-500',
+      'focus:outline-dotted',
+      'focus:outline-offset-4',
+    ]);
+    expect(interpreted.result.resolvedStylePayload?.style).toMatchObject({
+      backgroundColor: '#fef3c7',
+      color: '#334155',
+    });
+    expect(interpreted.result.resolvedStylePayload?.focusStyle).toMatchObject({
+      backgroundColor: '#fde68a',
+      color: '#0f172a',
+      outlineStyle: 'dotted',
+      outlineOffset: '4px',
+    });
+    expect(String(interpreted.result.resolvedStylePayload?.focusStyle?.boxShadow)).toContain('#f59e0b');
+  });
+
   it('supports finer shadow and outline utilities', () => {
     const interpreted = interpretWorkspaceStyle({
       styleInput: makeInput({
@@ -315,6 +347,23 @@ describe('workspace-styling/interpreter', () => {
     expect(interpreted.result.ignoredTokens).toEqual(['foo-bar']);
     expect(interpreted.diagnostics.map((item) => item.code)).toEqual([
       'UNSUPPORTED_CATEGORY',
+      'MIXED_INPUT',
+    ]);
+  });
+
+  it('rejects multiple interaction variants on a single token', () => {
+    const interpreted = interpretWorkspaceStyle({
+      styleInput: makeInput({
+        className: 'hover:focus:ring-2 bg-slate-100',
+      }),
+      eligibleProfile: makeEligibleProfile(),
+    });
+
+    expect(interpreted.result.status).toBe('partial');
+    expect(interpreted.result.appliedTokens).toEqual(['bg-slate-100']);
+    expect(interpreted.result.ignoredTokens).toEqual(['hover:focus:ring-2']);
+    expect(interpreted.diagnostics.map((item) => item.code)).toEqual([
+      'UNSUPPORTED_TOKEN',
       'MIXED_INPUT',
     ]);
   });
