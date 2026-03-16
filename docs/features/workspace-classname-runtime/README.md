@@ -233,6 +233,10 @@ PoC 종료 시 확인해야 할 것:
 - Hover diff versus baseline: `2.70%` pixels changed after hovering `Hover Surface`.
 - Focus diff versus baseline: `2.70%` pixels changed after focusing the sticky surface, and the active element resolved to a `DIV` with `tabIndex=0`.
 - Active diff versus baseline: `0.73%` pixels changed while pointer press was held on `Hover + Focus + Active + Responsive`.
+
+## 10.3 Next Surface Design
+
+- Follow-on design for `group-hover:` plus `ImageNode` / `WashiTapeNode` `className` surfaces is captured in `docs/features/workspace-classname-runtime/next-surface-design.md`.
 3. class category별로 "현재 지원 props와 1:1 대응되는 범위"를 어디까지 볼 것인가
 4. runtime interpreter 결과를 inline style 중심으로 적용할지, 별도 stylesheet 삽입으로 적용할지 무엇이 더 안전한가
 
