@@ -13,7 +13,7 @@ const DEFAULT_SEVERITY_BY_CODE: Record<StylingDiagnosticCode, StylingDiagnosticS
   STALE_UPDATE: 'info',
 };
 
-const SUPPORTED_VARIANTS = ['hover', 'focus', 'active', 'dark', 'md', 'lg', 'xl', '2xl'] as const;
+const SUPPORTED_VARIANTS = ['hover', 'focus', 'active', 'group-hover', 'dark', 'md', 'lg', 'xl', '2xl'] as const;
 
 function getVariantDiagnosticMessage(input: {
   token: string;
@@ -31,6 +31,10 @@ function getVariantDiagnosticMessage(input: {
   const unsupportedVariants = variants.filter((variant) => !SUPPORTED_VARIANTS.includes(variant as (typeof SUPPORTED_VARIANTS)[number]));
   if (unsupportedVariants.length > 0) {
     return `Token "${input.token}" uses unsupported variant "${unsupportedVariants[0]}". Supported variants: ${SUPPORTED_VARIANTS.join(', ')}.`;
+  }
+
+  if (variants.includes('group-hover')) {
+    return `Token "${input.token}" requires a groupId-backed runtime group surface. Only grouped nodes can use group-hover tokens.`;
   }
 
   const interactionVariants = variants.filter((variant) => variant === 'hover' || variant === 'focus' || variant === 'active');

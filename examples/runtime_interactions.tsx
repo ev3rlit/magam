@@ -1,6 +1,17 @@
-import { Canvas, Shape, Sticker, Sticky, Text } from '@magam/core';
+import { Canvas, Image, polar, Shape, Sticker, Sticky, Text, WashiTape } from '@magam/core';
 
 export default function RuntimeInteractionsExample() {
+  const imageCard =
+    'data:image/svg+xml;utf8,' +
+    encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="320" height="220" viewBox="0 0 320 220">
+        <rect width="320" height="220" rx="24" fill="#e0f2fe" />
+        <circle cx="88" cy="72" r="26" fill="#fef3c7" />
+        <path d="M32 176 Q100 96 156 146 Q198 110 288 176 Z" fill="#67e8f9" />
+        <path d="M68 176 Q132 122 184 152 Q224 130 302 176 Z" fill="#0ea5e9" opacity="0.65" />
+      </svg>
+    `);
+
   return (
     <Canvas>
       <Text id="title" x={80} y={36} className="text-xl font-semibold tracking-wide text-slate-700">
@@ -48,6 +59,24 @@ export default function RuntimeInteractionsExample() {
       >
         Breakpoint Surface
       </Shape>
+
+      <Image
+        id="image-card"
+        x={820}
+        y={132}
+        src={imageCard}
+        alt="Runtime image surface"
+        width={220}
+        className="rounded-3xl shadow-xl hover:shadow-2xl focus:ring-4 focus:ring-cyan-500"
+      />
+
+      <WashiTape
+        id="washi-card"
+        at={polar({ x: 930, y: 404, length: 220, thickness: 42 })}
+        className="bg-cyan-200 hover:bg-cyan-300 focus:ring-4 focus:ring-cyan-500 active:bg-cyan-400"
+      >
+        runtime tape surface
+      </WashiTape>
     </Canvas>
   );
 }

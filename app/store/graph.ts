@@ -172,6 +172,7 @@ export interface GraphState {
   editHistoryPast: EditCompletionEvent[];
   editHistoryFuture: EditCompletionEvent[];
   editHistoryMaxSize: number;
+  hoveredNodeIdsByGroupId: Record<string, string[]>;
   workspaceStyleSession: WorkspaceStyleSessionState;
   workspaceStyleByNodeId: Record<string, InterpretedStyleResult>;
   workspaceStyleDiagnosticsByNodeId: Record<string, StylingDiagnostic[]>;
@@ -221,6 +222,8 @@ export interface GraphState {
   requestTextEditCancel: (nodeId: string) => void;
   clearPendingTextEditAction: () => void;
   clearTextEditSession: () => void;
+  registerGroupHover: (groupId: string, nodeId: string) => void;
+  unregisterGroupHover: (groupId: string, nodeId: string) => void;
   pushEditCompletionEvent: (event: EditCompletionEvent) => void;
   peekUndoEditEvent: () => EditCompletionEvent | null;
   peekRedoEditEvent: () => EditCompletionEvent | null;
@@ -271,6 +274,7 @@ function resolveStyleInputForNode(input: {
     className: hasClassNameSurface ? String(data.className || '') : '',
     sourceRevision,
     timestamp: Date.now(),
+    groupId: typeof data.groupId === 'string' && data.groupId.length > 0 ? data.groupId : undefined,
   };
 }
 
@@ -406,6 +410,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   editHistoryPast: [],
   editHistoryFuture: [],
   editHistoryMaxSize: 200,
+  hoveredNodeIdsByGroupId: {},
   workspaceStyleSession: createWorkspaceStyleSessionState(),
   workspaceStyleByNodeId: {},
   workspaceStyleDiagnosticsByNodeId: {},
@@ -442,6 +447,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       ...(isFontFamilyPreset(canvasFontFamily) ? { canvasFontFamily } : { canvasFontFamily: undefined }),
       ...(sourceVersion !== undefined ? { sourceVersion } : {}),
       sourceVersions: nextSourceVersions,
+      hoveredNodeIdsByGroupId: {},
       ...workspaceStyleState,
     };
   }),
@@ -470,6 +476,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     return {
       sourceVersions: nextSourceVersions,
       ...(state.currentFile === filePath ? { sourceVersion: version } : {}),
+      hoveredNodeIdsByGroupId: {},
       ...workspaceStyleState,
     };
   }),
@@ -497,6 +504,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     return {
       currentFile,
       sourceVersion: currentFile ? (state.sourceVersions[currentFile] ?? null) : null,
+      hoveredNodeIdsByGroupId: {},
       ...workspaceStyleState,
     };
   }),
@@ -886,6 +894,39 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     textEditDraft: '',
     textEditDirty: false,
     pendingTextEditAction: null,
+  }),
+  registerGroupHover: (groupId, nodeId) => set((state) => {
+    if (!groupId || !nodeId) return state;
+    const current = state.hoveredNodeIdsByGroupId[groupId] ?? [];
+    if (current.includes(nodeId)) {
+      return state;
+    }
+    return {
+      hoveredNodeIdsByGroupId: {
+        ...state.hoveredNodeIdsByGroupId,
+        [groupId]: [...current, nodeId],
+      },
+    };
+  }),
+  unregisterGroupHover: (groupId, nodeId) => set((state) => {
+    if (!groupId || !nodeId) return state;
+    const current = state.hoveredNodeIdsByGroupId[groupId] ?? [];
+    if (current.length === 0) {
+      return state;
+    }
+    const next = current.filter((candidate) => candidate !== nodeId);
+    if (next.length === current.length) {
+      return state;
+    }
+    const nextMap = { ...state.hoveredNodeIdsByGroupId };
+    if (next.length === 0) {
+      delete nextMap[groupId];
+    } else {
+      nextMap[groupId] = next;
+    }
+    return {
+      hoveredNodeIdsByGroupId: nextMap,
+    };
   }),
   pushEditCompletionEvent: (event) => set((state) => {
     const nextPast = [...state.editHistoryPast, event];

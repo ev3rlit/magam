@@ -3,16 +3,15 @@
 ## Supported Today
 
 - Base runtime categories: size, basic visual styling, shadow/elevation, outline/emphasis
-- Interaction/runtime variants: `hover:`, `focus:`, `active:`, `dark:`, `md:`, `lg:`, `xl:`, `2xl:`
-- Dedicated interaction layers: `hoverStyle`, `focusStyle`, and `activeStyle` are applied separately from the base inline payload
-- Eligible node surfaces currently connected through `BaseNode`: Text, Markdown, Shape, Sticky, Sticker, SequenceDiagram
+- Interaction/runtime variants: `hover:`, `focus:`, `active:`, `group-hover:`, `dark:`, `md:`, `lg:`, `xl:`, `2xl:`
+- Dedicated interaction layers: `hoverStyle`, `focusStyle`, `activeStyle`, and `groupHoverStyle` are applied separately from the base inline payload
+- Eligible node surfaces currently connected through runtime payloads: Text, Markdown, Shape, Sticky, Sticker, SequenceDiagram, Image, WashiTape
 
 ## Not Supported Yet
 
-- Interaction variants beyond the current subset, including `group-hover:`
-- `WashiTapeNode` runtime `className` styling
-- `ImageNode` runtime `className` styling
-- `ImageNode` and `WashiTapeNode` runtime payload application through a `className` surface
+- Interaction variants beyond the current subset, including `peer-hover:` and generalized subtree/group propagation beyond `groupId`
+- Image pixel-level filter/blend utility support
+- Washi preset-safe tint/text sub-surface contracts beyond the current tape-body rollout
 
 ## Verification
 
@@ -26,5 +25,5 @@
 
 ## Review Risks
 
-- `group-hover:` still has no shared group-state runtime surface, so diagnostics intentionally reject it.
-- `hover`, `focus`, and `active` are intentionally single-interaction layers; combined tokens like `hover:focus:*` or `hover:active:*` are diagnosed and ignored.
+- `group-hover:` is intentionally limited to `groupId`-backed surfaces, not arbitrary container subtrees.
+- `hover`, `focus`, `active`, and `group-hover` are intentionally single-interaction layers; combined tokens like `hover:focus:*` or `hover:active:*` are diagnosed and ignored.

@@ -396,11 +396,12 @@ function areConditionalVariantsActive(
   });
 }
 
-function resolveInteractionLayer(variants: string[]): 'base' | 'hover' | 'focus' | 'active' | 'unsupported' {
+function resolveInteractionLayer(variants: string[]): 'base' | 'hover' | 'focus' | 'active' | 'group-hover' | 'unsupported' {
   const hasHoverVariant = variants.includes('hover');
   const hasFocusVariant = variants.includes('focus');
   const hasActiveVariant = variants.includes('active');
-  const interactionCount = [hasHoverVariant, hasFocusVariant, hasActiveVariant].filter(Boolean).length;
+  const hasGroupHoverVariant = variants.includes('group-hover');
+  const interactionCount = [hasHoverVariant, hasFocusVariant, hasActiveVariant, hasGroupHoverVariant].filter(Boolean).length;
 
   if (interactionCount > 1) {
     return 'unsupported';
@@ -414,13 +415,16 @@ function resolveInteractionLayer(variants: string[]): 'base' | 'hover' | 'focus'
   if (hasActiveVariant) {
     return 'active';
   }
+  if (hasGroupHoverVariant) {
+    return 'group-hover';
+  }
   return 'base';
 }
 
 function collectActiveTokensByCategory(
   classified: ClassifiedToken[],
   runtimeContext: WorkspaceStyleRuntimeContext,
-  interaction: 'base' | 'hover' | 'focus' | 'active',
+  interaction: 'base' | 'hover' | 'focus' | 'active' | 'group-hover',
 ): Map<WorkspaceStyleCategory, string[]> {
   const activeTokensByCategory = new Map<WorkspaceStyleCategory, string[]>();
 
@@ -432,7 +436,7 @@ function collectActiveTokensByCategory(
       return;
     }
 
-    const conditionalVariants = item.variants.filter((variant) => variant !== 'hover' && variant !== 'focus' && variant !== 'active');
+    const conditionalVariants = item.variants.filter((variant) => variant !== 'hover' && variant !== 'focus' && variant !== 'active' && variant !== 'group-hover');
     if (!areConditionalVariantsActive(conditionalVariants, runtimeContext)) {
       return;
     }
@@ -809,12 +813,14 @@ function buildPayload(input: {
   hoverTokensByCategory: Map<WorkspaceStyleCategory, string[]>;
   focusTokensByCategory: Map<WorkspaceStyleCategory, string[]>;
   activeTokensByCategory: Map<WorkspaceStyleCategory, string[]>;
+  groupHoverTokensByCategory: Map<WorkspaceStyleCategory, string[]>;
 }): ResolvedStylePayload {
   const base = buildStyleFromTokensByCategory(input.baseTokensByCategory);
   const hover = buildStyleFromTokensByCategory(input.hoverTokensByCategory);
   const focus = buildStyleFromTokensByCategory(input.focusTokensByCategory);
   const active = buildStyleFromTokensByCategory(input.activeTokensByCategory);
-  const categories = Array.from(new Set([...base.categories, ...hover.categories, ...focus.categories, ...active.categories])).sort(
+  const groupHover = buildStyleFromTokensByCategory(input.groupHoverTokensByCategory);
+  const categories = Array.from(new Set([...base.categories, ...hover.categories, ...focus.categories, ...active.categories, ...groupHover.categories])).sort(
     (left, right) => getCategoryPriority(left) - getCategoryPriority(right),
   );
   const tokensByCategory: Partial<Record<WorkspaceStyleCategory, string[]>> = {};
@@ -824,6 +830,7 @@ function buildPayload(input: {
       ...(hover.tokensByCategory[category] ?? []),
       ...(focus.tokensByCategory[category] ?? []),
       ...(active.tokensByCategory[category] ?? []),
+      ...(groupHover.tokensByCategory[category] ?? []),
     ];
     if (combined.length > 0) {
       tokensByCategory[category] = combined;
@@ -838,6 +845,7 @@ function buildPayload(input: {
     ...(Object.keys(hover.style).length > 0 ? { hoverStyle: hover.style } : {}),
     ...(Object.keys(focus.style).length > 0 ? { focusStyle: focus.style } : {}),
     ...(Object.keys(active.style).length > 0 ? { activeStyle: active.style } : {}),
+    ...(Object.keys(groupHover.style).length > 0 ? { groupHoverStyle: groupHover.style } : {}),
   };
 }
 
@@ -908,6 +916,16 @@ export function interpretWorkspaceStyle(input: {
       }
       return;
     }
+    if (resolveInteractionLayer(item.variants) === 'group-hover' && !styleInput.groupId) {
+      ignoredTokens.push(item.token);
+      diagnostics.push(createUnsupportedTokenDiagnostic({
+        objectId: styleInput.objectId,
+        revision: styleInput.sourceRevision,
+        category: item.category,
+        token: item.token,
+      }));
+      return;
+    }
     if (resolveInteractionLayer(item.variants) === 'unsupported') {
       ignoredTokens.push(item.token);
       diagnostics.push(createUnsupportedTokenDiagnostic({
@@ -922,7 +940,13 @@ export function interpretWorkspaceStyle(input: {
 
   const acceptedTokens = classified
     .map((item, index) => ({ item, index }))
-    .filter(({ item }) => item.supported && item.category && resolveInteractionLayer(item.variants) !== 'unsupported')
+    .filter(({ item }) => {
+      if (!item.supported || !item.category) return false;
+      const interactionLayer = resolveInteractionLayer(item.variants);
+      if (interactionLayer === 'unsupported') return false;
+      if (interactionLayer === 'group-hover' && !styleInput.groupId) return false;
+      return true;
+    })
     .sort((left, right) => {
       const leftCategory = left.item.category as WorkspaceStyleCategory;
       const rightCategory = right.item.category as WorkspaceStyleCategory;
@@ -936,6 +960,7 @@ export function interpretWorkspaceStyle(input: {
     hoverTokensByCategory: collectActiveTokensByCategory(classified, runtimeContext, 'hover'),
     focusTokensByCategory: collectActiveTokensByCategory(classified, runtimeContext, 'focus'),
     activeTokensByCategory: collectActiveTokensByCategory(classified, runtimeContext, 'active'),
+    groupHoverTokensByCategory: collectActiveTokensByCategory(classified, runtimeContext, 'group-hover'),
   });
   const hasAccepted = acceptedTokens.length > 0;
   const hasIgnored = ignoredTokens.length > 0;

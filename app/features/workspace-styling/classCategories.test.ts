@@ -38,10 +38,10 @@ describe('workspace-styling/classCategories', () => {
   });
 
   it('accepts supported runtime variants', () => {
-    const classified = classifyToken('lg:active:w-32');
+    const classified = classifyToken('lg:group-hover:w-32');
     expect(classified.category).toBe('size');
     expect(classified.supported).toBe(true);
-    expect(classified.variants).toEqual(['lg', 'active']);
+    expect(classified.variants).toEqual(['lg', 'group-hover']);
     expect(classified.baseToken).toBe('w-32');
   });
 
@@ -52,11 +52,12 @@ describe('workspace-styling/classCategories', () => {
     expect(isSupportedVariant('hover')).toBe(true);
     expect(isSupportedVariant('focus')).toBe(true);
     expect(isSupportedVariant('active')).toBe(true);
-    expect(isSupportedVariant('group-hover')).toBe(false);
-    expect(classifyToken('group-hover:bg-slate-100')).toMatchObject({
+    expect(isSupportedVariant('group-hover')).toBe(true);
+    expect(isSupportedVariant('peer-hover')).toBe(false);
+    expect(classifyToken('peer-hover:bg-slate-100')).toMatchObject({
       category: 'basic-visual',
       supported: false,
-      variants: ['group-hover'],
+      variants: ['peer-hover'],
       baseToken: 'bg-slate-100',
     });
   });

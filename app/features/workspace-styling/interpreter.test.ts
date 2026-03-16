@@ -13,6 +13,7 @@ function makeInput(overrides?: Partial<WorkspaceStyleInput>): WorkspaceStyleInpu
     className: 'w-32 bg-slate-100 shadow-md ring-2',
     sourceRevision: 'rev-1',
     timestamp: 1_000,
+    groupId: undefined,
     ...overrides,
   };
 }
@@ -338,6 +339,33 @@ describe('workspace-styling/interpreter', () => {
     expect(String(interpreted.result.resolvedStylePayload?.activeStyle?.boxShadow)).toContain('#8b5cf6');
   });
 
+  it('emits group-hover style payload for grouped nodes', () => {
+    const interpreted = interpretWorkspaceStyle({
+      styleInput: makeInput({
+        className: 'bg-cyan-100 text-slate-700 group-hover:bg-cyan-300 group-hover:ring-2 group-hover:ring-cyan-500',
+        groupId: 'map-1',
+      }),
+      eligibleProfile: makeEligibleProfile(),
+    });
+
+    expect(interpreted.result.status).toBe('applied');
+    expect(interpreted.result.appliedTokens).toEqual([
+      'bg-cyan-100',
+      'text-slate-700',
+      'group-hover:bg-cyan-300',
+      'group-hover:ring-2',
+      'group-hover:ring-cyan-500',
+    ]);
+    expect(interpreted.result.resolvedStylePayload?.style).toMatchObject({
+      backgroundColor: '#cffafe',
+      color: '#334155',
+    });
+    expect(interpreted.result.resolvedStylePayload?.groupHoverStyle).toMatchObject({
+      backgroundColor: '#67e8f9',
+    });
+    expect(String(interpreted.result.resolvedStylePayload?.groupHoverStyle?.boxShadow)).toContain('#06b6d4');
+  });
+
   it('supports finer shadow and outline utilities', () => {
     const interpreted = interpretWorkspaceStyle({
       styleInput: makeInput({
@@ -376,6 +404,23 @@ describe('workspace-styling/interpreter', () => {
     expect(interpreted.result.ignoredTokens).toEqual(['foo-bar']);
     expect(interpreted.diagnostics.map((item) => item.code)).toEqual([
       'UNSUPPORTED_CATEGORY',
+      'MIXED_INPUT',
+    ]);
+  });
+
+  it('diagnoses group-hover tokens on nodes without group identity', () => {
+    const interpreted = interpretWorkspaceStyle({
+      styleInput: makeInput({
+        className: 'group-hover:bg-cyan-300 shadow-sm',
+      }),
+      eligibleProfile: makeEligibleProfile(),
+    });
+
+    expect(interpreted.result.status).toBe('partial');
+    expect(interpreted.result.appliedTokens).toEqual(['shadow-sm']);
+    expect(interpreted.result.ignoredTokens).toEqual(['group-hover:bg-cyan-300']);
+    expect(interpreted.diagnostics.map((item) => item.code)).toEqual([
+      'UNSUPPORTED_TOKEN',
       'MIXED_INPUT',
     ]);
   });

@@ -31,11 +31,12 @@ bun run dev
 11. Validate `hover:` tokens apply only on pointer hover and do not overwrite the base inline style payload at rest.
 12. Validate `focus:` tokens apply only when the node root is focused and that eligible nodes expose a focusable runtime surface.
 13. Validate `active:` tokens apply only while pointer press is active on the node root.
-14. Enter mixed supported/unsupported category input and confirm partial apply with diagnostics.
-15. Apply `className=""` or remove class input and confirm style reset is applied.
-16. Apply class input to a non-eligible object and confirm out-of-scope diagnostic behavior.
-17. Start dev bootstrap with runtime styling path enabled and confirm safelist generation still executes.
-18. Confirm workspace style edits do not regress the existing safelist/bootstrap development flow.
+14. Validate `group-hover:` tokens apply on `groupId`-backed grouped nodes and remain diagnosable on ungrouped nodes.
+15. Enter mixed supported/unsupported category input and confirm partial apply with diagnostics.
+16. Apply `className=""` or remove class input and confirm style reset is applied.
+17. Apply class input to a non-eligible object and confirm out-of-scope diagnostic behavior.
+18. Start dev bootstrap with runtime styling path enabled and confirm safelist generation still executes.
+19. Confirm workspace style edits do not regress the existing safelist/bootstrap development flow.
 
 ## Suggested automated verification targets
 
@@ -69,6 +70,9 @@ bun run dev
 - 2026-03-16: `bun test app/features/workspace-styling/*.test.ts app/components/nodes/BaseNode.test.tsx`
 - Result: 41 passing, 0 failing
 - Covered slices: hover/focus interaction layers, wider responsive variants, unsupported variant diagnostics, BaseNode hover/focus style layering
+- 2026-03-16: `bun test app/features/workspace-styling/*.test.ts app/components/nodes/BaseNode.test.tsx app/components/nodes/WashiTapeNode.test.tsx app/features/render/parseRenderGraph.test.ts app/store/graph.test.ts`
+- Result: 81 passing, 0 failing
+- Covered slices: `group-hover` payloads and grouped-node diagnostics, parser className surfaces for image/washi, group hover registry state, washitape tape-surface runtime style layering
 - 2026-03-16: `bun test app/components/editor/WorkspaceClient.test.tsx app/components/GraphCanvas.test.tsx scripts/dev/app-dev.test.ts app/hooks/useFileSync.test.ts`
 - Result: 60 passing, 0 failing
 - 2026-03-16: live browser smoke on `examples/runtime_interactions.tsx` via `http://localhost:3005`
@@ -80,4 +84,5 @@ bun run dev
 
 - Sticky: size + visual + shadow categories should resolve and apply.
 - Sticker: shadow + outline/emphasis categories should resolve and apply.
-- WashiTape: remains out of scope until it exposes a runtime style surface compatible with `className`.
+- WashiTape: runtime `className` now targets the tape body surface; grouped washi can additionally react to `group-hover`.
+- Image: runtime `className` now targets the frame/wrapper surface.

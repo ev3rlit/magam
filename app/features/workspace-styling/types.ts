@@ -11,6 +11,7 @@ export interface WorkspaceStyleInput {
   className: string;
   sourceRevision: string;
   timestamp: number;
+  groupId?: string;
 }
 
 export interface WorkspaceStyleRuntimeContext {
@@ -47,6 +48,7 @@ export interface ResolvedStylePayload {
   hoverStyle?: Record<string, string | number>;
   focusStyle?: Record<string, string | number>;
   activeStyle?: Record<string, string | number>;
+  groupHoverStyle?: Record<string, string | number>;
 }
 
 export interface InterpretedStyleResult {

@@ -39,11 +39,11 @@ describe('workspace-styling/diagnostics', () => {
     expect(createUnsupportedTokenDiagnostic({
       objectId: 'node-a',
       revision: 'rev-2',
-      token: 'group-hover:w-4',
+      token: 'peer-hover:w-4',
       category: 'size',
     })).toMatchObject({
       code: 'UNSUPPORTED_TOKEN',
-      token: 'group-hover:w-4',
+      token: 'peer-hover:w-4',
       category: 'size',
       severity: 'warning',
     });
@@ -53,9 +53,16 @@ describe('workspace-styling/diagnostics', () => {
     expect(createUnsupportedTokenDiagnostic({
       objectId: 'node-a',
       revision: 'rev-2',
+      token: 'peer-hover:w-4',
+      category: 'size',
+    }).message).toContain('unsupported variant "peer-hover"');
+
+    expect(createUnsupportedTokenDiagnostic({
+      objectId: 'node-a',
+      revision: 'rev-2',
       token: 'group-hover:w-4',
       category: 'size',
-    }).message).toContain('unsupported variant "group-hover"');
+    }).message).toContain('requires a groupId-backed runtime group surface');
 
     expect(createUnsupportedTokenDiagnostic({
       objectId: 'node-a',

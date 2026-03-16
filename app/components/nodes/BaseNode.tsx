@@ -44,6 +44,8 @@ interface BaseNodeProps {
     label?: string;
     style?: React.CSSProperties;
     onDoubleClick?: React.MouseEventHandler<HTMLDivElement>;
+    consumeRuntimePayload?: boolean;
+    trackGroupHover?: boolean;
 }
 
 export function resolveBaseNodeInlineStyle(input: {
@@ -52,9 +54,11 @@ export function resolveBaseNodeInlineStyle(input: {
     hoverStyle?: Record<string, string | number>;
     focusStyle?: Record<string, string | number>;
     activeStyle?: Record<string, string | number>;
+    groupHoverStyle?: Record<string, string | number>;
     isHovered: boolean;
     isFocused: boolean;
     isActive: boolean;
+    isGroupHovered: boolean;
 }): React.CSSProperties {
     return {
         ...(input.style || {}),
@@ -62,6 +66,7 @@ export function resolveBaseNodeInlineStyle(input: {
         ...(input.isHovered ? (input.hoverStyle || {}) : {}),
         ...(input.isFocused ? (input.focusStyle || {}) : {}),
         ...(input.isActive ? (input.activeStyle || {}) : {}),
+        ...(input.isGroupHovered ? (input.groupHoverStyle || {}) : {}),
     };
 }
 
@@ -76,6 +81,8 @@ export const BaseNodeComponent = ({
     label,
     style,
     onDoubleClick,
+    consumeRuntimePayload = true,
+    trackGroupHover = true,
 }: BaseNodeProps) => {
     const { registerBubble, unregisterBubble } = useBubbleActions();
     const nodeId = useNodeId();
@@ -89,9 +96,18 @@ export const BaseNodeComponent = ({
     );
     const runtimePayload = useGraphStore(
         useCallback((state) => {
-            if (!nodeId) return undefined;
+            if (!nodeId || !consumeRuntimePayload) return undefined;
             return state.workspaceStyleByNodeId[nodeId]?.resolvedStylePayload;
-        }, [nodeId]),
+        }, [consumeRuntimePayload, nodeId]),
+    );
+    const registerGroupHover = useGraphStore((state) => state.registerGroupHover);
+    const unregisterGroupHover = useGraphStore((state) => state.unregisterGroupHover);
+    const isGroupHovered = useGraphStore(
+        useCallback((state) => {
+            const groupId = typeof node?.data?.groupId === 'string' ? node.data.groupId : null;
+            if (!groupId) return false;
+            return (state.hoveredNodeIdsByGroupId[groupId] ?? []).length > 0;
+        }, [node]),
     );
     const resolvedInlineStyle = useMemo(() => resolveBaseNodeInlineStyle({
         style,
@@ -99,10 +115,12 @@ export const BaseNodeComponent = ({
         hoverStyle: runtimePayload?.hoverStyle,
         focusStyle: runtimePayload?.focusStyle,
         activeStyle: runtimePayload?.activeStyle,
+        groupHoverStyle: runtimePayload?.groupHoverStyle,
         isHovered,
         isFocused,
         isActive,
-    }), [isActive, isFocused, isHovered, runtimePayload?.activeStyle, runtimePayload?.focusStyle, runtimePayload?.hoverStyle, runtimePayload?.style, style]);
+        isGroupHovered,
+    }), [isActive, isFocused, isGroupHovered, isHovered, runtimePayload?.activeStyle, runtimePayload?.focusStyle, runtimePayload?.groupHoverStyle, runtimePayload?.hoverStyle, runtimePayload?.style, style]);
 
     const handleClasses = clsx(
         '!w-3 !h-3 !border-0 transition-opacity duration-200',
@@ -143,6 +161,15 @@ export const BaseNodeComponent = ({
         };
     }, [bubble, nodeId, bubbleText, node, registerBubble, unregisterBubble]);
 
+    useEffect(() => {
+        return () => {
+            const groupId = typeof node?.data?.groupId === 'string' ? node.data.groupId : null;
+            if (trackGroupHover && nodeId && groupId) {
+                unregisterGroupHover(groupId, nodeId);
+            }
+        };
+    }, [node, nodeId, trackGroupHover, unregisterGroupHover]);
+
     // Bubble is now rendered in BubbleOverlay, not here
 
     return (
@@ -150,8 +177,20 @@ export const BaseNodeComponent = ({
             className={twMerge("relative group", className)}
             style={resolvedInlineStyle}
             onDoubleClick={onDoubleClick}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
+            onMouseEnter={() => {
+                setIsHovered(true);
+                const groupId = typeof node?.data?.groupId === 'string' ? node.data.groupId : null;
+                if (trackGroupHover && nodeId && groupId) {
+                    registerGroupHover(groupId, nodeId);
+                }
+            }}
+            onMouseLeave={() => {
+                setIsHovered(false);
+                const groupId = typeof node?.data?.groupId === 'string' ? node.data.groupId : null;
+                if (trackGroupHover && nodeId && groupId) {
+                    unregisterGroupHover(groupId, nodeId);
+                }
+            }}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             onMouseDown={() => setIsActive(true)}

@@ -22,9 +22,13 @@ describe('BaseNode runtime style layering', () => {
       activeStyle: {
         transform: 'scale(0.98)',
       },
+      groupHoverStyle: {
+        boxShadow: '0 0 0 3px #cffafe',
+      },
       isHovered: true,
       isFocused: false,
       isActive: false,
+      isGroupHovered: false,
     })).toEqual({
       backgroundColor: '#0f172a',
       opacity: 0.7,
@@ -44,6 +48,7 @@ describe('BaseNode runtime style layering', () => {
       isHovered: false,
       isFocused: false,
       isActive: false,
+      isGroupHovered: false,
     })).toEqual({
       backgroundColor: '#fef3c7',
     });
@@ -61,6 +66,7 @@ describe('BaseNode runtime style layering', () => {
       isHovered: false,
       isFocused: true,
       isActive: false,
+      isGroupHovered: false,
     })).toEqual({
       borderColor: '#06b6d4',
       boxShadow: '0 0 0 3px #cffafe',
@@ -79,9 +85,29 @@ describe('BaseNode runtime style layering', () => {
       isHovered: false,
       isFocused: false,
       isActive: true,
+      isGroupHovered: false,
     })).toEqual({
       transform: 'translateY(2px)',
       boxShadow: 'none',
+    });
+  });
+
+  it('applies group-hover style when the node group is hovered', () => {
+    expect(resolveBaseNodeInlineStyle({
+      runtimeStyle: {
+        borderColor: '#cbd5e1',
+      },
+      groupHoverStyle: {
+        borderColor: '#22d3ee',
+        boxShadow: '0 0 0 3px #cffafe',
+      },
+      isHovered: false,
+      isFocused: false,
+      isActive: false,
+      isGroupHovered: true,
+    })).toEqual({
+      borderColor: '#22d3ee',
+      boxShadow: '0 0 0 3px #cffafe',
     });
   });
 });

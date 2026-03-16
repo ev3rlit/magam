@@ -1,20 +1,26 @@
-# Next Surface Design: `group-hover`, `ImageNode`, `WashiTapeNode`
+# Next Surface Design: Post-`group-hover` / Image / Washi
 
 ## Purpose
 
-정적 runtime styling v1 이후 다음 확장 후보인 `group-hover:`와 `ImageNode` / `WashiTapeNode`의 `className` surface 개방 방향을 정리한다.
+방금 구현된 `group-hover:`와 `ImageNode` / `WashiTapeNode` surface 이후에 남는 후속 확장 방향을 정리한다.
 
-## 1. `group-hover:` runtime surface
+## Status
+
+- `group-hover:`: implemented for `groupId`-backed surfaces
+- `ImageNode` `className`: implemented on wrapper/frame surface
+- `WashiTapeNode` `className`: implemented on tape body surface
+
+## 1. `group-hover:` next expansion
 
 ### Current constraint
 
-- 현재 runtime interaction state는 각 node root 내부의 local state(`hover`, `focus`, `active`)로만 존재한다.
+- 현재 runtime interaction state는 각 node root의 local state(`hover`, `focus`, `active`)와 store-level `groupId` hover registry로 존재한다.
 - `group-hover:`가 의미를 가지려면 "다른 node가 hover 중인지"를 현재 node가 알 수 있어야 한다.
-- 저장소 기준으로 현재 그룹 개념은 `groupId`가 있는 mindmap/member 계열에서만 드러나며, runtime styling은 이 그룹 상태를 아직 store에 올리지 않는다.
+- 현재 그룹 개념은 `groupId`가 있는 mindmap/member 계열에서 우선 동작한다.
 
 ### Required runtime surface
 
-`group-hover:`를 지원하려면 아래 surface가 필요하다.
+일반화된 `group-hover:` 확장을 위해서는 아래 surface가 추가로 필요하다.
 
 1. **Stable group identity**
 - 각 node가 styling 관점에서 어떤 group에 속하는지 식별 가능해야 한다.
@@ -22,8 +28,8 @@
 - 단, `groupId`가 없는 일반 canvas object에는 `group-hover:`를 허용하지 않는 편이 안전하다.
 
 2. **Shared interaction registry**
-- store 레벨에 `hoveredGroupIds` 또는 `hoveredNodeIdsByGroup`가 있어야 한다.
-- local `BaseNode` state만으로는 부족하다.
+- 현재 `hoveredNodeIdsByGroupId`는 구현돼 있다.
+- 다음 단계는 이를 arbitrary container/group abstraction으로 일반화할지 결정하는 것이다.
 
 3. **Interpreter/runtime evaluation rule**
 - `group-hover:*` 토큰은 "자기 자신이 아니라 동일 group 내 다른 eligible member가 hovered인지"를 기준으로 active/inactive가 결정되어야 한다.
@@ -37,20 +43,15 @@
 
 ### Recommended architecture
 
-#### Phase A: group-state capture
+#### Current rollout
 
-- `BaseNode`가 `data.groupId`가 있는 경우 hover enter/leave 때 store action을 호출한다.
-- store는 `workspaceInteractionByGroupId: Record<string, { hoveredNodeIds: string[] }>` 같은 구조를 유지한다.
+- `BaseNode`가 `data.groupId`가 있는 경우 hover enter/leave 때 store registry를 갱신한다.
+- interpreter는 `group-hover`를 별도 interaction layer로 유지하고, grouped node에서만 적용한다.
 
-#### Phase B: per-node evaluation context
+#### Next rollout question
 
-- `buildWorkspaceStyleSnapshot()`가 node별 해석 시점에 `groupInteractionContext`를 함께 전달한다.
-- interpreter는 local variant(`hover`, `focus`, `active`)와 shared variant(`group-hover`)를 별도 레이어로 평가한다.
-
-#### Phase C: limited rollout
-
-- v1.1에서는 `group-hover:`를 **`groupId`가 있는 node에 한해서만** 허용한다.
-- 특히 mindmap member 계열부터 시작하는 것이 안전하다.
+- `groupId` 없는 일반 canvas subtree도 styling group으로 볼 것인지
+- 아니면 `group-hover:`를 계속 explicit group-backed node로 한정할 것인지
 
 ### Why not support it immediately everywhere
 
@@ -58,12 +59,12 @@
 - 임의의 container/frame subtree 전체를 styling group으로 해석하기 시작하면 source-of-truth가 불명확해진다.
 - 그래서 first cut은 `groupId` 기반 제한 rollout이 맞다.
 
-## 2. `ImageNode` className surface
+## 2. `ImageNode` next expansion
 
 ### Current state
 
-- `ImageNode`는 `BaseNode`를 사용하지만 node data에 `className`이 없다.
-- 즉 runtime payload 소비 경로는 이미 존재하지만 입력 surface가 비어 있다.
+- `ImageNode`는 wrapper/frame surface에 대해 `className`을 받는다.
+- runtime payload는 `BaseNode` 경로를 통해 frame styling에 적용된다.
 
 ### Recommended direction
 
@@ -91,12 +92,12 @@
 3. example/quick smoke 추가
 4. capability matrix를 `ImageNode: Yes`로 승격
 
-## 3. `WashiTapeNode` className surface
+## 3. `WashiTapeNode` next expansion
 
 ### Current state
 
-- `WashiTapeNode`는 `BaseNode`를 쓰지만 핵심 시각 surface는 내부 `tapeStyle`에 직접 인라인으로 계산된다.
-- 그래서 outer wrapper에만 `className`을 열어도 사용자가 기대하는 "테이프 색/질감/글자" 제어와는 어긋날 가능성이 크다.
+- `WashiTapeNode`는 `className`을 tape body surface에서 직접 소비한다.
+- wrapper가 아니라 inner tape surface에 runtime payload가 적용된다.
 
 ### Recommended direction
 
@@ -129,11 +130,11 @@
   - width/height-like scaling이 아닌 safe visual subset
   - background/tint 계열은 preset과 합성 규칙을 먼저 정해야 한다
 
-## 4. Recommended order
+## 4. Recommended next order
 
-1. `ImageNode` wrapper `className` surface
-2. `group-hover:` on `groupId`-backed nodes only
-3. `WashiTapeNode` primary tape surface
+1. generalized `group-hover:` beyond `groupId`
+2. `ImageNode` pixel-surface styling subset
+3. `WashiTapeNode` label/tint sub-surface split
 
 이 순서가 맞는 이유:
 
