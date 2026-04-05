@@ -10,22 +10,19 @@ interface DemoShellProps {
 
 export function DemoShell({ initialModel }: DemoShellProps) {
   const [selectedPath, setSelectedPath] = useState(initialModel.selectedPath);
-  const [selectedSource, setSelectedSource] = useState(initialModel.selectedSource);
-  const [selectedTitle, setSelectedTitle] = useState(initialModel.selectedTitle);
-  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({
-    'examples-root': true,
-  });
+  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>(() =>
+    getInitialOpenFolders(initialModel.tree, initialModel.selectedPath),
+  );
 
   const activeNode = findExampleNode(initialModel.tree, selectedPath);
+  const selectedSource = initialModel.exampleSourceByPath[selectedPath] ?? '';
 
   function handleExampleSelect(node: DemoExampleNode) {
-    if (!node.source) {
+    if (node.children?.length) {
       return;
     }
 
     setSelectedPath(node.path);
-    setSelectedSource(node.source);
-    setSelectedTitle(node.title);
   }
 
   function handleFolderToggle(nodeId: string) {
@@ -39,12 +36,13 @@ export function DemoShell({ initialModel }: DemoShellProps) {
     <main className="demo-page">
       <div className="demo-shell">
         <section className="demo-hero">
-          <div className="demo-kicker">001 Demo App Boundary</div>
-          <h1>Separate demo app. No local workspace bridge.</h1>
+          <div className="demo-kicker">002 Example Registry Explorer</div>
+          <h1>Curated examples, generated at build time.</h1>
           <p>
-            `apps/web-demo` is now a standalone Next app shell with its own workspace package,
-            local contracts, and a static example repository. It does not import the existing
-            `app` shell or call the local API and websocket flow.
+            `apps/web-demo` now reads a generated example manifest instead of placeholder source.
+            The explorer and source panel are backed by curated `examples/` files captured during
+            build, without importing the existing `app` shell or calling any local API and
+            websocket flow.
           </p>
           <div className="demo-chip-row">
             <div className="demo-chip">
@@ -66,7 +64,7 @@ export function DemoShell({ initialModel }: DemoShellProps) {
           <article className="demo-panel">
             <div className="demo-panel-header">
               <h2>Explorer</h2>
-              <span>read-only seed tree</span>
+              <span>read-only registry tree</span>
             </div>
             <div className="demo-panel-body">
               <div className="demo-stack">
@@ -90,7 +88,7 @@ export function DemoShell({ initialModel }: DemoShellProps) {
           <article className="demo-panel">
             <div className="demo-panel-header">
               <h2>Source</h2>
-              <span>{selectedTitle}</span>
+              <span>{activeNode?.title ?? 'Unknown example'}</span>
             </div>
             <div className="demo-panel-body">
               <div className="demo-source-meta">
@@ -98,6 +96,9 @@ export function DemoShell({ initialModel }: DemoShellProps) {
                 <span>read-only example</span>
                 <span>{activeNode?.category ?? 'Uncategorized'}</span>
               </div>
+              {activeNode?.description ? (
+                <p className="demo-source-description">{activeNode.description}</p>
+              ) : null}
               <pre className="demo-code">
                 <code>{selectedSource}</code>
               </pre>
@@ -106,19 +107,33 @@ export function DemoShell({ initialModel }: DemoShellProps) {
 
           <article className="demo-panel">
             <div className="demo-panel-header">
-              <h2>Preview Slot</h2>
+              <h2>Preview Target</h2>
               <span>future 004 renderer</span>
             </div>
             <div className="demo-panel-body">
               <div className="demo-stack">
                 <div className="demo-preview-card">
-                  <strong>Boundary locked</strong>
+                  <strong>{activeNode?.title ?? 'Boundary locked'}</strong>
                   <p>
-                    This shell intentionally stops before local API proxying, websocket sync, chat,
-                    or scratch persistence. The preview panel is reserved for the browser render
-                    engine that will be introduced in subfeature `004`.
+                    The current render target is identified by the selected example path so `004`
+                    can attach the browser renderer without changing how selection state flows
+                    through the demo shell.
                   </p>
                 </div>
+
+                <section>
+                  <h3 className="demo-section-title">Render target</h3>
+                  <div className="demo-rule-list">
+                    <div className="demo-rule">
+                      <strong>{selectedPath}</strong>
+                      <span>Selected entry file from the generated example registry.</span>
+                    </div>
+                    <div className="demo-rule">
+                      <strong>{initialModel.previewStatus}</strong>
+                      <span>Placeholder preview status until the browser render engine lands.</span>
+                    </div>
+                  </div>
+                </section>
 
                 <section>
                   <h3 className="demo-section-title">Blocked capabilities</h3>
@@ -147,6 +162,43 @@ export function DemoShell({ initialModel }: DemoShellProps) {
       </div>
     </main>
   );
+}
+
+function getInitialOpenFolders(
+  nodes: DemoExampleNode[],
+  activePath: string,
+): Record<string, boolean> {
+  const openFolders: Record<string, boolean> = {
+    'examples-root': true,
+  };
+
+  markAncestorFolders(nodes, activePath, openFolders);
+
+  return openFolders;
+}
+
+function markAncestorFolders(
+  nodes: DemoExampleNode[],
+  activePath: string,
+  openFolders: Record<string, boolean>,
+): boolean {
+  for (const node of nodes) {
+    if (node.path === activePath) {
+      return true;
+    }
+
+    if (!node.children?.length) {
+      continue;
+    }
+
+    if (markAncestorFolders(node.children, activePath, openFolders)) {
+      openFolders[node.id] = true;
+
+      return true;
+    }
+  }
+
+  return false;
 }
 
 interface ExplorerNodeProps {

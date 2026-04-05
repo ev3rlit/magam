@@ -56,3 +56,4 @@ notes
 examples/.magam/
 scripts/perf/artifacts/
 scripts/perf/logs/
+apps/web-demo/src/generated/

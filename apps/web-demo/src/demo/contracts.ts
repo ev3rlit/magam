@@ -13,7 +13,7 @@ export interface DemoExampleNode {
   path: string;
   title: string;
   category: string;
-  source?: string;
+  description?: string;
   children?: DemoExampleNode[];
 }
 
@@ -24,9 +24,8 @@ export interface ExampleRepository {
 
 export interface DemoHomeModel {
   tree: DemoExampleNode[];
+  exampleSourceByPath: Record<string, string>;
   selectedPath: string;
-  selectedSource: string;
-  selectedTitle: string;
   uiMode: DemoUiMode;
   previewStatus: DemoPreviewStatus;
   allowedPackages: string[];

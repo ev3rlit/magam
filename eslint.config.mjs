@@ -13,7 +13,9 @@ export default tseslint.config(
             "**/.next",
             "**/node_modules",
             "**/coverage",
-            "**/*.min.js"
+            "**/*.min.js",
+            "apps/web-demo/next-env.d.ts",
+            "apps/web-demo/src/generated/**"
         ]
     },
     {
