@@ -6,12 +6,19 @@ import { createCodeMirrorEditorPort } from '@/src/demo/editor/codemirror-editor-
 
 interface ScratchEditorProps {
   value: string;
-  onChange: (value: string) => void;
+  onChange?: (value: string) => void;
+  readOnly?: boolean;
+  autoFocus?: boolean;
 }
 
 const codeEditorPort = createCodeMirrorEditorPort();
 
-export function ScratchEditor({ value, onChange }: ScratchEditorProps) {
+export function ScratchEditor({
+  value,
+  onChange,
+  readOnly = false,
+  autoFocus = !readOnly,
+}: ScratchEditorProps) {
   const editorHostRef = useRef<HTMLDivElement | null>(null);
   const editorHandleRef = useRef<CodeEditorHandle | null>(null);
   const onChangeRef = useRef(onChange);
@@ -28,21 +35,23 @@ export function ScratchEditor({ value, onChange }: ScratchEditorProps) {
     const handle = codeEditorPort.mount({
       element: editorHostRef.current,
       value,
-      readOnly: false,
+      readOnly,
       language: 'tsx',
       onChange: (nextValue) => {
-        onChangeRef.current(nextValue);
+        onChangeRef.current?.(nextValue);
       },
     });
 
     editorHandleRef.current = handle;
-    handle.focus();
+    if (autoFocus) {
+      handle.focus();
+    }
 
     return () => {
       handle.dispose();
       editorHandleRef.current = null;
     };
-  }, []);
+  }, [autoFocus, readOnly]);
 
   useEffect(() => {
     const handle = editorHandleRef.current;

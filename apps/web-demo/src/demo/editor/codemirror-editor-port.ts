@@ -23,39 +23,39 @@ export function createCodeMirrorEditorPort(): CodeEditorPort {
           EditorView.theme({
             '&': {
               height: '100%',
-              color: '#fff4de',
-              backgroundColor: '#191719',
+              color: '#e2e8f0',
+              backgroundColor: '#0f172a',
               fontFamily: 'var(--font-mono), "SFMono-Regular", monospace',
-              fontSize: '0.84rem',
+              fontSize: '0.76rem',
             },
             '.cm-scroller': {
               overflow: 'auto',
               fontFamily: 'inherit',
-              lineHeight: '1.65',
+              lineHeight: '1.6',
             },
             '.cm-content': {
               minHeight: '100%',
-              padding: '18px',
+              padding: '14px 16px 18px',
             },
             '.cm-focused': {
               outline: 'none',
             },
             '.cm-activeLine': {
-              backgroundColor: 'rgba(212, 99, 42, 0.08)',
+              backgroundColor: 'rgba(37, 99, 235, 0.08)',
             },
             '.cm-activeLineGutter': {
-              backgroundColor: 'rgba(212, 99, 42, 0.12)',
+              backgroundColor: 'rgba(37, 99, 235, 0.12)',
             },
             '.cm-gutters': {
-              borderRight: '1px solid rgba(255, 244, 222, 0.08)',
-              backgroundColor: '#161417',
-              color: 'rgba(255, 244, 222, 0.5)',
+              borderRight: '1px solid rgba(148, 163, 184, 0.18)',
+              backgroundColor: '#111827',
+              color: 'rgba(148, 163, 184, 0.72)',
             },
             '.cm-cursor': {
-              borderLeftColor: '#d4632a',
+              borderLeftColor: '#60a5fa',
             },
             '.cm-selectionBackground, ::selection': {
-              backgroundColor: 'rgba(212, 99, 42, 0.28)',
+              backgroundColor: 'rgba(37, 99, 235, 0.24)',
             },
           }),
         ],

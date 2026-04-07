@@ -1,6 +1,7 @@
-import * as React from 'react';
-import * as jsxRuntime from 'react/jsx-runtime';
-import * as jsxDevRuntime from 'react/jsx-dev-runtime';
+// @ts-expect-error Pin demo runtime to the workspace React package for reconciler compatibility.
+import * as React from '../../../../../node_modules/react/index.js';
+import * as jsxRuntime from '@/src/demo/render/react-jsx-runtime';
+import * as jsxDevRuntime from '@/src/demo/render/react-jsx-dev-runtime';
 import * as MagamCore from '@magam/core';
 import { renderToGraph } from '@magam/core';
 import ts from 'typescript';

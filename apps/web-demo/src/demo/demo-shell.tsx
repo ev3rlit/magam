@@ -38,13 +38,16 @@ interface DemoShellProps {
   initialModel: DemoHomeModel;
 }
 
+type SidebarPanel = 'explorer' | 'code';
+
 export function DemoShell({ initialModel }: DemoShellProps) {
   const [selectedPath, setSelectedPath] = useState(initialModel.selectedPath);
   const [activeMode, setActiveMode] = useState<DemoUiMode>(initialModel.uiMode);
+  const [sidebarPanel, setSidebarPanel] = useState<SidebarPanel>('explorer');
   const [scratchDocument, setScratchDocument] = useState<ScratchDocument | null>(null);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const [hasHydratedStorage, setHasHydratedStorage] = useState(false);
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>(() =>
     getInitialOpenFolders(initialModel.tree, initialModel.selectedPath),
   );
@@ -168,6 +171,14 @@ export function DemoShell({ initialModel }: DemoShellProps) {
             return;
           }
 
+          if (response.diagnostics.length > 0) {
+            console.error('[web-demo] render diagnostics', {
+              path: nextTarget.path,
+              mode: nextTarget.mode,
+              diagnostics: response.diagnostics,
+            });
+          }
+
           setPreviewState((currentState) => ({
             ...currentState,
             activeTarget: nextTarget,
@@ -187,6 +198,12 @@ export function DemoShell({ initialModel }: DemoShellProps) {
           if (isCancelled || error instanceof DemoRenderStaleResultError) {
             return;
           }
+
+          console.error('[web-demo] render request failed', {
+            path: nextTarget.path,
+            mode: nextTarget.mode,
+            error,
+          });
 
           setPreviewState((currentState) => ({
             ...currentState,
@@ -233,6 +250,11 @@ export function DemoShell({ initialModel }: DemoShellProps) {
           return;
         }
 
+        console.error('[web-demo] preview parse failed', {
+          path: previewState.lastCompletedTarget?.path ?? selectedPath,
+          error,
+        });
+
         setPreviewParseDiagnostics([
           toUnhandledDiagnostic(error, previewState.lastCompletedTarget?.path ?? selectedPath),
         ]);
@@ -256,7 +278,7 @@ export function DemoShell({ initialModel }: DemoShellProps) {
 
     setSelectedPath(node.path);
     setActiveMode('example-view');
-    setIsMobileSidebarOpen(false);
+    setIsSidebarOpen(false);
   }
 
   function handleFolderToggle(nodeId: string) {
@@ -267,6 +289,14 @@ export function DemoShell({ initialModel }: DemoShellProps) {
   }
 
   async function handleEditInScratch() {
+    if (scratchMatchesSelection && scratchDocument) {
+      setActiveMode('scratch-edit');
+      setSidebarPanel('code');
+      setIsSidebarOpen(false);
+
+      return;
+    }
+
     const document = await scratchWorkspace.startFromExample({
       path: selectedPath,
       source: selectedSource,
@@ -274,7 +304,8 @@ export function DemoShell({ initialModel }: DemoShellProps) {
 
     setScratchDocument(document);
     setActiveMode('scratch-edit');
-    setIsMobileSidebarOpen(false);
+    setSidebarPanel('code');
+    setIsSidebarOpen(false);
   }
 
   async function handleResetScratch() {
@@ -288,6 +319,7 @@ export function DemoShell({ initialModel }: DemoShellProps) {
       source: selectedSource,
     });
     setActiveMode('scratch-edit');
+    setSidebarPanel('code');
   }
 
   function handleScratchChange(nextSource: string) {
@@ -302,6 +334,11 @@ export function DemoShell({ initialModel }: DemoShellProps) {
 
     setScratchDocument(nextDocument);
     void scratchWorkspace.update(nextDocument.documentId, nextSource);
+  }
+
+  function handleShowExampleSource() {
+    setActiveMode('example-view');
+    setSidebarPanel('code');
   }
 
   async function handleCopySource() {
@@ -321,159 +358,163 @@ export function DemoShell({ initialModel }: DemoShellProps) {
     }
   }
 
+  const scratchActionLabel = scratchMatchesSelection ? 'Resume Scratch' : 'Edit in Scratch';
+
   return (
     <main className="demo-page">
       <div className="demo-shell">
-        <header className="demo-header">
-          <div className="demo-header-brand">
-            <span className="demo-kicker">005 Preview Shell</span>
-            <div>
-              <h1>magam web demo</h1>
-              <p>Preview-first Vercel shell with scratch-safe browser rendering.</p>
-            </div>
-          </div>
-
-          <div className="demo-header-context">
-            <span>{activeNode?.title ?? 'Unknown example'}</span>
-            <span>{sourceTarget.mode === 'scratch-edit' ? 'Scratch' : 'Example'}</span>
-            <span>{selectedPath}</span>
-          </div>
-
-          <div className="demo-header-actions">
-            <button type="button" className="demo-action-button" onClick={handleEditInScratch}>
-              Edit in Scratch
-            </button>
-            {scratchMatchesSelection ? (
-              <button type="button" className="demo-action-button" onClick={handleResetScratch}>
-                Reset
-              </button>
-            ) : null}
-            <button
-              type="button"
-              className="demo-action-button demo-mobile-only"
-              onClick={() => setIsMobileSidebarOpen(true)}
-            >
-              Browse
-            </button>
-          </div>
-        </header>
-
         <div
           className="demo-mobile-scrim"
-          data-open={isMobileSidebarOpen}
-          onClick={() => setIsMobileSidebarOpen(false)}
+          data-open={isSidebarOpen}
+          onClick={() => setIsSidebarOpen(false)}
         />
 
-        <div className="demo-shell-grid">
-          <aside className="demo-sidebar" data-open={isMobileSidebarOpen}>
-            <div className="demo-sidebar-head demo-mobile-only">
-              <strong>Explorer & Source</strong>
-              <button
-                type="button"
-                className="demo-close-button"
-                onClick={() => setIsMobileSidebarOpen(false)}
-              >
-                Close
-              </button>
-            </div>
+        <div className="demo-workspace">
+          <section className="demo-main">
+            <button
+              type="button"
+              className="demo-drawer-trigger"
+              onClick={() => setIsSidebarOpen(true)}
+            >
+              Panels
+            </button>
 
-            <article className="demo-panel">
-              <div className="demo-panel-header">
-                <h2>Explorer</h2>
-                <span>read-only registry</span>
-              </div>
-              <div className="demo-panel-body">
-                <div className="demo-tree-list">
-                  {initialModel.tree.map((node) => (
-                    <ExplorerNode
-                      key={node.id}
-                      node={node}
-                      activePath={selectedPath}
-                      openFolders={openFolders}
-                      onFolderToggle={handleFolderToggle}
-                      onExampleSelect={handleExampleSelect}
-                    />
-                  ))}
-                </div>
-              </div>
-            </article>
-
-            <article className="demo-panel">
-              <div className="demo-panel-header">
-                <h2>Source</h2>
-                <span>{activeNode?.category ?? 'Example'}</span>
-              </div>
-              <div className="demo-panel-body">
-                <div className="demo-source-toolbar">
-                  <div className="demo-source-actions">
-                    <button type="button" className="demo-action-button" onClick={handleCopySource}>
-                      Copy
-                    </button>
-                  </div>
-                  {copyStatus ? <span className="demo-status-pill">{copyStatus}</span> : null}
-                </div>
-
-                {scratchMatchesSelection ? (
-                  <div className="demo-source-tabs" role="tablist" aria-label="Source mode">
-                    <button
-                      type="button"
-                      className="demo-source-tab"
-                      data-active={activeMode === 'example-view'}
-                      onClick={() => setActiveMode('example-view')}
-                      role="tab"
-                      aria-selected={activeMode === 'example-view'}
-                    >
-                      Example Source
-                    </button>
-                    <button
-                      type="button"
-                      className="demo-source-tab"
-                      data-active={activeMode === 'scratch-edit'}
-                      onClick={() => setActiveMode('scratch-edit')}
-                      role="tab"
-                      aria-selected={activeMode === 'scratch-edit'}
-                    >
-                      Scratch
-                    </button>
-                  </div>
-                ) : null}
-
-                <div className="demo-source-meta">
-                  <span>{selectedPath}</span>
-                  <span>
-                    {sourceTarget.mode === 'scratch-edit' ? 'editable scratch' : 'read-only example'}
-                  </span>
-                </div>
-
-                {activeNode?.description ? (
-                  <p className="demo-source-description">{activeNode.description}</p>
-                ) : null}
-
-                {sourceTarget.mode === 'scratch-edit' && scratchDocument ? (
-                  <div className="demo-editor-shell">
-                    <div className="demo-editor-meta">
-                      <span>{scratchDocument.documentId}</span>
-                      <span>sessionStorage scoped</span>
-                    </div>
-                    <LazyScratchEditor value={scratchDocument.source} onChange={handleScratchChange} />
-                  </div>
-                ) : (
-                  <pre className="demo-code">
-                    <code>{selectedSource}</code>
-                  </pre>
-                )}
-              </div>
-            </article>
-          </aside>
-
-          <section className="demo-preview-column">
             <DemoPreviewShell
-              title={activeNode?.title ?? 'Preview'}
               previewState={previewState}
               lastGoodPreview={lastGoodPreview}
               parseDiagnostics={previewParseDiagnostics}
             />
           </section>
+
+          <aside
+            className="demo-sidebar"
+            data-open={isSidebarOpen}
+          >
+            <div className="demo-sidebar-head">
+              <div className="demo-sidebar-title">
+                <span className="demo-sidebar-title-icon">{sidebarPanel === 'code' ? '</>' : '[]'}</span>
+                <strong>{sidebarPanel === 'code' ? 'Code' : 'Explorer'}</strong>
+              </div>
+
+              <div className="demo-sidebar-controls">
+                <button
+                  type="button"
+                  className="demo-sidebar-icon-button"
+                  onClick={() => setIsSidebarOpen(false)}
+                  title="Close panels"
+                >
+                  x
+                </button>
+              </div>
+            </div>
+
+            <div className="demo-sidebar-tabs" role="tablist" aria-label="Sidebar panels">
+              <button
+                type="button"
+                className="demo-sidebar-tab"
+                data-active={sidebarPanel === 'explorer'}
+                onClick={() => setSidebarPanel('explorer')}
+                role="tab"
+                aria-selected={sidebarPanel === 'explorer'}
+              >
+                Explorer
+              </button>
+              <button
+                type="button"
+                className="demo-sidebar-tab"
+                data-active={sidebarPanel === 'code'}
+                onClick={() => setSidebarPanel('code')}
+                role="tab"
+                aria-selected={sidebarPanel === 'code'}
+              >
+                Code
+              </button>
+            </div>
+
+            <div className="demo-sidebar-body">
+              {sidebarPanel === 'explorer' ? (
+                <div className="demo-explorer-panel">
+                  <div className="demo-explorer-root">examples</div>
+                  <div className="demo-tree-list">
+                    {initialModel.tree.map((node) => (
+                      <ExplorerNode
+                        key={node.id}
+                        node={node}
+                        activePath={selectedPath}
+                        openFolders={openFolders}
+                        onFolderToggle={handleFolderToggle}
+                        onExampleSelect={handleExampleSelect}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="demo-code-panel">
+                  <div className="demo-code-toolbar">
+                    <div className="demo-code-toolbar-actions">
+                      <button
+                        type="button"
+                        className="demo-toolbar-button"
+                        onClick={handleEditInScratch}
+                        disabled={sourceTarget.mode === 'scratch-edit'}
+                      >
+                        {scratchActionLabel}
+                      </button>
+                      {sourceTarget.mode === 'scratch-edit' ? (
+                        <button
+                          type="button"
+                          className="demo-toolbar-button"
+                          onClick={handleShowExampleSource}
+                        >
+                          Show Example
+                        </button>
+                      ) : null}
+                      {scratchMatchesSelection ? (
+                        <button
+                          type="button"
+                          className="demo-toolbar-button"
+                          onClick={handleResetScratch}
+                        >
+                          Reset
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="demo-toolbar-button"
+                        onClick={handleCopySource}
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    {copyStatus ? <span className="demo-status-pill">{copyStatus}</span> : null}
+                  </div>
+
+                  {activeNode?.description ? (
+                    <p className="demo-source-description">{activeNode.description}</p>
+                  ) : null}
+
+                  <div
+                    className="demo-editor-shell"
+                    data-readonly={sourceTarget.mode === 'example-view'}
+                  >
+                    <div className="demo-editor-meta">
+                      <span>
+                        {sourceTarget.mode === 'scratch-edit'
+                          ? scratchDocument?.documentId ?? 'scratch session'
+                          : 'read-only example'}
+                      </span>
+                    </div>
+                    <LazyScratchEditor
+                      value={sourceTarget.source}
+                      onChange={sourceTarget.mode === 'scratch-edit' ? handleScratchChange : undefined}
+                      readOnly={sourceTarget.mode === 'example-view'}
+                      autoFocus={sourceTarget.mode === 'scratch-edit'}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </aside>
         </div>
       </div>
     </main>
@@ -607,10 +648,10 @@ function ExplorerNode({
           onClick={() => onFolderToggle(node.id)}
           aria-expanded={isOpen}
         >
-          <span className="demo-tree-icon">{isOpen ? '-' : '+'}</span>
+          <span className="demo-tree-chevron">{isOpen ? 'v' : '>'}</span>
+          <span className="demo-tree-glyph demo-tree-glyph-folder" />
           <span className="demo-label">
             <strong>{node.title}</strong>
-            <span>{node.path}</span>
           </span>
         </button>
 
@@ -639,7 +680,8 @@ function ExplorerNode({
       data-active={node.path === activePath}
       onClick={() => onExampleSelect(node)}
     >
-      <span className="demo-tree-icon">TS</span>
+      <span className="demo-tree-chevron" />
+      <span className="demo-tree-glyph demo-tree-glyph-file" />
       <span className="demo-label">
         <strong>{node.title}</strong>
         <span>{node.path}</span>
