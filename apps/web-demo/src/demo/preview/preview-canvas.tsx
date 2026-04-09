@@ -23,6 +23,13 @@ import ReactFlow, {
 import remarkGfm from 'remark-gfm';
 import 'reactflow/dist/style.css';
 import {
+  getWashiShapeSkewAngle,
+  normalizeStickerData,
+  resolveStickerRotation,
+  resolveStickyPattern,
+  resolveWashiPattern,
+} from '@/src/demo/preview/paper-material';
+import {
   resolvePreviewEdgeHandleIds,
   type PreviewEdgeHandleId,
 } from '@/src/demo/preview/flow-edge-routing';
@@ -34,6 +41,7 @@ import {
   resolveDemoNodeStyle,
   resolveDemoStickerStyle,
   resolveDemoStickyStyle,
+  resolveDemoTextStyle,
   resolveDemoWashiStyle,
 } from '@/src/demo/preview/style';
 
@@ -63,6 +71,20 @@ const PREVIEW_HANDLE_STYLE = {
   border: 'none',
   background: 'transparent',
   pointerEvents: 'none',
+} as const;
+
+const EDGE_STROKE_SHADOW_MAP = {
+  none: 'none',
+  sm: '0 0 1px rgba(15, 23, 42, 0.28)',
+  md: '0 0 3px rgba(15, 23, 42, 0.8)',
+  lg: '0 0 5px rgba(15, 23, 42, 0.42)',
+} as const;
+
+const DEPTH_SHADOW_MAP = {
+  none: 'none',
+  sm: '0 0 10px rgba(15, 23, 42, 0.2)',
+  md: '0 0 10px rgba(15, 23, 42, 0.6)',
+  lg: '0 0 24px rgba(15, 23, 42, 0.6)',
 } as const;
 
 const PreviewNodeMeasurementContext = createContext<
@@ -180,7 +202,7 @@ function TextNode({ data }: NodeProps<DemoPreviewNodeData>) {
   }
 
   return (
-    <div className="demo-flow-node demo-flow-node-text" style={resolveDemoNodeStyle(data)}>
+    <div className="demo-flow-node demo-flow-node-text" style={resolveDemoTextStyle(data)}>
       <PreviewEdgeHandles />
       <span>{data.text}</span>
     </div>
@@ -219,12 +241,97 @@ function SequenceNode({ data }: NodeProps<DemoPreviewNodeData>) {
   );
 }
 
+function NoiseOverlay({ opacity }: { opacity: number }) {
+  if (opacity <= 0) {
+    return null;
+  }
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        borderRadius: 'inherit',
+        background:
+          "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E\")",
+        backgroundSize: '256px 256px',
+        opacity,
+        mixBlendMode: 'multiply',
+        pointerEvents: 'none',
+      }}
+    />
+  );
+}
+
+function composeDualShadow(edgeShadow: string, depthShadow: string): string {
+  if (edgeShadow === 'none' && depthShadow === 'none') {
+    return 'none';
+  }
+
+  if (edgeShadow === 'none') {
+    return depthShadow;
+  }
+
+  if (depthShadow === 'none') {
+    return edgeShadow;
+  }
+
+  return `${edgeShadow}, ${depthShadow}`;
+}
+
+function buildDiecutTextShadow(outlineColor: string, radius: number, depthShadow: string): string {
+  const safeRadius = Math.max(1, Math.min(8, Math.round(radius)));
+  const shadows: string[] = [];
+
+  for (let x = -safeRadius; x <= safeRadius; x += 1) {
+    for (let y = -safeRadius; y <= safeRadius; y += 1) {
+      if (x === 0 && y === 0) continue;
+      if (x * x + y * y > safeRadius * safeRadius) continue;
+      shadows.push(`${x}px ${y}px 0 ${outlineColor}`);
+    }
+  }
+
+  if (depthShadow !== 'none') {
+    shadows.push(depthShadow);
+  }
+
+  return shadows.join(', ');
+}
+
+function resolveAlphaOutlineFilterSpec(
+  outlineWidth: number,
+  shadow: 'none' | 'sm' | 'md' | 'lg',
+) {
+  const dilateRadius = Math.max(1, Math.min(7, outlineWidth * 0.45));
+
+  if (shadow === 'none') {
+    return { dilateRadius, hasDepth: false, depthDy: 0, depthStdDeviation: 0, depthOpacity: 0 };
+  }
+
+  if (shadow === 'sm') {
+    return { dilateRadius, hasDepth: true, depthDy: 1.6, depthStdDeviation: 1.8, depthOpacity: 0.2 };
+  }
+
+  if (shadow === 'md') {
+    return { dilateRadius, hasDepth: true, depthDy: 2.4, depthStdDeviation: 2.6, depthOpacity: 0.3 };
+  }
+
+  return { dilateRadius, hasDepth: true, depthDy: 3.2, depthStdDeviation: 3.2, depthOpacity: 0.38 };
+}
+
+function sanitizeFilterIdPart(value: string): string {
+  const safe = value.replace(/[^a-zA-Z0-9_-]/g, '-');
+  return safe.length > 0 ? safe : 'node';
+}
+
 function StickyNode({ id, data }: NodeProps<DemoPreviewNodeData>) {
   if (data.kind !== 'sticky') {
     return null;
   }
 
   const nodeRef = useMeasuredNodeRef(id, Boolean(data.markdown));
+  const pattern = useMemo(() => resolveStickyPattern(data.pattern), [data.pattern]);
+  const noiseOpacity = pattern.texture?.noiseOpacity ?? 0;
 
   return (
     <div
@@ -233,6 +340,7 @@ function StickyNode({ id, data }: NodeProps<DemoPreviewNodeData>) {
       style={resolveDemoStickyStyle(data)}
     >
       <PreviewEdgeHandles />
+      <NoiseOverlay opacity={noiseOpacity} />
       {data.markdown ? (
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
@@ -255,34 +363,149 @@ function StickerNode({ data }: NodeProps<DemoPreviewNodeData>) {
     return null;
   }
 
+  const normalized = useMemo(
+    () => normalizeStickerData(data as unknown as Record<string, unknown>),
+    [data],
+  );
+  const jitterSeed = data.label || 'sticker';
+  const effectiveRotation = useMemo(
+    () => resolveStickerRotation(data.rotation, jitterSeed),
+    [data.rotation, jitterSeed],
+  );
+  const isAlphaVisualMode = Boolean(data.image || data.svgMarkup);
+  const outlineWidth = normalized.outlineWidth;
+  const outlineColor = normalized.outlineColor;
+  const textStroke = Math.max(1, Math.min(14, Math.round(outlineWidth / 2)));
+  const edgeShadow = EDGE_STROKE_SHADOW_MAP[normalized.shadow];
+  const depthShadow = DEPTH_SHADOW_MAP[normalized.shadow];
+  const dualShadow = useMemo(
+    () => composeDualShadow(edgeShadow, depthShadow),
+    [depthShadow, edgeShadow],
+  );
+  const diecutTextShadow = useMemo(
+    () => buildDiecutTextShadow(outlineColor, textStroke, dualShadow),
+    [dualShadow, outlineColor, textStroke],
+  );
+  const alphaOutlineFilterSpec = useMemo(
+    () => resolveAlphaOutlineFilterSpec(outlineWidth, normalized.shadow),
+    [normalized.shadow, outlineWidth],
+  );
+  const alphaOutlineFilterId = useMemo(
+    () => `demo-sticker-alpha-outline-${sanitizeFilterIdPart(jitterSeed)}`,
+    [jitterSeed],
+  );
+  const alphaOutlineFilterUrl = useMemo(
+    () => `url(#${alphaOutlineFilterId})`,
+    [alphaOutlineFilterId],
+  );
+
+  const alphaOutlineFilterDefs = isAlphaVisualMode ? (
+    <svg
+      width="0"
+      height="0"
+      aria-hidden
+      focusable="false"
+      style={{ position: 'absolute', pointerEvents: 'none', overflow: 'hidden' }}
+    >
+      <defs>
+        <filter
+          id={alphaOutlineFilterId}
+          x="-40%"
+          y="-40%"
+          width="180%"
+          height="180%"
+          colorInterpolationFilters="sRGB"
+        >
+          <feMorphology
+            in="SourceAlpha"
+            operator="dilate"
+            radius={alphaOutlineFilterSpec.dilateRadius}
+            result="outlineDilated"
+          />
+          <feComposite
+            in="outlineDilated"
+            in2="SourceAlpha"
+            operator="out"
+            result="outlineRing"
+          />
+          <feFlood floodColor={outlineColor} result="outlineColorLayer" />
+          <feComposite in="outlineColorLayer" in2="outlineRing" operator="in" result="outlineLayer" />
+          <feMerge result="baseComposite">
+            <feMergeNode in="outlineLayer" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+          {alphaOutlineFilterSpec.hasDepth ? (
+            <feDropShadow
+              in="baseComposite"
+              dx="0"
+              dy={alphaOutlineFilterSpec.depthDy}
+              stdDeviation={alphaOutlineFilterSpec.depthStdDeviation}
+              floodColor="#0f172a"
+              floodOpacity={alphaOutlineFilterSpec.depthOpacity}
+            />
+          ) : null}
+        </filter>
+      </defs>
+    </svg>
+  ) : null;
+
   return (
     <div
       className="demo-flow-node"
-      style={resolveDemoStickerStyle({
-        ...data,
-        hasImage: Boolean(data.image),
-        hasSvg: Boolean(data.svgMarkup),
-      })}
+      style={{
+        ...resolveDemoStickerStyle({ fontFamily: data.fontFamily }),
+        transform: effectiveRotation !== 0 ? `rotate(${effectiveRotation}deg)` : undefined,
+      }}
     >
       <PreviewEdgeHandles />
+      {alphaOutlineFilterDefs}
       {data.image ? (
-        <img
-          src={data.image.src}
-          alt={data.image.alt ?? data.label}
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: `${Math.max(0, Math.round(normalized.padding / 3))}px`,
+            minWidth: 24,
+            minHeight: 24,
+          }}
+        >
+          <img
+            src={data.image.src}
+            alt={data.image.alt ?? data.label}
+            style={{
+              width: data.image.width ?? '100%',
+              height: data.image.height ?? '100%',
+              objectFit: data.image.fit ?? 'contain',
+              display: 'block',
+              filter: alphaOutlineFilterUrl,
+            }}
+          />
+        </div>
+      ) : data.svgMarkup ? (
+        <div
           style={{
             width: '100%',
             height: '100%',
-            objectFit: data.image.fit ?? 'contain',
-            display: 'block',
+            filter: alphaOutlineFilterUrl,
+            overflow: 'visible',
           }}
-        />
-      ) : data.svgMarkup ? (
-        <div
-          style={{ width: '100%', height: '100%' }}
           dangerouslySetInnerHTML={{ __html: data.svgMarkup }}
         />
       ) : (
-        <span>{data.text ?? data.label}</span>
+        <span
+          style={{
+            color: '#111827',
+            fontSize: 20,
+            fontWeight: 700,
+            fontFamily: resolveDemoStickerStyle({ fontFamily: data.fontFamily }).fontFamily,
+            letterSpacing: '0.02em',
+            whiteSpace: 'pre-wrap',
+            textAlign: 'center',
+          }}
+        >
+          {data.text ?? data.label}
+        </span>
       )}
     </div>
   );
@@ -293,10 +516,77 @@ function WashiNode({ data }: NodeProps<DemoPreviewNodeData>) {
     return null;
   }
 
+  const pattern = useMemo(() => resolveWashiPattern(data.pattern), [data.pattern]);
+  const noiseOpacity =
+    typeof data.texture?.opacity === 'number' && Number.isFinite(data.texture.opacity)
+      ? Math.max(0.03, Math.min(0.3, data.texture.opacity))
+      : 0.08;
+  const textColor =
+    typeof data.textStyle?.color === 'string' ? data.textStyle.color : pattern.textColor ?? '#111827';
+  const textSize =
+    typeof data.textStyle?.size === 'number' && Number.isFinite(data.textStyle.size)
+      ? Math.max(10, Math.min(28, data.textStyle.size))
+      : 13;
+  const skewAngle = useMemo(
+    () => getWashiShapeSkewAngle(String(data.seed ?? data.label ?? 'washi')),
+    [data.label, data.seed],
+  );
+  const textAlign =
+    data.textStyle?.align === 'start'
+      ? 'left'
+      : data.textStyle?.align === 'end'
+        ? 'right'
+        : 'center';
+
   return (
-    <div className="demo-flow-node" style={resolveDemoWashiStyle(data)}>
+    <div
+      className="demo-flow-node"
+      style={{
+        ...resolveDemoWashiStyle(data),
+        backgroundColor: pattern.backgroundColor ?? '#fde68a',
+        backgroundImage: pattern.backgroundImage,
+        backgroundRepeat: pattern.backgroundRepeat,
+        backgroundSize: pattern.backgroundSize,
+        transform:
+          `${data.rotation ? `rotate(${data.rotation}deg) ` : ''}skewX(${skewAngle}deg)`.trim(),
+      }}
+    >
       <PreviewEdgeHandles />
-      {data.text ? <span>{data.text}</span> : null}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          opacity: noiseOpacity,
+          mixBlendMode:
+            data.texture?.blendMode === 'multiply' ||
+            data.texture?.blendMode === 'overlay' ||
+            data.texture?.blendMode === 'normal'
+              ? data.texture.blendMode
+              : 'multiply',
+          backgroundImage:
+            'repeating-linear-gradient(-12deg, rgba(15,23,42,0.16) 0 1px, rgba(15,23,42,0.03) 1px 4px)',
+        }}
+      />
+      {data.text ? (
+        <span
+          style={{
+            position: 'relative',
+            zIndex: 1,
+            color: textColor,
+            fontSize: textSize,
+            textAlign,
+            fontWeight: 600,
+            maxWidth: '100%',
+            overflow: 'hidden',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            transform: `skewX(${-skewAngle}deg)`,
+            transformOrigin: 'center center',
+          }}
+        >
+          {data.text}
+        </span>
+      ) : null}
     </div>
   );
 }

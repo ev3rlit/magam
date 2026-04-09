@@ -11,6 +11,7 @@ import type {
 import { extractPreviewContent } from '@/src/demo/preview/child-content';
 import { layoutDemoPreviewCanvasState } from '@/src/demo/preview/layout';
 import { estimateDemoPreviewNodeDimensions } from './node-dimensions';
+import { resolveWashiAngle } from './paper-material';
 
 const DEFAULT_MINDMAP_SPACING = 72;
 const DEFAULT_WASHI_THICKNESS = 24;
@@ -44,6 +45,14 @@ type PreviewPlacement =
       type: 'segment';
       from: { x: number; y: number };
       to: { x: number; y: number };
+      thickness?: number;
+    }
+  | {
+      type: 'polar';
+      x: number;
+      y: number;
+      length: number;
+      angle?: number;
       thickness?: number;
     }
   | {
@@ -338,11 +347,14 @@ function readPlacement(
   props: Record<string, unknown>,
   currentMindmapId?: string,
   localScope?: string,
+  options?: {
+    preferAt?: boolean;
+  },
 ): PreviewPlacement | undefined {
   const x = readNumber(props.x);
   const y = readNumber(props.y);
 
-  if (x !== undefined && y !== undefined) {
+  if (!options?.preferAt && x !== undefined && y !== undefined) {
     return {
       type: 'absolute',
       x,
@@ -406,16 +418,12 @@ function readPlacement(
       return undefined;
     }
 
-    const angleInRadians = ((readNumber(at?.angle) ?? 0) * Math.PI) / 180;
-    const to = {
-      x: originX + Math.cos(angleInRadians) * length,
-      y: originY + Math.sin(angleInRadians) * length,
-    };
-
     return {
-      type: 'segment',
-      from: { x: originX, y: originY },
-      to,
+      type: 'polar',
+      x: originX,
+      y: originY,
+      length,
+      angle: readNumber(at?.angle),
       thickness: readNumber(at?.thickness),
     };
   }
@@ -633,6 +641,48 @@ function resolvePendingNodePositions(nodes: PendingPreviewNode[]): DemoPreviewNo
           }),
           width: node.width ?? size.width,
           height: node.height ?? size.height,
+        });
+        unresolved.delete(nodeId);
+        didResolve = true;
+        continue;
+      }
+
+      if (node.placement.type === 'polar') {
+        const seed =
+          node.data.kind === 'washi'
+            ? String(node.data.seed ?? node.id)
+            : node.id;
+        const resolvedAngle =
+          node.data.kind === 'washi'
+            ? resolveWashiAngle(node.placement.angle, seed)
+            : (node.placement.angle ?? 0);
+        const angleInRadians = (resolvedAngle * Math.PI) / 180;
+        const geometry = resolveSegmentPlacement({
+          from: { x: node.placement.x, y: node.placement.y },
+          to: {
+            x: node.placement.x + Math.cos(angleInRadians) * node.placement.length,
+            y: node.placement.y + Math.sin(angleInRadians) * node.placement.length,
+          },
+          thickness: node.placement.thickness,
+        });
+
+        resolved.set(nodeId, {
+          ...node,
+          position: {
+            x: geometry.x,
+            y: geometry.y,
+          },
+          width: geometry.width,
+          height: geometry.height,
+          data:
+            node.data.kind === 'washi'
+              ? {
+                  ...node.data,
+                  rotation: geometry.rotation,
+                  thickness: geometry.height,
+                  length: geometry.width,
+                }
+              : node.data,
         });
         unresolved.delete(nodeId);
         didResolve = true;
@@ -1049,7 +1099,9 @@ export function parseDemoPreviewGraph(input: {
           currentMindmapId,
           localScope,
         );
-        const placement = readPlacement(props, currentMindmapId, localScope);
+        const placement = readPlacement(props, currentMindmapId, localScope, {
+          preferAt: true,
+        });
 
         nodes.push({
           id: washiId,

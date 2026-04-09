@@ -1,4 +1,4 @@
-import type { FontFamilyPreset } from '@magam/core';
+import type { FontFamilyPreset, PaperMaterial } from '@magam/core';
 
 export type DemoPreviewBackground =
   | 'dots'
@@ -32,6 +32,14 @@ export interface DemoPreviewSequenceMessage {
   type?: string;
 }
 
+export interface DemoPreviewImageContent {
+  src: string;
+  alt?: string;
+  width?: number;
+  height?: number;
+  fit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down';
+}
+
 interface DemoPreviewBaseNodeData {
   label: string;
   className?: string;
@@ -58,11 +66,47 @@ export type DemoPreviewNodeData =
       messages: DemoPreviewSequenceMessage[];
       participantSpacing: number;
       messageSpacing: number;
+    })
+  | (DemoPreviewBaseNodeData & {
+      kind: 'sticky';
+      markdown?: string;
+      pattern?: PaperMaterial | Record<string, unknown>;
+      rotation?: number;
+    })
+  | (DemoPreviewBaseNodeData & {
+      kind: 'sticker';
+      text?: string;
+      image?: DemoPreviewImageContent;
+      svgMarkup?: string;
+      rotation?: number;
+      shadow?: 'none' | 'sm' | 'md' | 'lg';
+      outlineWidth?: number;
+      outlineColor?: string;
+      padding?: number;
+    })
+  | (DemoPreviewBaseNodeData & {
+      kind: 'washi';
+      text?: string;
+      rotation?: number;
+      opacity?: number;
+      thickness?: number;
+      length?: number;
+      seed?: string | number;
+      pattern?: PaperMaterial | Record<string, unknown>;
+      textStyle?: Record<string, unknown>;
+      texture?: Record<string, unknown>;
     });
 
 export interface DemoPreviewNode {
   id: string;
-  type: 'demo-markdown' | 'demo-shape' | 'demo-text' | 'demo-sequence';
+  type:
+    | 'demo-markdown'
+    | 'demo-shape'
+    | 'demo-text'
+    | 'demo-sequence'
+    | 'demo-sticky'
+    | 'demo-sticker'
+    | 'demo-washi';
   position: {
     x: number;
     y: number;

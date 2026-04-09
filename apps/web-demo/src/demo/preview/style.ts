@@ -1,6 +1,11 @@
 import type { CSSProperties } from 'react';
-import type { FontFamilyPreset } from '@magam/core';
+import type { FontFamilyPreset, PaperMaterial } from '@magam/core';
 import type { DemoPreviewBackground } from '@/src/demo/preview/types';
+import {
+  buildPaperTextureStyle,
+  resolveStickyPattern,
+  resolveWashiPattern,
+} from '@/src/demo/preview/paper-material';
 
 const COLOR_MAP: Record<string, string> = {
   'bg-green-50': '#ecfdf3',
@@ -181,4 +186,113 @@ export function resolveDemoNodeStyle(input: {
   }
 
   return style;
+}
+
+export function resolveDemoTextStyle(input: {
+  className?: string;
+  fontFamily?: FontFamilyPreset;
+}): CSSProperties {
+  const tokens = getTokenSet(input.className);
+  const style: CSSProperties = {
+    color: '#374151',
+    background: 'transparent',
+    border: 'none',
+    boxShadow: 'none',
+    fontFamily: resolveDemoFontFamily(input.fontFamily),
+  };
+
+  for (const token of tokens) {
+    if (token.startsWith('text-') && COLOR_MAP[token]) {
+      style.color = COLOR_MAP[token];
+    }
+  }
+
+  return style;
+}
+
+export function resolveDemoStickyStyle(input: {
+  className?: string;
+  bubble?: boolean;
+  fontFamily?: FontFamilyPreset;
+  pattern?: PaperMaterial | Record<string, unknown>;
+  rotation?: number;
+}): CSSProperties {
+  const resolvedPattern = resolveStickyPattern(input.pattern);
+  const textureStyle = buildPaperTextureStyle(
+    resolvedPattern.texture,
+    resolvedPattern.backgroundImage,
+    resolvedPattern.backgroundSize,
+  );
+
+  return {
+    position: 'relative',
+    width: '100%',
+    height: '100%',
+    minWidth: 160,
+    maxWidth: 360,
+    minHeight: 96,
+    padding: 16,
+    backgroundColor: resolvedPattern.backgroundColor ?? '#fce588',
+    backgroundImage: textureStyle.backgroundImage ?? resolvedPattern.backgroundImage,
+    backgroundRepeat: resolvedPattern.backgroundRepeat,
+    backgroundSize: textureStyle.backgroundSize ?? resolvedPattern.backgroundSize,
+    overflow: 'hidden',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.24s ease',
+    borderRadius: 6,
+    boxShadow: textureStyle.boxShadow,
+    color: resolvedPattern.textColor ?? '#1f2937',
+    fontFamily: resolveDemoFontFamily(input.fontFamily),
+    transform: input.rotation ? `rotate(${input.rotation}deg)` : undefined,
+    transformOrigin: 'center',
+  };
+}
+
+export function resolveDemoStickerStyle(input: {
+  fontFamily?: FontFamilyPreset;
+}): CSSProperties {
+  return {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontFamily: resolveDemoFontFamily(input.fontFamily),
+    overflow: 'visible',
+  };
+}
+
+export function resolveDemoWashiStyle(input: {
+  className?: string;
+  pattern?: PaperMaterial | Record<string, unknown>;
+  rotation?: number;
+  opacity?: number;
+  fontFamily?: FontFamilyPreset;
+  textStyle?: Record<string, unknown>;
+}): CSSProperties {
+  const pattern = resolveWashiPattern(input.pattern);
+  const textColor =
+    typeof input.textStyle?.color === 'string' ? input.textStyle.color : pattern.textColor;
+
+  return {
+    position: 'relative',
+    width: '100%',
+    height: '100%',
+    borderRadius: 2,
+    border: 'none',
+    backgroundColor: pattern.backgroundColor ?? '#fde68a',
+    backgroundImage: pattern.backgroundImage,
+    backgroundRepeat: pattern.backgroundRepeat,
+    backgroundSize: pattern.backgroundSize,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '0 12px',
+    color: textColor,
+    fontFamily: resolveDemoFontFamily(input.fontFamily),
+    opacity: input.opacity ?? 1,
+    transform: input.rotation ? `rotate(${input.rotation}deg)` : undefined,
+    transformOrigin: 'center',
+    overflow: 'hidden',
+  };
 }

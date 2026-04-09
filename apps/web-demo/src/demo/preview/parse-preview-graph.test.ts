@@ -264,3 +264,38 @@ test('parseDemoPreviewGraph resolves sticky, sticker, and washi tape preview nod
   assert.equal(washi?.position.y, 74);
   assert.equal(washi?.height, 20);
 });
+
+test('parseDemoPreviewGraph restores default washi rotation jitter for polar placement without explicit angle', () => {
+  const parsed = parseDemoPreviewGraph({
+    graph: {
+      type: 'root',
+      children: [
+        {
+          type: 'graph-washi-tape',
+          props: {
+            id: 'washi-jitter',
+            x: 100,
+            y: 120,
+            width: 180,
+            height: 24,
+            at: {
+              type: 'polar',
+              x: 100,
+              y: 120,
+              length: 180,
+              thickness: 24,
+            },
+            pattern: { type: 'solid', color: '#fde68a' },
+          },
+          children: [],
+        },
+      ],
+    },
+    sourceVersion: null,
+  });
+
+  const washi = parsed.nodes.find((node) => node.id === 'washi-jitter');
+
+  assert.equal(washi?.data.kind, 'washi');
+  assert.notEqual(washi?.data.rotation, 0);
+});
