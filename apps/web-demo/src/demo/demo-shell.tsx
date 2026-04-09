@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useEffect, useMemo, useState } from 'react';
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   DemoDiagnostic,
   DemoExampleNode,
@@ -24,6 +24,12 @@ import {
   readScratchDocumentSnapshot,
   writeScratchDocumentSnapshot,
 } from '@/src/demo/scratch-session-storage';
+import {
+  clampFloatingSidebarWidth,
+  DEMO_FLOATING_SIDEBAR_DEFAULT_WIDTH,
+  DEMO_MOBILE_SIDEBAR_MEDIA_QUERY,
+  shouldAutoCloseFloatingSidebar,
+} from '@/src/demo/sidebar-behavior';
 import { createDemoScratchWorkspace } from '@/src/demo/scratch-workspace';
 
 const LazyScratchEditor = dynamic(
@@ -40,6 +46,8 @@ interface DemoShellProps {
 
 type SidebarPanel = 'explorer' | 'code';
 
+const DEMO_SIDEBAR_ID = 'demo-floating-panels';
+
 export function DemoShell({ initialModel }: DemoShellProps) {
   const [selectedPath, setSelectedPath] = useState(initialModel.selectedPath);
   const [activeMode, setActiveMode] = useState<DemoUiMode>(initialModel.uiMode);
@@ -48,6 +56,8 @@ export function DemoShell({ initialModel }: DemoShellProps) {
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const [hasHydratedStorage, setHasHydratedStorage] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarResizing, setIsSidebarResizing] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(DEMO_FLOATING_SIDEBAR_DEFAULT_WIDTH);
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>(() =>
     getInitialOpenFolders(initialModel.tree, initialModel.selectedPath),
   );
@@ -69,6 +79,7 @@ export function DemoShell({ initialModel }: DemoShellProps) {
   }));
   const [lastGoodPreview, setLastGoodPreview] = useState<DemoPreviewCanvasState | null>(null);
   const [previewParseDiagnostics, setPreviewParseDiagnostics] = useState<DemoDiagnostic[]>([]);
+  const sidebarResizeCleanupRef = useRef<(() => void) | null>(null);
 
   const activeNode = findExampleNode(initialModel.tree, selectedPath);
   const selectedSource = initialModel.exampleSourceByPath[selectedPath] ?? '';
@@ -83,6 +94,69 @@ export function DemoShell({ initialModel }: DemoShellProps) {
     activeMode,
     scratchDocument,
   });
+  const sidebarStyle = useMemo(
+    () =>
+      ({
+        '--demo-sidebar-width': `${sidebarWidth}px`,
+      }) as CSSProperties,
+    [sidebarWidth],
+  );
+
+  function isMobileSidebarViewport(): boolean {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return false;
+    }
+
+    return window.matchMedia(DEMO_MOBILE_SIDEBAR_MEDIA_QUERY).matches;
+  }
+
+  function closeSidebarIfNeeded() {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (shouldAutoCloseFloatingSidebar(window.innerWidth)) {
+      setIsSidebarOpen(false);
+    }
+  }
+
+  function handleSidebarResizeStart(event: React.PointerEvent<HTMLDivElement>) {
+    if (typeof window === 'undefined' || isMobileSidebarViewport()) {
+      return;
+    }
+
+    event.preventDefault();
+
+    sidebarResizeCleanupRef.current?.();
+
+    const startX = event.clientX;
+    const startWidth = sidebarWidth;
+    const previousCursor = document.body.style.cursor;
+    const previousUserSelect = document.body.style.userSelect;
+
+    setIsSidebarResizing(true);
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+
+    const finishResize = () => {
+      setIsSidebarResizing(false);
+      document.body.style.cursor = previousCursor;
+      document.body.style.userSelect = previousUserSelect;
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', finishResize);
+      sidebarResizeCleanupRef.current = null;
+    };
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      setSidebarWidth(
+        clampFloatingSidebarWidth(startWidth + moveEvent.clientX - startX, window.innerWidth),
+      );
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', finishResize);
+    sidebarResizeCleanupRef.current = finishResize;
+  }
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -131,6 +205,47 @@ export function DemoShell({ initialModel }: DemoShellProps) {
       window.clearTimeout(timeoutId);
     };
   }, [copyStatus]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const syncSidebarWidth = () => {
+      setSidebarWidth((currentWidth) => clampFloatingSidebarWidth(currentWidth, window.innerWidth));
+    };
+
+    syncSidebarWidth();
+    window.addEventListener('resize', syncSidebarWidth);
+
+    return () => {
+      window.removeEventListener('resize', syncSidebarWidth);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isSidebarOpen || typeof window === 'undefined') {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isSidebarOpen]);
+
+  useEffect(() => {
+    return () => {
+      sidebarResizeCleanupRef.current?.();
+    };
+  }, []);
 
   useEffect(() => {
     const engine = createDemoRenderEngine({
@@ -278,7 +393,7 @@ export function DemoShell({ initialModel }: DemoShellProps) {
 
     setSelectedPath(node.path);
     setActiveMode('example-view');
-    setIsSidebarOpen(false);
+    closeSidebarIfNeeded();
   }
 
   function handleFolderToggle(nodeId: string) {
@@ -292,7 +407,7 @@ export function DemoShell({ initialModel }: DemoShellProps) {
     if (scratchMatchesSelection && scratchDocument) {
       setActiveMode('scratch-edit');
       setSidebarPanel('code');
-      setIsSidebarOpen(false);
+      closeSidebarIfNeeded();
 
       return;
     }
@@ -305,7 +420,7 @@ export function DemoShell({ initialModel }: DemoShellProps) {
     setScratchDocument(document);
     setActiveMode('scratch-edit');
     setSidebarPanel('code');
-    setIsSidebarOpen(false);
+    closeSidebarIfNeeded();
   }
 
   async function handleResetScratch() {
@@ -366,7 +481,11 @@ export function DemoShell({ initialModel }: DemoShellProps) {
         <div
           className="demo-mobile-scrim"
           data-open={isSidebarOpen}
-          onClick={() => setIsSidebarOpen(false)}
+          onClick={() => {
+            if (isMobileSidebarViewport()) {
+              setIsSidebarOpen(false);
+            }
+          }}
         />
 
         <div className="demo-workspace">
@@ -374,7 +493,12 @@ export function DemoShell({ initialModel }: DemoShellProps) {
             <button
               type="button"
               className="demo-drawer-trigger"
-              onClick={() => setIsSidebarOpen(true)}
+              data-open={isSidebarOpen}
+              aria-expanded={isSidebarOpen}
+              aria-controls={DEMO_SIDEBAR_ID}
+              aria-label={isSidebarOpen ? 'Hide panels' : 'Show panels'}
+              title={isSidebarOpen ? 'Hide panels' : 'Show panels'}
+              onClick={() => setIsSidebarOpen((currentState) => !currentState)}
             >
               Panels
             </button>
@@ -387,24 +511,22 @@ export function DemoShell({ initialModel }: DemoShellProps) {
           </section>
 
           <aside
+            id={DEMO_SIDEBAR_ID}
             className="demo-sidebar"
             data-open={isSidebarOpen}
+            data-resizing={isSidebarResizing}
+            aria-hidden={!isSidebarOpen}
+            style={sidebarStyle}
           >
+            <div
+              className="demo-sidebar-resize-handle"
+              aria-hidden="true"
+              onPointerDown={handleSidebarResizeStart}
+            />
             <div className="demo-sidebar-head">
               <div className="demo-sidebar-title">
                 <span className="demo-sidebar-title-icon">{sidebarPanel === 'code' ? '</>' : '[]'}</span>
                 <strong>{sidebarPanel === 'code' ? 'Code' : 'Explorer'}</strong>
-              </div>
-
-              <div className="demo-sidebar-controls">
-                <button
-                  type="button"
-                  className="demo-sidebar-icon-button"
-                  onClick={() => setIsSidebarOpen(false)}
-                  title="Close panels"
-                >
-                  x
-                </button>
               </div>
             </div>
 

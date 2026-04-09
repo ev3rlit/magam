@@ -1,4 +1,5 @@
 import { javascript } from '@codemirror/lang-javascript';
+import { oneDark } from '@codemirror/theme-one-dark';
 import { basicSetup, EditorView } from 'codemirror';
 import type { CodeEditorHandle, CodeEditorPort, CodeEditorMountInput } from '@/src/demo/contracts';
 
@@ -13,6 +14,7 @@ export function createCodeMirrorEditorPort(): CodeEditorPort {
             jsx: true,
             typescript: true,
           }),
+          oneDark,
           EditorView.lineWrapping,
           EditorView.editable.of(!input.readOnly),
           EditorView.updateListener.of((update) => {
@@ -23,8 +25,8 @@ export function createCodeMirrorEditorPort(): CodeEditorPort {
           EditorView.theme({
             '&': {
               height: '100%',
-              color: '#e2e8f0',
-              backgroundColor: '#0f172a',
+              color: '#e5e5e5',
+              backgroundColor: '#171717',
               fontFamily: 'var(--font-mono), "SFMono-Regular", monospace',
               fontSize: '0.76rem',
             },
@@ -41,21 +43,21 @@ export function createCodeMirrorEditorPort(): CodeEditorPort {
               outline: 'none',
             },
             '.cm-activeLine': {
-              backgroundColor: 'rgba(37, 99, 235, 0.08)',
+              backgroundColor: 'rgba(255, 255, 255, 0.04)',
             },
             '.cm-activeLineGutter': {
-              backgroundColor: 'rgba(37, 99, 235, 0.12)',
+              backgroundColor: '#202020',
             },
             '.cm-gutters': {
-              borderRight: '1px solid rgba(148, 163, 184, 0.18)',
-              backgroundColor: '#111827',
-              color: 'rgba(148, 163, 184, 0.72)',
+              borderRight: '1px solid rgba(255, 255, 255, 0.08)',
+              backgroundColor: '#1a1a1a',
+              color: 'rgba(163, 163, 163, 0.78)',
             },
             '.cm-cursor': {
-              borderLeftColor: '#60a5fa',
+              borderLeftColor: '#f5f5f5',
             },
             '.cm-selectionBackground, ::selection': {
-              backgroundColor: 'rgba(37, 99, 235, 0.24)',
+              backgroundColor: 'rgba(255, 255, 255, 0.12)',
             },
           }),
         ],
