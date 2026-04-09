@@ -1,8 +1,29 @@
 import ELK from 'elkjs/lib/elk.bundled';
-import type { DemoPreviewCanvasState, DemoPreviewEdge, DemoPreviewNode } from '@/src/demo/preview/types';
+import type { DemoPreviewCanvasState, DemoPreviewEdge, DemoPreviewNode } from './types';
+import { estimateDemoPreviewNodeDimensions } from './node-dimensions';
 
 const DEFAULT_NODE_WIDTH = 180;
 const DEFAULT_NODE_HEIGHT = 72;
+const MARKDOWN_MIN_WIDTH = 220;
+const MARKDOWN_MAX_WIDTH = 420;
+const MARKDOWN_MIN_HEIGHT = 90;
+const MARKDOWN_MAX_HEIGHT = 360;
+const MARKDOWN_HORIZONTAL_PADDING = 32;
+const MARKDOWN_VERTICAL_PADDING = 28;
+const MARKDOWN_SECTION_GAP = 15;
+const MARKDOWN_HEADING_GAP = 8;
+const MARKDOWN_BODY_LINE_HEIGHT = 23;
+const MARKDOWN_BLOCKQUOTE_LINE_HEIGHT = 24;
+const MARKDOWN_CODE_LINE_HEIGHT = 22;
+
+interface MarkdownBlock {
+  type: 'heading' | 'paragraph' | 'blockquote' | 'list' | 'table' | 'code';
+  text?: string;
+  depth?: number;
+  items?: string[];
+  lineCount?: number;
+  rowCount?: number;
+}
 
 interface LayoutPoint {
   x: number;
@@ -13,8 +34,215 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-function countMarkdownLines(content: string): number {
-  return content.split('\n').length;
+function stripMarkdownSyntax(input: string): string {
+  return input
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/[*_~`>#-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function estimateWrappedLineCount(text: string, charsPerLine: number): number {
+  const normalized = stripMarkdownSyntax(text);
+
+  if (normalized.length === 0) {
+    return 1;
+  }
+
+  return Math.max(1, Math.ceil(normalized.length / Math.max(12, charsPerLine)));
+}
+
+function estimateHeadingHeight(text: string, depth: number, charsPerLine: number): number {
+  const lineHeightByDepth = [40, 34, 28, 24, 22, 20];
+  const charsPerLineByDepth = [12, 15, 18, 22, 24, 26];
+  const index = Math.min(Math.max(depth - 1, 0), lineHeightByDepth.length - 1);
+  const wraps = estimateWrappedLineCount(text, Math.min(charsPerLine, charsPerLineByDepth[index]));
+
+  return wraps * lineHeightByDepth[index];
+}
+
+function parseMarkdownBlocks(content: string): MarkdownBlock[] {
+  const blocks: MarkdownBlock[] = [];
+  const lines = content.split('\n');
+
+  for (let index = 0; index < lines.length; ) {
+    const currentLine = lines[index];
+    const trimmed = currentLine.trim();
+
+    if (trimmed.length === 0) {
+      index += 1;
+      continue;
+    }
+
+    if (trimmed.startsWith('```')) {
+      let lineCount = 0;
+      index += 1;
+
+      while (index < lines.length && !lines[index].trim().startsWith('```')) {
+        lineCount += 1;
+        index += 1;
+      }
+
+      if (index < lines.length) {
+        index += 1;
+      }
+
+      blocks.push({
+        type: 'code',
+        lineCount: Math.max(1, lineCount),
+      });
+      continue;
+    }
+
+    const headingMatch = trimmed.match(/^(#{1,6})\s+(.+)$/);
+
+    if (headingMatch) {
+      blocks.push({
+        type: 'heading',
+        depth: headingMatch[1].length,
+        text: headingMatch[2],
+      });
+      index += 1;
+      continue;
+    }
+
+    const isTableRow = trimmed.includes('|');
+    const isListItem = /^([-*+]|\d+\.)\s+/.test(trimmed);
+    const isBlockquote = trimmed.startsWith('>');
+
+    if (isTableRow) {
+      let rowCount = 0;
+
+      while (index < lines.length && lines[index].trim().includes('|')) {
+        rowCount += 1;
+        index += 1;
+      }
+
+      blocks.push({
+        type: 'table',
+        rowCount: Math.max(2, rowCount),
+      });
+      continue;
+    }
+
+    if (isListItem) {
+      const items: string[] = [];
+
+      while (index < lines.length) {
+        const listLine = lines[index].trim();
+
+        if (listLine.length === 0) {
+          break;
+        }
+
+        const listItemMatch = listLine.match(/^([-*+]|\d+\.)\s+(.+)$/);
+
+        if (listItemMatch) {
+          items.push(listItemMatch[2]);
+          index += 1;
+          continue;
+        }
+
+        if (/^\s{2,}\S/.test(lines[index]) && items.length > 0) {
+          items[items.length - 1] = `${items[items.length - 1]} ${listLine}`;
+          index += 1;
+          continue;
+        }
+
+        break;
+      }
+
+      blocks.push({
+        type: 'list',
+        items,
+      });
+      continue;
+    }
+
+    const paragraphLines: string[] = [];
+
+    while (index < lines.length) {
+      const paragraphLine = lines[index].trim();
+
+      if (
+        paragraphLine.length === 0 ||
+        paragraphLine.startsWith('```') ||
+        /^(#{1,6})\s+/.test(paragraphLine) ||
+        /^([-*+]|\d+\.)\s+/.test(paragraphLine) ||
+        paragraphLine.includes('|')
+      ) {
+        break;
+      }
+
+      paragraphLines.push(isBlockquote ? paragraphLine.replace(/^>\s?/, '') : paragraphLine);
+      index += 1;
+    }
+
+    blocks.push({
+      type: isBlockquote ? 'blockquote' : 'paragraph',
+      text: paragraphLines.join(' '),
+    });
+  }
+
+  return blocks;
+}
+
+function estimateMarkdownDimensions(markdown: string): { width: number; height: number } {
+  const contentLines = markdown.split('\n');
+  const longestLine = Math.max(...contentLines.map((line) => stripMarkdownSyntax(line).length), 1);
+  const width = clamp(170 + longestLine * 4.2, MARKDOWN_MIN_WIDTH, MARKDOWN_MAX_WIDTH);
+  const contentWidth = Math.max(140, width - MARKDOWN_HORIZONTAL_PADDING);
+  const bodyCharsPerLine = Math.max(18, Math.floor(contentWidth / 7));
+  const blocks = parseMarkdownBlocks(markdown);
+  let contentHeight = MARKDOWN_VERTICAL_PADDING;
+
+  blocks.forEach((block, blockIndex) => {
+    if (blockIndex > 0) {
+      contentHeight += MARKDOWN_SECTION_GAP;
+    }
+
+    switch (block.type) {
+      case 'heading':
+        contentHeight += estimateHeadingHeight(
+          block.text ?? '',
+          block.depth ?? 1,
+          bodyCharsPerLine,
+        );
+        contentHeight += MARKDOWN_HEADING_GAP;
+        break;
+      case 'blockquote':
+        contentHeight +=
+          estimateWrappedLineCount(block.text ?? '', Math.max(14, bodyCharsPerLine - 4)) *
+          MARKDOWN_BLOCKQUOTE_LINE_HEIGHT;
+        break;
+      case 'list':
+        contentHeight += (block.items ?? []).reduce((total, item, itemIndex) => {
+          const itemHeight =
+            estimateWrappedLineCount(item, Math.max(14, bodyCharsPerLine - 2)) *
+            MARKDOWN_BODY_LINE_HEIGHT;
+
+          return total + itemHeight + (itemIndex > 0 ? 7 : 0);
+        }, 0);
+        break;
+      case 'table':
+        contentHeight += (block.rowCount ?? 2) * 30 + 10;
+        break;
+      case 'code':
+        contentHeight += 40 + (block.lineCount ?? 1) * MARKDOWN_CODE_LINE_HEIGHT;
+        break;
+      case 'paragraph':
+      default:
+        contentHeight +=
+          estimateWrappedLineCount(block.text ?? '', bodyCharsPerLine) * MARKDOWN_BODY_LINE_HEIGHT;
+        break;
+    }
+  });
+
+  return {
+    width,
+    height: clamp(contentHeight, MARKDOWN_MIN_HEIGHT, MARKDOWN_MAX_HEIGHT),
+  };
 }
 
 function estimateNodeDimensions(node: DemoPreviewNode): { width: number; height: number } {
@@ -45,15 +273,12 @@ function estimateNodeDimensions(node: DemoPreviewNode): { width: number; height:
       };
     }
     case 'markdown': {
-      const lineCount = countMarkdownLines(node.data.markdown);
-      const longestLine = Math.max(...node.data.markdown.split('\n').map((line) => line.length), 1);
-      const codeBlocks = (node.data.markdown.match(/```/g) ?? []).length / 2;
-
-      return {
-        width: clamp(170 + longestLine * 4.2, 220, 420),
-        height: clamp(62 + lineCount * 18 + codeBlocks * 26, 90, 360),
-      };
+      return estimateMarkdownDimensions(node.data.markdown);
     }
+    case 'sticky':
+    case 'sticker':
+    case 'washi':
+      return estimateDemoPreviewNodeDimensions(node);
     case 'sequence': {
       return {
         width: clamp(node.data.participants.length * 160 + 80, 380, 920),

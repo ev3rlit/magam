@@ -1,4 +1,4 @@
-import { estimateDemoPreviewNodeDimensions } from '@/src/demo/preview/node-dimensions';
+import { estimateDemoPreviewNodeDimensions } from './node-dimensions';
 import type { DemoPreviewNode } from '@/src/demo/preview/types';
 
 export type PreviewEdgeHandleId = 'top' | 'right' | 'bottom' | 'left';
