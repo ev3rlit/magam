@@ -34,6 +34,11 @@ import {
   type PreviewEdgeHandleId,
 } from '@/src/demo/preview/flow-edge-routing';
 import { layoutDemoPreviewCanvasState } from '@/src/demo/preview/layout';
+import {
+  measurePreviewNodeElement,
+  mergeMeasuredPreviewNode,
+  type PreviewNodeMeasurement,
+} from '@/src/demo/preview/node-measurement';
 import { MarkdownCodeBlock, MarkdownPreBlock } from '@/src/demo/preview/markdown-code-block';
 import type { DemoPreviewCanvasState, DemoPreviewNodeData } from '@/src/demo/preview/types';
 import {
@@ -47,11 +52,6 @@ import {
 
 interface DemoPreviewCanvasProps {
   preview: DemoPreviewCanvasState;
-}
-
-interface NodeMeasurement {
-  width: number;
-  height: number;
 }
 
 const PREVIEW_HANDLE_POSITIONS: Array<{
@@ -88,7 +88,7 @@ const DEPTH_SHADOW_MAP = {
 } as const;
 
 const PreviewNodeMeasurementContext = createContext<
-  ((nodeId: string, measurement: NodeMeasurement) => void) | null
+  ((nodeId: string, measurement: PreviewNodeMeasurement) => void) | null
 >(null);
 
 function PreviewEdgeHandles() {
@@ -131,10 +131,7 @@ function useMeasuredNodeRef(nodeId: string, enabled: boolean) {
     let frameId = 0;
 
     const measure = () => {
-      reportMeasurement(nodeId, {
-        width: Math.ceil(Math.max(element.offsetWidth, element.scrollWidth)),
-        height: Math.ceil(Math.max(element.offsetHeight, element.scrollHeight)),
-      });
+      reportMeasurement(nodeId, measurePreviewNodeElement(element));
     };
 
     const scheduleMeasure = () => {
@@ -161,24 +158,22 @@ function MarkdownNode({ id, data }: NodeProps<DemoPreviewNodeData>) {
     return null;
   }
 
-  const nodeRef = useMeasuredNodeRef(id, true);
+  const contentRef = useMeasuredNodeRef(id, true);
 
   return (
-    <div
-      ref={nodeRef}
-      className="demo-flow-node demo-flow-node-markdown"
-      style={resolveDemoNodeStyle(data)}
-    >
+    <div className="demo-flow-node demo-flow-node-markdown" style={resolveDemoNodeStyle(data)}>
       <PreviewEdgeHandles />
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={{
-          code: MarkdownCodeBlock,
-          pre: MarkdownPreBlock,
-        }}
-      >
-        {data.markdown}
-      </ReactMarkdown>
+      <div ref={contentRef} style={{ display: 'flow-root', minWidth: 0 }}>
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            code: MarkdownCodeBlock,
+            pre: MarkdownPreBlock,
+          }}
+        >
+          {data.markdown}
+        </ReactMarkdown>
+      </div>
     </div>
   );
 }
@@ -329,28 +324,29 @@ function StickyNode({ id, data }: NodeProps<DemoPreviewNodeData>) {
     return null;
   }
 
-  const nodeRef = useMeasuredNodeRef(id, Boolean(data.markdown));
+  const contentRef = useMeasuredNodeRef(id, Boolean(data.markdown));
   const pattern = useMemo(() => resolveStickyPattern(data.pattern), [data.pattern]);
   const noiseOpacity = pattern.texture?.noiseOpacity ?? 0;
 
   return (
     <div
-      ref={nodeRef}
       className={data.markdown ? 'demo-flow-node demo-flow-node-markdown' : 'demo-flow-node'}
       style={resolveDemoStickyStyle(data)}
     >
       <PreviewEdgeHandles />
       <NoiseOverlay opacity={noiseOpacity} />
       {data.markdown ? (
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          components={{
-            code: MarkdownCodeBlock,
-            pre: MarkdownPreBlock,
-          }}
-        >
-          {data.markdown}
-        </ReactMarkdown>
+        <div ref={contentRef} style={{ display: 'flow-root', minWidth: 0 }}>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              code: MarkdownCodeBlock,
+              pre: MarkdownPreBlock,
+            }}
+          >
+            {data.markdown}
+          </ReactMarkdown>
+        </div>
       ) : (
         <div className="demo-flow-shape-label">{data.label}</div>
       )}
@@ -659,7 +655,9 @@ function toFlowEdges(preview: DemoPreviewCanvasState): Edge[] {
 export function DemoPreviewCanvas({ preview }: DemoPreviewCanvasProps) {
   const flowInstanceRef = useRef<ReactFlowInstance | null>(null);
   const [measuredPreview, setMeasuredPreview] = useState(preview);
-  const [nodeMeasurements, setNodeMeasurements] = useState<Record<string, NodeMeasurement>>({});
+  const [nodeMeasurements, setNodeMeasurements] = useState<Record<string, PreviewNodeMeasurement>>(
+    {},
+  );
   const flowNodes = useMemo(() => toFlowNodes(measuredPreview), [measuredPreview]);
   const flowEdges = useMemo(() => toFlowEdges(measuredPreview), [measuredPreview]);
   const surfaceStyle = useMemo(
@@ -667,24 +665,27 @@ export function DemoPreviewCanvas({ preview }: DemoPreviewCanvasProps) {
     [measuredPreview.canvasBackground],
   );
 
-  const handleNodeMeasurement = useCallback((nodeId: string, measurement: NodeMeasurement) => {
-    setNodeMeasurements((current) => {
-      const existing = current[nodeId];
+  const handleNodeMeasurement = useCallback(
+    (nodeId: string, measurement: PreviewNodeMeasurement) => {
+      setNodeMeasurements((current) => {
+        const existing = current[nodeId];
 
-      if (
-        existing &&
-        existing.width === measurement.width &&
-        existing.height === measurement.height
-      ) {
-        return current;
-      }
+        if (
+          existing &&
+          existing.width === measurement.width &&
+          existing.height === measurement.height
+        ) {
+          return current;
+        }
 
-      return {
-        ...current,
-        [nodeId]: measurement,
-      };
-    });
-  }, []);
+        return {
+          ...current,
+          [nodeId]: measurement,
+        };
+      });
+    },
+    [],
+  );
 
   useEffect(() => {
     setMeasuredPreview(preview);
@@ -692,30 +693,9 @@ export function DemoPreviewCanvas({ preview }: DemoPreviewCanvasProps) {
   }, [preview]);
 
   useEffect(() => {
-    const measuredNodes = preview.nodes.map((node) => {
-      const measurement = nodeMeasurements[node.id];
-
-      if (!measurement || node.hidden) {
-        return node;
-      }
-
-      if (node.data.kind !== 'markdown' && node.data.kind !== 'sticky') {
-        return node;
-      }
-
-      const width = Math.max(node.width ?? 0, measurement.width);
-      const height = Math.max(node.height ?? 0, measurement.height);
-
-      if (node.width === width && node.height === height) {
-        return node;
-      }
-
-      return {
-        ...node,
-        width,
-        height,
-      };
-    });
+    const measuredNodes = preview.nodes.map((node) =>
+      mergeMeasuredPreviewNode(node, nodeMeasurements[node.id]),
+    );
 
     const didChange = measuredNodes.some((node, index) => node !== preview.nodes[index]);
 
