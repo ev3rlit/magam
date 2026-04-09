@@ -61,8 +61,11 @@ export function resolveDemoCanvasBackground(
 ): CSSProperties {
   if (!background || background === 'solid') {
     return {
-      background:
-        'linear-gradient(180deg, rgba(255,255,255,0.92), rgba(245,238,226,0.94))',
+      backgroundColor: '#fbfaf7',
+      backgroundImage:
+        'linear-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(148, 163, 184, 0.1) 1px, transparent 1px)',
+      backgroundPosition: '-1px -1px',
+      backgroundSize: '32px 32px',
     };
   }
 

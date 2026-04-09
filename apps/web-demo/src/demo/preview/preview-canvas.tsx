@@ -137,7 +137,7 @@ export function DemoPreviewCanvas({ preview }: DemoPreviewCanvasProps) {
 
     const timeoutId = window.setTimeout(() => {
       flowInstanceRef.current?.fitView({
-        padding: 0.18,
+        padding: 0,
         duration: 240,
         includeHiddenNodes: false,
       });
@@ -157,7 +157,7 @@ export function DemoPreviewCanvas({ preview }: DemoPreviewCanvasProps) {
         onInit={(instance) => {
           flowInstanceRef.current = instance;
           instance.fitView({
-            padding: 0.18,
+            padding: 0,
             duration: 0,
             includeHiddenNodes: false,
           });

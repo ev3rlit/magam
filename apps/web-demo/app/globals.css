@@ -430,15 +430,15 @@ a {
   position: relative;
   flex: 1;
   min-height: 0;
-  padding: 20px;
+  padding: 0;
 }
 
 .demo-preview-canvas {
   height: 100%;
   min-height: 420px;
   overflow: hidden;
-  border: 1px solid var(--demo-border);
-  border-radius: 16px;
+  border: none;
+  border-radius: 0;
   background: #ffffff;
 }
 
@@ -457,7 +457,7 @@ a {
 
 .demo-preview-overlay {
   position: absolute;
-  inset: 34px 34px auto auto;
+  inset: 16px 16px auto auto;
   max-width: 320px;
   display: grid;
   gap: 4px;
