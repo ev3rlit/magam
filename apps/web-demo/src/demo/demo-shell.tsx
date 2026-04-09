@@ -30,7 +30,7 @@ import {
   DEMO_MOBILE_SIDEBAR_MEDIA_QUERY,
   shouldAutoCloseFloatingSidebar,
 } from '@/src/demo/sidebar-behavior';
-import { createDemoScratchWorkspace } from '@/src/demo/scratch-workspace';
+import { createDemoScratchWorkspace, createScratchDocumentId } from '@/src/demo/scratch-workspace';
 
 const LazyScratchEditor = dynamic(
   () => import('@/src/demo/editor/scratch-editor').then((module) => module.ScratchEditor),
@@ -53,7 +53,6 @@ export function DemoShell({ initialModel }: DemoShellProps) {
   const [activeMode, setActiveMode] = useState<DemoUiMode>(initialModel.uiMode);
   const [sidebarPanel, setSidebarPanel] = useState<SidebarPanel>('explorer');
   const [scratchDocument, setScratchDocument] = useState<ScratchDocument | null>(null);
-  const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const [hasHydratedStorage, setHasHydratedStorage] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarResizing, setIsSidebarResizing] = useState(false);
@@ -193,18 +192,45 @@ export function DemoShell({ initialModel }: DemoShellProps) {
   }, [hasHydratedStorage, scratchDocument]);
 
   useEffect(() => {
-    if (!copyStatus) {
+    if (!hasHydratedStorage) {
       return;
     }
 
-    const timeoutId = window.setTimeout(() => {
-      setCopyStatus(null);
-    }, 2400);
+    if (scratchDocument?.sourcePath === selectedPath) {
+      if (activeMode !== 'scratch-edit') {
+        setActiveMode('scratch-edit');
+      }
+
+      return;
+    }
+
+    let isCancelled = false;
+
+    void ensureScratchDocument({
+      workspace: scratchWorkspace,
+      path: selectedPath,
+      source: selectedSource,
+      onReady: (document) => {
+        if (isCancelled) {
+          return;
+        }
+
+        setScratchDocument(document);
+        setActiveMode('scratch-edit');
+      },
+    });
 
     return () => {
-      window.clearTimeout(timeoutId);
+      isCancelled = true;
     };
-  }, [copyStatus]);
+  }, [
+    activeMode,
+    hasHydratedStorage,
+    scratchDocument?.sourcePath,
+    scratchWorkspace,
+    selectedPath,
+    selectedSource,
+  ]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -392,7 +418,6 @@ export function DemoShell({ initialModel }: DemoShellProps) {
     }
 
     setSelectedPath(node.path);
-    setActiveMode('example-view');
     closeSidebarIfNeeded();
   }
 
@@ -401,26 +426,6 @@ export function DemoShell({ initialModel }: DemoShellProps) {
       ...currentState,
       [nodeId]: !currentState[nodeId],
     }));
-  }
-
-  async function handleEditInScratch() {
-    if (scratchMatchesSelection && scratchDocument) {
-      setActiveMode('scratch-edit');
-      setSidebarPanel('code');
-      closeSidebarIfNeeded();
-
-      return;
-    }
-
-    const document = await scratchWorkspace.startFromExample({
-      path: selectedPath,
-      source: selectedSource,
-    });
-
-    setScratchDocument(document);
-    setActiveMode('scratch-edit');
-    setSidebarPanel('code');
-    closeSidebarIfNeeded();
   }
 
   async function handleResetScratch() {
@@ -438,42 +443,23 @@ export function DemoShell({ initialModel }: DemoShellProps) {
   }
 
   function handleScratchChange(nextSource: string) {
-    if (!scratchMatchesSelection || !scratchDocument) {
-      return;
-    }
-
     const nextDocument = {
-      ...scratchDocument,
+      documentId:
+        scratchMatchesSelection && scratchDocument
+          ? scratchDocument.documentId
+          : createScratchDocumentId(selectedPath),
+      sourcePath: selectedPath,
       source: nextSource,
     } satisfies ScratchDocument;
 
     setScratchDocument(nextDocument);
-    void scratchWorkspace.update(nextDocument.documentId, nextSource);
+    setActiveMode('scratch-edit');
+    void persistScratchDocument({
+      workspace: scratchWorkspace,
+      document: nextDocument,
+      fallbackSource: selectedSource,
+    });
   }
-
-  function handleShowExampleSource() {
-    setActiveMode('example-view');
-    setSidebarPanel('code');
-  }
-
-  async function handleCopySource() {
-    if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
-      setCopyStatus('Clipboard unavailable in this browser.');
-
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(sourceTarget.source);
-      setCopyStatus(
-        sourceTarget.mode === 'scratch-edit' ? 'Scratch source copied.' : 'Example source copied.',
-      );
-    } catch (error) {
-      setCopyStatus(error instanceof Error ? `Copy failed: ${error.message}` : 'Copy failed.');
-    }
-  }
-
-  const scratchActionLabel = scratchMatchesSelection ? 'Resume Scratch' : 'Edit in Scratch';
 
   return (
     <main className="demo-page">
@@ -577,38 +563,12 @@ export function DemoShell({ initialModel }: DemoShellProps) {
                       <button
                         type="button"
                         className="demo-toolbar-button"
-                        onClick={handleEditInScratch}
-                        disabled={sourceTarget.mode === 'scratch-edit'}
+                        onClick={handleResetScratch}
+                        disabled={!scratchMatchesSelection}
                       >
-                        {scratchActionLabel}
-                      </button>
-                      {sourceTarget.mode === 'scratch-edit' ? (
-                        <button
-                          type="button"
-                          className="demo-toolbar-button"
-                          onClick={handleShowExampleSource}
-                        >
-                          Show Example
-                        </button>
-                      ) : null}
-                      {scratchMatchesSelection ? (
-                        <button
-                          type="button"
-                          className="demo-toolbar-button"
-                          onClick={handleResetScratch}
-                        >
-                          Reset
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        className="demo-toolbar-button"
-                        onClick={handleCopySource}
-                      >
-                        Copy
+                        Reset
                       </button>
                     </div>
-                    {copyStatus ? <span className="demo-status-pill">{copyStatus}</span> : null}
                   </div>
 
                   {activeNode?.description ? (
@@ -617,20 +577,20 @@ export function DemoShell({ initialModel }: DemoShellProps) {
 
                   <div
                     className="demo-editor-shell"
-                    data-readonly={sourceTarget.mode === 'example-view'}
+                    data-readonly={false}
                   >
                     <div className="demo-editor-meta">
                       <span>
-                        {sourceTarget.mode === 'scratch-edit'
-                          ? scratchDocument?.documentId ?? 'scratch session'
-                          : 'read-only example'}
+                        {scratchMatchesSelection && scratchDocument
+                          ? scratchDocument.documentId
+                          : createScratchDocumentId(selectedPath)}
                       </span>
                     </div>
                     <LazyScratchEditor
-                      value={sourceTarget.source}
-                      onChange={sourceTarget.mode === 'scratch-edit' ? handleScratchChange : undefined}
-                      readOnly={sourceTarget.mode === 'example-view'}
-                      autoFocus={sourceTarget.mode === 'scratch-edit'}
+                      value={scratchMatchesSelection ? scratchDocument.source : selectedSource}
+                      onChange={handleScratchChange}
+                      readOnly={false}
+                      autoFocus
                     />
                   </div>
                 </div>
@@ -704,6 +664,37 @@ async function restoreScratchDocument(input: {
   });
 
   input.onRestore(document);
+}
+
+async function ensureScratchDocument(input: {
+  workspace: ScratchWorkspace;
+  path: string;
+  source: string;
+  onReady: (document: ScratchDocument) => void;
+}): Promise<void> {
+  const document = await input.workspace.startFromExample({
+    path: input.path,
+    source: input.source,
+  });
+
+  input.onReady(document);
+}
+
+async function persistScratchDocument(input: {
+  workspace: ScratchWorkspace;
+  document: ScratchDocument;
+  fallbackSource: string;
+}): Promise<void> {
+  const existingDocument = await input.workspace.get(input.document.documentId);
+
+  if (!existingDocument) {
+    await input.workspace.startFromExample({
+      path: input.document.sourcePath,
+      source: input.fallbackSource,
+    });
+  }
+
+  await input.workspace.update(input.document.documentId, input.document.source);
 }
 
 function getInitialOpenFolders(
