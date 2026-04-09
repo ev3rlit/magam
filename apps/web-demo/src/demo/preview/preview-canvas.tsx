@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  memo,
   useCallback,
   useContext,
   useEffect,
@@ -45,6 +46,7 @@ import {
   resolveDemoCanvasBackground,
   resolveDemoNodeStyle,
   resolveDemoStickerStyle,
+  resolveDemoStickerTextStyle,
   resolveDemoStickyStyle,
   resolveDemoTextStyle,
   resolveDemoWashiStyle,
@@ -153,7 +155,7 @@ function useMeasuredNodeRef(nodeId: string, enabled: boolean) {
   return ref;
 }
 
-function MarkdownNode({ id, data }: NodeProps<DemoPreviewNodeData>) {
+const MarkdownNode = memo(function MarkdownNode({ id, data }: NodeProps<DemoPreviewNodeData>) {
   if (data.kind !== 'markdown') {
     return null;
   }
@@ -176,9 +178,9 @@ function MarkdownNode({ id, data }: NodeProps<DemoPreviewNodeData>) {
       </div>
     </div>
   );
-}
+});
 
-function ShapeNode({ data }: NodeProps<DemoPreviewNodeData>) {
+const ShapeNode = memo(function ShapeNode({ data }: NodeProps<DemoPreviewNodeData>) {
   if (data.kind !== 'shape') {
     return null;
   }
@@ -189,9 +191,9 @@ function ShapeNode({ data }: NodeProps<DemoPreviewNodeData>) {
       <div className="demo-flow-shape-label">{data.label}</div>
     </div>
   );
-}
+});
 
-function TextNode({ data }: NodeProps<DemoPreviewNodeData>) {
+const TextNode = memo(function TextNode({ data }: NodeProps<DemoPreviewNodeData>) {
   if (data.kind !== 'text') {
     return null;
   }
@@ -202,9 +204,9 @@ function TextNode({ data }: NodeProps<DemoPreviewNodeData>) {
       <span>{data.text}</span>
     </div>
   );
-}
+});
 
-function SequenceNode({ data }: NodeProps<DemoPreviewNodeData>) {
+const SequenceNode = memo(function SequenceNode({ data }: NodeProps<DemoPreviewNodeData>) {
   if (data.kind !== 'sequence') {
     return null;
   }
@@ -234,7 +236,7 @@ function SequenceNode({ data }: NodeProps<DemoPreviewNodeData>) {
       </div>
     </div>
   );
-}
+});
 
 function NoiseOverlay({ opacity }: { opacity: number }) {
   if (opacity <= 0) {
@@ -319,7 +321,7 @@ function sanitizeFilterIdPart(value: string): string {
   return safe.length > 0 ? safe : 'node';
 }
 
-function StickyNode({ id, data }: NodeProps<DemoPreviewNodeData>) {
+const StickyNode = memo(function StickyNode({ id, data }: NodeProps<DemoPreviewNodeData>) {
   if (data.kind !== 'sticky') {
     return null;
   }
@@ -352,9 +354,9 @@ function StickyNode({ id, data }: NodeProps<DemoPreviewNodeData>) {
       )}
     </div>
   );
-}
+});
 
-function StickerNode({ data }: NodeProps<DemoPreviewNodeData>) {
+const StickerNode = memo(function StickerNode({ data }: NodeProps<DemoPreviewNodeData>) {
   if (data.kind !== 'sticker') {
     return null;
   }
@@ -490,24 +492,21 @@ function StickerNode({ data }: NodeProps<DemoPreviewNodeData>) {
         />
       ) : (
         <span
-          style={{
-            color: '#111827',
+          style={resolveDemoStickerTextStyle({
+            fontFamily: data.fontFamily,
             fontSize: 20,
-            fontWeight: 700,
-            fontFamily: resolveDemoStickerStyle({ fontFamily: data.fontFamily }).fontFamily,
-            letterSpacing: '0.02em',
-            whiteSpace: 'pre-wrap',
-            textAlign: 'center',
-          }}
+            outlineColor,
+            diecutTextShadow,
+          })}
         >
           {data.text ?? data.label}
         </span>
       )}
     </div>
   );
-}
+});
 
-function WashiNode({ data }: NodeProps<DemoPreviewNodeData>) {
+const WashiNode = memo(function WashiNode({ data }: NodeProps<DemoPreviewNodeData>) {
   if (data.kind !== 'washi') {
     return null;
   }
@@ -585,9 +584,9 @@ function WashiNode({ data }: NodeProps<DemoPreviewNodeData>) {
       ) : null}
     </div>
   );
-}
+});
 
-const nodeTypes = {
+const NODE_TYPES = Object.freeze({
   'demo-markdown': MarkdownNode,
   'demo-shape': ShapeNode,
   'demo-text': TextNode,
@@ -595,7 +594,9 @@ const nodeTypes = {
   'demo-sticky': StickyNode,
   'demo-sticker': StickerNode,
   'demo-washi': WashiNode,
-};
+});
+
+const REACT_FLOW_PRO_OPTIONS = Object.freeze({ hideAttribution: true });
 
 function toFlowNodes(preview: DemoPreviewCanvasState): Node<DemoPreviewNodeData>[] {
   return preview.nodes.map((node) => ({
@@ -654,6 +655,7 @@ function toFlowEdges(preview: DemoPreviewCanvasState): Edge[] {
 
 export function DemoPreviewCanvas({ preview }: DemoPreviewCanvasProps) {
   const flowInstanceRef = useRef<ReactFlowInstance | null>(null);
+  const stableNodeTypesRef = useRef(NODE_TYPES);
   const [measuredPreview, setMeasuredPreview] = useState(preview);
   const [nodeMeasurements, setNodeMeasurements] = useState<Record<string, PreviewNodeMeasurement>>(
     {},
@@ -738,27 +740,29 @@ export function DemoPreviewCanvas({ preview }: DemoPreviewCanvasProps) {
     };
   }, [flowEdges, flowNodes]);
 
+  const handleInit = useCallback((instance: ReactFlowInstance) => {
+    flowInstanceRef.current = instance;
+    instance.fitView({
+      padding: 0,
+      duration: 0,
+      includeHiddenNodes: false,
+    });
+  }, []);
+
   return (
     <div className="demo-preview-canvas" style={surfaceStyle}>
       <PreviewNodeMeasurementContext.Provider value={handleNodeMeasurement}>
         <ReactFlow
           nodes={flowNodes}
           edges={flowEdges}
-          nodeTypes={nodeTypes}
-          onInit={(instance) => {
-            flowInstanceRef.current = instance;
-            instance.fitView({
-              padding: 0,
-              duration: 0,
-              includeHiddenNodes: false,
-            });
-          }}
+          nodeTypes={stableNodeTypesRef.current}
+          onInit={handleInit}
           nodesDraggable={false}
           nodesConnectable={false}
           elementsSelectable={false}
           zoomOnDoubleClick={false}
           panOnDrag
-          proOptions={{ hideAttribution: true }}
+          proOptions={REACT_FLOW_PRO_OPTIONS}
           fitView
         >
           <Controls showInteractive={false} />

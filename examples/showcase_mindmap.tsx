@@ -6,16 +6,16 @@ import { Canvas, MindMap, Node, Markdown, Text } from '@magam/core';
  * MindMap 컴포넌트의 다양한 레이아웃과 계층 구조를 보여줍니다.
  */
 export default function ShowcaseMindmap() {
-    return (
-        <Canvas>
+  return (
+    <Canvas>
             <Text id="showcase-mindmap-map.seed" x={0} y={0} className="text-[1px] text-transparent select-none">.</Text>
             <MindMap id="showcase-mindmap-map" layout="bidirectional">
                 {/* Root */}
                 <Node
-                    id="root"
-                    bubble
-                    from={{ node: 'showcase-mindmap-map.seed', edge: { stroke: 'transparent', strokeWidth: 0 } }}
-                >
+          id="root"
+          bubble
+          from={{ node: 'showcase-mindmap-map.seed', edge: { stroke: 'transparent', strokeWidth: 0 } }}>
+          
                     <Markdown>{`# MindMap 컴포넌트
 
 > 계층 구조를 자동으로 배치합니다`}</Markdown>
@@ -28,7 +28,7 @@ export default function ShowcaseMindmap() {
 \`layout\` prop으로 배치 방향 선택`}</Markdown>
                 </Node>
 
-                <Node id="content" from="root" bubble>
+                <Node id="content" from="root" bubble x={-278} y={59.83065891776724}>
                     <Markdown>{`### 콘텐츠 유형
 
 Node 안에 다양한 콘텐츠 배치`}</Markdown>
@@ -100,6 +100,6 @@ Canvas 위에 독립 배치 가능`}</Markdown>
 노드 간 내비게이션`}</Markdown>
                 </Node>
             </MindMap>
-        </Canvas>
-    );
+        </Canvas>);
+
 }

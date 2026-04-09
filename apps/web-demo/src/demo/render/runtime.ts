@@ -1,9 +1,8 @@
-// @ts-expect-error Pin demo runtime to the workspace React package for reconciler compatibility.
-import * as React from '../../../../../node_modules/react/index.js';
+import * as React from 'react';
 import * as jsxRuntime from '@/src/demo/render/react-jsx-runtime';
 import * as jsxDevRuntime from '@/src/demo/render/react-jsx-dev-runtime';
 import * as MagamCore from '@magam/core';
-import { renderToGraph } from '@magam/core';
+import { ensureReactInternalsCompat, renderToGraph } from '@magam/core';
 import ts from 'typescript';
 import type { DemoRenderRequest, DemoRenderResponse } from '@/src/demo/contracts';
 import { isRelativeDemoImport, resolveDemoImportDependency } from '@/src/demo/import-resolver';
@@ -14,6 +13,8 @@ import {
   normalizeUnknownRenderError,
 } from '@/src/demo/render/diagnostics';
 import { createDemoSourceVersion } from '@/src/demo/render/source-version';
+
+ensureReactInternalsCompat(React as Record<string, unknown>);
 
 interface RenderDemoSourceGraphInput {
   request: DemoRenderRequest;
@@ -39,16 +40,27 @@ export async function renderDemoSourceGraph(
         sourceVersion: createDemoSourceVersion(runtime.moduleSources),
         diagnostics: [],
       }),
-      (error) => ({
-        graph: null,
-        sourceVersion: null,
-        diagnostics: normalizeUnknownRenderError(
-          getOriginalError(error) ?? error,
-          input.request.filename,
-        ),
-      }),
+      (error) => {
+        const originalError = getOriginalError(error) ?? error;
+
+        console.error('[web-demo/runtime] renderToGraph failed', {
+          filename: input.request.filename,
+          error: originalError,
+        });
+
+        return {
+          graph: null,
+          sourceVersion: null,
+          diagnostics: normalizeUnknownRenderError(originalError, input.request.filename),
+        };
+      },
     );
   } catch (error) {
+    console.error('[web-demo/runtime] render pipeline failed', {
+      filename: input.request.filename,
+      error,
+    });
+
     return {
       graph: null,
       sourceVersion: null,

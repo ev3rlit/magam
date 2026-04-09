@@ -41,6 +41,8 @@ export const MindMap: React.FC<MindMapProps> = ({
   ...rest
 }) => {
   const scopedId = useNodeId(id);
+  const normalizedChildren = React.Children.toArray(children);
+
   return React.createElement(
     MindMapContext.Provider,
     { value: true },
@@ -55,6 +57,6 @@ export const MindMap: React.FC<MindMapProps> = ({
       layout,
       spacing,
       ...rest,
-    }, children),
+    }, ...normalizedChildren),
   );
 };

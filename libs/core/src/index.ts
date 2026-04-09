@@ -50,6 +50,8 @@ export * from './hooks/useNodeId';
 export * from './hooks/useMindMapScopedProps';
 export * from './errors';
 export * from './renderer';
+export * from './react-internals-compat';
+export * from './react-element';
 export * from './result';
 export * from './logger';
 export * from './types/font';

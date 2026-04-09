@@ -1,10 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  exampleRegistryConfig,
-  type ExampleRegistryOverride,
-} from '../apps/web-demo/src/demo/example-registry.config';
+import { exampleRegistryConfig } from '../apps/web-demo/src/demo/example-registry.config';
 
 interface GeneratedExampleNode {
   id: string;
@@ -41,7 +38,7 @@ async function main() {
     includePaths,
   );
   const sourceByPath = await buildSourceByPath(includePaths);
-  const tree = buildExampleTree(includePaths, exampleRegistryConfig.overrides ?? {});
+  const tree = buildExampleTree(includePaths);
   const outputSource = renderManifestModule({
     tree,
     sourceByPath,
@@ -97,10 +94,7 @@ async function buildSourceByPath(includePaths: string[]): Promise<Record<string,
   return Object.fromEntries(entries);
 }
 
-function buildExampleTree(
-  includePaths: string[],
-  overrides: Record<string, ExampleRegistryOverride>,
-): GeneratedExampleNode[] {
+function buildExampleTree(includePaths: string[]): GeneratedExampleNode[] {
   const root: MutableGeneratedExampleNode = {
     id: ROOT_NODE_ID,
     path: ROOT_NODE_PATH,
@@ -152,7 +146,6 @@ function buildExampleTree(
       createExampleLeaf({
         examplePath,
         fileName,
-        override: overrides[examplePath],
       }),
     );
   }
@@ -163,18 +156,15 @@ function buildExampleTree(
 function createExampleLeaf(input: {
   examplePath: string;
   fileName: string;
-  override?: ExampleRegistryOverride;
 }): GeneratedExampleNode {
-  const fileStem = input.fileName.replace(/\.tsx$/, '');
   const pathSegments = input.examplePath.split('/');
   const parentFolder = pathSegments.length > 2 ? pathSegments.at(-2) : undefined;
 
   return {
     id: createExampleId(input.examplePath),
     path: input.examplePath,
-    title: input.override?.title ?? toTitleCase(fileStem),
-    category: input.override?.category ?? inferCategory(parentFolder),
-    description: input.override?.description,
+    title: input.fileName,
+    category: inferCategory(parentFolder),
   };
 }
 

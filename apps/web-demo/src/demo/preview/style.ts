@@ -262,6 +262,31 @@ export function resolveDemoStickerStyle(input: {
   };
 }
 
+export function resolveDemoStickerTextStyle(input: {
+  fontFamily?: FontFamilyPreset;
+  fontSize: number;
+  outlineColor: string;
+  diecutTextShadow: string;
+  lineHeightPx?: number;
+}): CSSProperties {
+  return {
+    color: '#111827',
+    fontSize: input.fontSize,
+    ...(typeof input.lineHeightPx === 'number'
+      ? { lineHeight: `${input.lineHeightPx}px` }
+      : {}),
+    fontWeight: 700,
+    fontFamily: resolveDemoFontFamily(input.fontFamily),
+    letterSpacing: '0.02em',
+    whiteSpace: 'pre-wrap',
+    textAlign: 'center',
+    WebkitTextStrokeWidth: '1px',
+    WebkitTextStrokeColor: input.outlineColor,
+    paintOrder: 'stroke fill',
+    textShadow: input.diecutTextShadow,
+  };
+}
+
 export function resolveDemoWashiStyle(input: {
   className?: string;
   pattern?: PaperMaterial | Record<string, unknown>;

@@ -41,5 +41,7 @@ function resolveBackground(
 
 export const Canvas: React.FC<CanvasProps> = ({ background, fontFamily, children }) => {
   const resolved = resolveBackground(background);
-  return React.createElement('graph-canvas', { background: resolved, fontFamily }, children);
+  const normalizedChildren = React.Children.toArray(children);
+
+  return React.createElement('graph-canvas', { background: resolved, fontFamily }, ...normalizedChildren);
 };

@@ -14,8 +14,8 @@ import {
   WashiTape,
   Image,
   Markdown,
-  svg,
-} from '@magam/core';
+  svg } from
+'@magam/core';
 
 /**
  * Sticky + WashiTape Showcase: Journaling Edition
@@ -31,8 +31,8 @@ import {
  */
 export default function StickyShowcase() {
   const polaroidSvg =
-    'data:image/svg+xml;utf8,' +
-    encodeURIComponent(`
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(`
       <svg xmlns="http://www.w3.org/2000/svg" width="240" height="180" viewBox="0 0 240 180">
         <rect width="240" height="180" fill="#f0ebe3" rx="2" />
         <rect x="16" y="12" width="208" height="130" fill="#d4e8d0" rx="1" />
@@ -49,12 +49,12 @@ export default function StickyShowcase() {
 
   return (
     <Canvas background={{
-        gap: 4,
-        pattern: ({ size }) => `
+      gap: 4,
+      pattern: ({ size }) => `
           <line x1="0" y1="${size}" x2="${size}" y2="${size}" stroke="rgba(180,160,130,0.08)" stroke-width="0.5" />
           <line x1="${size}" y1="0" x2="${size}" y2="${size}" stroke="rgba(180,160,130,0.08)" stroke-width="0.5" />
-        `,
-      }}>
+        `
+    }}>
       {/* === Title === */}
       <Text id="bg-title" x={80} y={30} className="text-lg font-light text-[#8b7355] tracking-[0.15em]">
         My Journal  2026.03.02
@@ -63,8 +63,8 @@ export default function StickyShowcase() {
       <Sticker id="s-sparkle" x={380} y={24}>✨</Sticker>
 
       {/* ============================================
-          1. Diary Entry — Lined Warm
-          ============================================ */}
+              1. Diary Entry — Lined Warm
+              ============================================ */}
       <Sticky
         id="diary"
         x={80}
@@ -72,8 +72,8 @@ export default function StickyShowcase() {
         width={340}
         height={280}
         shape="rectangle"
-        pattern={preset('lined-warm')}
-      >
+        pattern={preset('lined-warm')}>
+        
         <Markdown>{`
 # 📝 Today's Diary
 
@@ -92,12 +92,12 @@ I have a good feeling about this one 🌸
         at={attach({ target: 'diary', placement: 'top', span: 0.4, align: 0.15, offset: 4, thickness: 22 })}
         pattern={solid('#9b8ec4')}
         edge={torn(1.2)}
-        opacity={0.88}
-      />
+        opacity={0.88} />
+      
 
       {/* ============================================
-          2. To-Do List — Post-it
-          ============================================ */}
+              2. To-Do List — Post-it
+              ============================================ */}
       <Sticky
         id="todo"
         x={480}
@@ -105,8 +105,8 @@ I have a good feeling about this one 🌸
         width={260}
         height={260}
         shape="rectangle"
-        pattern={preset('postit')}
-      >
+        pattern={preset('postit')}>
+        
         <Markdown>{`
 # ✅ To-Do List
 
@@ -133,11 +133,11 @@ I have a good feeling about this one 🌸
               <rect width="10" height="20" x="40" fill="#4d96ff" />
               <rect width="10" height="20" x="50" fill="#9b59b6" />
             </svg>
-          `,
+          `
         })}
         edge={torn(1.0)}
-        opacity={0.85}
-      />
+        opacity={0.85} />
+      
 
       {/* Pink washi tape on todo — bottom right */}
       <WashiTape
@@ -145,19 +145,19 @@ I have a good feeling about this one 🌸
         at={attach({ target: 'todo', placement: 'bottom', span: 0.3, align: 0.85, offset: -4, thickness: 18 })}
         pattern={solid('#f8a5c2')}
         edge={torn(0.8)}
-        opacity={0.8}
-      />
+        opacity={0.8} />
+      
 
       {/* ============================================
-          3. Gratitude — Kraft Natural
-          ============================================ */}
+              3. Gratitude — Kraft Natural
+              ============================================ */}
       <Sticky
         id="gratitude"
-        at={anchor('todo', { position: 'bottom', gap: 30 })}
+        at={anchor('todo', { position: 'bottom', gap: 200 })}
         width={240}
         shape="rectangle"
-        pattern={preset('kraft-natural')}
-      >
+        pattern={preset('kraft-natural')}>
+        
         <Markdown>{`
 # 🙏 Grateful For
 
@@ -174,16 +174,16 @@ I have a good feeling about this one 🌸
       </Sticker>
 
       {/* ============================================
-          4. Weekly Mood — Grid Standard
-          ============================================ */}
+              4. Weekly Mood — Grid Standard
+              ============================================ */}
       <Sticky
         id="mood"
-        at={anchor('diary', { position: 'bottom', gap: 40 })}
+        at={anchor('diary', { position: 'bottom', gap: 240 })}
         width={320}
         height={180}
         shape="rectangle"
-        pattern={preset('grid-standard')}
-      >
+        pattern={preset('grid-standard')} x={95.45744125326365} y={452.9900783289818}>
+        
         <Markdown>{`
 # 🌈 Weekly Mood
 
@@ -196,15 +196,15 @@ I have a good feeling about this one 🌸
       {/* Decorative washi across mood card — mint */}
       <WashiTape
         id="t-mood"
-        at={attach({ target: 'mood', placement: 'top', span: 0.35, align: 0.8, offset: 6, thickness: 20 })}
+        at={{ type: "attach", target: "mood", placement: "top", span: 0.35, align: 0.8, offset: -151, thickness: 20, followRotation: false, clipToTarget: false }}
         pattern={solid('#7ed6df')}
         edge={torn(1.0)}
-        opacity={0.82}
-      />
+        opacity={0.82} />
+      
 
       {/* ============================================
-          5. Polaroid Photo
-          ============================================ */}
+              5. Polaroid Photo
+              ============================================ */}
       <Sticker id="photo" x={200} y={690} rotation={3}>
         <Image src={polaroidSvg} alt="Spring Walk" width={200} height={150} />
       </Sticker>
@@ -214,8 +214,8 @@ I have a good feeling about this one 🌸
         anchor="photo"
         position="bottom"
         gap={8}
-        className="text-sm italic text-[#8b7355] font-serif"
-      >
+        className="text-sm italic text-[#8b7355] font-serif">
+        
         Spring Walk 🌷
       </Text>
 
@@ -225,20 +225,20 @@ I have a good feeling about this one 🌸
         at={segment({ x: 220, y: 680 }, { x: 280, y: 695 }, { thickness: 16 })}
         pattern={solid('#e1d0b3')}
         edge={torn(0.6)}
-        opacity={0.75}
-      />
+        opacity={0.75} />
+      
 
       {/* ============================================
-          6. Habit Tracker — Grid Fine
-          ============================================ */}
+              6. Habit Tracker — Grid Fine
+              ============================================ */}
       <Sticky
         id="habit"
-        at={anchor('gratitude', { position: 'bottom', gap: 30 })}
+        at={anchor('gratitude', { position: 'bottom', gap: 400 })}
         width={280}
         height={220}
         shape="rectangle"
-        pattern={preset('grid-fine')}
-      >
+        pattern={preset('grid-fine')}>
+        
         <Markdown>{`
 # 📊 Habit Tracker
 
@@ -257,12 +257,12 @@ I have a good feeling about this one 🌸
         at={attach({ target: 'habit', placement: 'top', span: 0.4, align: 0.5, offset: 4, thickness: 22 })}
         pattern={preset('masking-solid')}
         edge={torn(1.0)}
-        opacity={0.85}
-      />
+        opacity={0.85} />
+      
 
       {/* ============================================
-          Decorative Stickers
-          ============================================ */}
+              Decorative Stickers
+              ============================================ */}
       <Sticker id="s-flower1" x={440} y={60}>🌷</Sticker>
       <Sticker id="s-leaf" x={750} y={90} rotation={-10}>🍃</Sticker>
       <Sticker id="s-heart" x={425} y={350} rotation={8}>💕</Sticker>
@@ -277,8 +277,8 @@ I have a good feeling about this one 🌸
         pattern={solid('#a18d6d')}
         texture={texture({ opacity: 0.1, blendMode: 'multiply' })}
         edge={torn(0.8)}
-        text={{ align: 'center', color: '#fcfaf8', size: 11 }}
-      >
+        text={{ align: 'center', color: '#fcfaf8', size: 11 }}>
+        
         You did great today ♡
       </WashiTape>
 
@@ -286,6 +286,6 @@ I have a good feeling about this one 🌸
       <Sticker id="s-hashtag" x={400} y={580} rotation={-4}>
         <Text className="text-[10px] font-mono text-[#a18d6d] border border-[#a18d6d] px-2 py-1 bg-[#fefcf7]">#journal</Text>
       </Sticker>
-    </Canvas>
-  );
+    </Canvas>);
+
 }

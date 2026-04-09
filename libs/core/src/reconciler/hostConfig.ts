@@ -11,7 +11,7 @@ export type Container = { type: 'root'; children: Instance[]; meta?: CanvasMeta 
 export type Instance = { type: string; props: Props; children: Instance[] };
 export type TextInstance = {
   type: 'text';
-  props: { text: string };
+  props: { text: string; hidden?: boolean };
   children: [];
 };
 export type PublicInstance = Instance | TextInstance;
@@ -48,7 +48,6 @@ export function createInstance(
   hostContext: HostContext,
   internalHandle: any,
 ): Instance {
-  console.log('[HostConfig] createInstance', type);
   try {
     assertNoLegacyIconProp(type, props);
     const { children, ...safeProps } = props;
@@ -58,7 +57,6 @@ export function createInstance(
       children: [],
     };
   } catch (e) {
-    console.error('[HostConfig] Error in createInstance', e);
     throw e;
   }
 }
@@ -208,6 +206,31 @@ export function clearContainer(container: Container): void {
   container.children = [];
 }
 export function detachDeletedInstance(node: Instance): void { }
+export function hideInstance(instance: Instance): void {
+  instance.props = { ...instance.props, hidden: true };
+}
+export function hideTextInstance(textInstance: TextInstance): void {
+  textInstance.props = { ...textInstance.props, hidden: true };
+}
+export function unhideInstance(instance: Instance, props: Props): void {
+  const { hidden: _hidden, ...rest } = instance.props;
+  instance.props = { ...rest, ...props };
+}
+export function unhideTextInstance(textInstance: TextInstance, text: string): void {
+  textInstance.props = { text };
+}
+export function maySuspendCommit(type: Type, props: Props): boolean {
+  return false;
+}
+export function preloadInstance(type: Type, props: Props): boolean {
+  return true;
+}
+export function startSuspendingCommit(): void { }
+export function suspendInstance(type: Type, props: Props): void { }
+export function waitForCommitToBeReady(): null {
+  return null;
+}
+export const NotPendingTransition = null;
 
 export const scheduleMicrotask = (callback: () => void) => {
   if (typeof queueMicrotask === 'function') {

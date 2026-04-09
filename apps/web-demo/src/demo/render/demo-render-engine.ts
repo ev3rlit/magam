@@ -1,5 +1,8 @@
 import type { DemoRenderEngine, DemoRenderRequest, DemoRenderResponse } from '@/src/demo/contracts';
-import type { DemoRenderWorkerResponseMessage } from '@/src/demo/render/worker-protocol';
+import type {
+  DemoRenderWorkerRequestMessage,
+  DemoRenderWorkerResponseMessage,
+} from '@/src/demo/render/worker-protocol';
 
 interface DemoRenderEngineOptions {
   exampleSourceByPath: Record<string, string>;
@@ -17,26 +20,26 @@ export class DemoRenderStaleResultError extends Error {
   }
 }
 
-export class WorkerDemoRenderEngine implements DemoRenderEngine {
+export class BrowserDemoRenderEngine implements DemoRenderEngine {
   private readonly worker: Worker;
   private readonly pendingRequests = new Map<number, PendingRenderRequest>();
   private latestRequestId = 0;
+  private isDisposed = false;
 
   constructor(private readonly options: DemoRenderEngineOptions) {
     this.worker = new Worker(new URL('./demo-render.worker.ts', import.meta.url), {
       type: 'module',
     });
-    this.worker.onmessage = (event: MessageEvent<DemoRenderWorkerResponseMessage>) => {
-      this.handleWorkerMessage(event.data);
-    };
-    this.worker.onerror = (event) => {
-      const error = event.error ?? new Error(event.message || 'Demo render worker failed.');
-
-      this.rejectAllPending(error);
-    };
+    this.worker.addEventListener('message', this.handleWorkerMessage);
+    this.worker.addEventListener('error', this.handleWorkerError);
+    this.worker.addEventListener('messageerror', this.handleWorkerMessageError);
   }
 
   render(input: DemoRenderRequest): Promise<DemoRenderResponse> {
+    if (this.isDisposed) {
+      return Promise.reject(new Error('Demo render engine disposed.'));
+    }
+
     const requestId = this.latestRequestId + 1;
 
     this.latestRequestId = requestId;
@@ -44,40 +47,65 @@ export class WorkerDemoRenderEngine implements DemoRenderEngine {
 
     return new Promise<DemoRenderResponse>((resolve, reject) => {
       this.pendingRequests.set(requestId, { resolve, reject });
-      this.worker.postMessage({
+
+      const payload: DemoRenderWorkerRequestMessage = {
         type: 'render',
         requestId,
         input,
         exampleSourceByPath: this.options.exampleSourceByPath,
-      });
+      };
+
+      this.worker.postMessage(payload);
     });
   }
 
   dispose(): void {
-    this.rejectAllPending(new Error('Demo render engine disposed.'));
-    this.worker.terminate();
-  }
-
-  private handleWorkerMessage(message: DemoRenderWorkerResponseMessage): void {
-    if (message.type !== 'render-result') {
+    if (this.isDisposed) {
       return;
     }
 
-    const pendingRequest = this.pendingRequests.get(message.requestId);
+    this.isDisposed = true;
+    this.worker.removeEventListener('message', this.handleWorkerMessage);
+    this.worker.removeEventListener('error', this.handleWorkerError);
+    this.worker.removeEventListener('messageerror', this.handleWorkerMessageError);
+    this.worker.terminate();
+    this.rejectAllPending(new Error('Demo render engine disposed.'));
+  }
+
+  private readonly handleWorkerMessage = (
+    event: MessageEvent<DemoRenderWorkerResponseMessage>,
+  ): void => {
+    if (event.data.type !== 'render-result') {
+      return;
+    }
+
+    this.handleRenderResponse(event.data.requestId, event.data.response);
+  };
+
+  private readonly handleWorkerError = (event: ErrorEvent): void => {
+    this.rejectAllPending(event.error ?? new Error(event.message || 'Demo render worker failed.'));
+  };
+
+  private readonly handleWorkerMessageError = (): void => {
+    this.rejectAllPending(new Error('Demo render worker could not deserialize the render response.'));
+  };
+
+  private handleRenderResponse(requestId: number, response: DemoRenderResponse): void {
+    const pendingRequest = this.pendingRequests.get(requestId);
 
     if (!pendingRequest) {
       return;
     }
 
-    this.pendingRequests.delete(message.requestId);
+    this.pendingRequests.delete(requestId);
 
-    if (message.requestId !== this.latestRequestId) {
+    if (requestId !== this.latestRequestId) {
       pendingRequest.reject(new DemoRenderStaleResultError());
 
       return;
     }
 
-    pendingRequest.resolve(message.response);
+    pendingRequest.resolve(response);
   }
 
   private rejectSupersededRequests(activeRequestId: number): void {
@@ -101,6 +129,6 @@ export class WorkerDemoRenderEngine implements DemoRenderEngine {
 
 export function createDemoRenderEngine(
   options: DemoRenderEngineOptions,
-): WorkerDemoRenderEngine {
-  return new WorkerDemoRenderEngine(options);
+): BrowserDemoRenderEngine {
+  return new BrowserDemoRenderEngine(options);
 }

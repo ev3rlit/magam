@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { resolveDemoCanvasBackground } from './style';
+import { resolveDemoCanvasBackground, resolveDemoStickerTextStyle } from './style';
 
 test('resolveDemoCanvasBackground uses a quiet grid for the default canvas background', () => {
   const style = resolveDemoCanvasBackground(undefined);
@@ -19,4 +19,18 @@ test('resolveDemoCanvasBackground maps the solid option to the default quiet gri
     resolveDemoCanvasBackground('solid'),
     resolveDemoCanvasBackground(undefined),
   );
+});
+
+test('resolveDemoStickerTextStyle applies die-cut outline styling for sticker text content', () => {
+  const style = resolveDemoStickerTextStyle({
+    fontSize: 20,
+    outlineColor: '#ffffff',
+    diecutTextShadow: '1px 0 0 #ffffff, 0 1px 0 #ffffff',
+  });
+
+  assert.equal(style.WebkitTextStrokeWidth, '1px');
+  assert.equal(style.WebkitTextStrokeColor, '#ffffff');
+  assert.equal(style.paintOrder, 'stroke fill');
+  assert.equal(style.textShadow, '1px 0 0 #ffffff, 0 1px 0 #ffffff');
+  assert.equal(style.fontSize, 20);
 });

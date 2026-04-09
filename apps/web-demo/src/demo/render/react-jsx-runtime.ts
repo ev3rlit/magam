@@ -1,5 +1,4 @@
-// @ts-expect-error Pin demo runtime to the workspace React package for reconciler compatibility.
-import * as React from '../../../../../node_modules/react/index.js';
+import * as React from 'react';
 
 export const Fragment = React.Fragment;
 

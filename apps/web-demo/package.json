@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "build:core": "cd ../../libs/core && bun run build",
     "generate:examples": "bun ../../scripts/generate-web-demo-examples.ts",
-    "predev": "bun run generate:examples",
-    "prebuild": "bun run generate:examples",
+    "predev": "bun run build:core && bun run generate:examples",
+    "prebuild": "bun run build:core && bun run generate:examples",
     "dev": "next dev",
     "build": "bun run check:boundary && next build",
     "start": "next start",
@@ -17,9 +18,11 @@
     "codemirror": "^6.0.2",
     "elkjs": "^0.11.0",
     "next": "^15.1.6",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-reconciler": "^0.31.0",
     "react-markdown": "^10.1.0",
+    "react-syntax-highlighter": "^16.1.0",
     "reactflow": "^11.11.4",
     "remark-gfm": "^4.0.1"
   },
@@ -27,6 +30,7 @@
     "@types/node": "^20.19.9",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
+    "@types/react-syntax-highlighter": "^15.5.13",
     "typescript": "^5.9.2"
   }
 }

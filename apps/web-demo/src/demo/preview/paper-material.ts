@@ -37,10 +37,6 @@ const STICKER_JITTER_ANGLES = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5] as const;
 const WASHI_ROTATION_JITTER_ANGLES = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5] as const;
 const WASHI_SHAPE_SKEW_ANGLES = [-2.4, -2.2, -2.0, 2.0, 2.2, 2.4] as const;
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
-
 function hashFNV1a(input: string): number {
   let hash = 0x811c9dc5;
 

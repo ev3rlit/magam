@@ -101,3 +101,71 @@ test('layoutDemoPreviewCanvasState splits bidirectional children across both sid
   assert.ok((left?.position.x ?? 0) < (root?.position.x ?? 0));
   assert.ok((right?.position.x ?? 0) > (root?.position.x ?? 0));
 });
+
+test('layoutDemoPreviewCanvasState grows markdown nodes for wrapped paragraphs', async () => {
+  const input: DemoPreviewCanvasState = {
+    nodes: [
+      {
+        id: 'doc',
+        type: 'demo-markdown',
+        position: { x: 0, y: 0 },
+        data: {
+          kind: 'markdown',
+          label: 'Magam',
+          markdown: `# Magam
+> **"The future of knowledge work is not 'drawing' but 'describing'."**
+
+Stop drawing by hand.
+**Collaborate with AI agents** to structure your thoughts.`,
+        },
+      },
+    ],
+    edges: [],
+    mindMapGroups: [],
+    sourceVersion: null,
+  };
+  const output = await layoutDemoPreviewCanvasState(input);
+  const markdownNode = output.nodes.find((node) => node.id === 'doc');
+
+  assert.ok(markdownNode);
+  assert.equal(markdownNode?.width, 420);
+  assert.ok((markdownNode?.height ?? 0) >= 176);
+});
+
+test('layoutDemoPreviewCanvasState assigns more height to long markdown paragraphs than short ones', async () => {
+  const input: DemoPreviewCanvasState = {
+    nodes: [
+      {
+        id: 'short',
+        type: 'demo-markdown',
+        position: { x: 0, y: 0 },
+        data: {
+          kind: 'markdown',
+          label: 'Short',
+          markdown: 'Short paragraph.',
+        },
+      },
+      {
+        id: 'long',
+        type: 'demo-markdown',
+        position: { x: 0, y: 0 },
+        data: {
+          kind: 'markdown',
+          label: 'Long',
+          markdown:
+            'This paragraph intentionally contains enough words to wrap across multiple rendered lines inside the markdown node width cap so the node height estimator needs to grow with the content.',
+        },
+      },
+    ],
+    edges: [],
+    mindMapGroups: [],
+    sourceVersion: null,
+  };
+  const output = await layoutDemoPreviewCanvasState(input);
+  const shortNode = output.nodes.find((node) => node.id === 'short');
+  const longNode = output.nodes.find((node) => node.id === 'long');
+
+  assert.ok(shortNode);
+  assert.ok(longNode);
+  assert.ok((longNode?.height ?? 0) > (shortNode?.height ?? 0));
+});

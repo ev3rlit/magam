@@ -20,8 +20,8 @@ import {
   texture,
   torn,
   vintagepaper,
-  WashiTape,
-} from '@magam/core';
+  WashiTape } from
+'@magam/core';
 
 /**
  * Washi Tape Collection
@@ -118,8 +118,8 @@ export default function WashiTapeExample() {
   // ── Image patterns ───────────────────────
 
   const cherryPattern =
-    'data:image/svg+xml;utf8,'
-    + encodeURIComponent(`
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(`
       <svg xmlns="http://www.w3.org/2000/svg" width="80" height="28" viewBox="0 0 80 28">
         <rect width="80" height="28" fill="#fce7f3" />
         <rect width="80" height="6" fill="#fbcfe8" fill-opacity="0.6" />
@@ -131,8 +131,8 @@ export default function WashiTapeExample() {
     `);
 
   const honeyPattern =
-    'data:image/svg+xml;utf8,'
-    + encodeURIComponent(`
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(`
       <svg xmlns="http://www.w3.org/2000/svg" width="80" height="28" viewBox="0 0 80 28">
         <rect width="80" height="28" fill="#fef3c7" />
         <rect width="80" height="8" fill="#fcd34d" fill-opacity="0.42" />
@@ -141,8 +141,8 @@ export default function WashiTapeExample() {
     `);
 
   const sunsetPattern =
-    'data:image/svg+xml;utf8,'
-    + encodeURIComponent(`
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(`
       <svg xmlns="http://www.w3.org/2000/svg" width="80" height="28" viewBox="0 0 80 28">
         <defs>
           <linearGradient id="sunset" x1="0" y1="0" x2="1" y2="0">
@@ -156,11 +156,11 @@ export default function WashiTapeExample() {
     `);
 
   // ── Layout constants ─────────────────────
-  const x1 = 100;           // left column x
-  const x2 = 500;           // right column x
+  const x1 = 100; // left column x
+  const x2 = 500; // right column x
   const w = 300;
   const h = 26;
-  const sp = 38;             // vertical spacing
+  const sp = 38; // vertical spacing
   const startY = 92;
 
   return (
@@ -171,142 +171,142 @@ export default function WashiTapeExample() {
       <Text id="lbl-presets" x={x1} y={64}>Presets</Text>
 
       <WashiTape id="t-postit" x={x1} y={startY} width={w} height={h}
-        pattern={preset(postit)}
-        text={{ align: 'center', size: 11 }}
-      >Honey Note</WashiTape>
+      pattern={preset(postit)}
+      text={{ align: 'center', size: 11 }}>
+        Honey Note</WashiTape>
 
       <WashiTape id="t-pasteldots" x={x1} y={startY + sp} width={w} height={h}
-        pattern={preset(pasteldots)}
-        text={{ align: 'center', size: 11 }}
-      >Pink Polka</WashiTape>
+      pattern={preset(pasteldots)}
+      text={{ align: 'center', size: 11 }}>
+        Pink Polka</WashiTape>
 
       <WashiTape id="t-kraftgrid" x={x1} y={startY + 2 * sp} width={w} height={h}
-        pattern={preset(kraftgrid)}
-        edge={torn(0.8)}
-        text={{ align: 'center', color: '#78350f', size: 11 }}
-      >Craft Grid</WashiTape>
+      pattern={preset(kraftgrid)}
+      edge={torn(0.8)}
+      text={{ align: 'center', color: '#78350f', size: 11 }}>
+        Craft Grid</WashiTape>
 
       <WashiTape id="t-maskingsolid" x={x1} y={startY + 3 * sp} width={w} height={h}
-        pattern={preset(maskingsolid)}
-        edge={torn(1.0)}
-        text={{ align: 'center', color: '#78350f', size: 11 }}
-      >Masking Tape</WashiTape>
+      pattern={preset(maskingsolid)}
+      edge={torn(1.0)}
+      text={{ align: 'center', color: '#78350f', size: 11 }}>
+        Masking Tape</WashiTape>
 
       <WashiTape id="t-neonstripe" x={x1} y={startY + 4 * sp} width={w} height={h}
-        pattern={preset(neonstripe)}
-        text={{ align: 'center', size: 11 }}
-      >Neon Stripe</WashiTape>
+      pattern={preset(neonstripe)}
+      text={{ align: 'center', size: 11 }}>
+        Neon Stripe</WashiTape>
 
       <WashiTape id="t-vintagepaper" x={x1} y={startY + 5 * sp} width={w} height={h}
-        pattern={preset(vintagepaper)}
-        edge={torn(0.6)}
-        text={{ align: 'center', color: '#78350f', size: 11 }}
-      >Vintage Paper</WashiTape>
+      pattern={preset(vintagepaper)}
+      edge={torn(0.6)}
+      text={{ align: 'center', color: '#78350f', size: 11 }}>
+        Vintage Paper</WashiTape>
 
       <WashiTape id="t-linedwarm" x={x1} y={startY + 6 * sp} width={w} height={h}
-        pattern={preset(linedwarm)}
-        text={{ align: 'center', size: 11 }}
-      >Warm Lined</WashiTape>
+      pattern={preset(linedwarm)}
+      text={{ align: 'center', size: 11 }}>
+        Warm Lined</WashiTape>
 
       <WashiTape id="t-gridstandard" x={x1} y={startY + 7 * sp} width={w} height={h}
-        pattern={preset(gridstandard)}
-        text={{ align: 'center', size: 11 }}
-      >Standard Grid</WashiTape>
+      pattern={preset(gridstandard)}
+      text={{ align: 'center', size: 11 }}>
+        Standard Grid</WashiTape>
 
       <WashiTape id="t-gridfine" x={x1} y={startY + 8 * sp} width={w} height={h}
-        pattern={preset(gridfine)}
-        text={{ align: 'center', size: 11 }}
-      >Fine Grid</WashiTape>
+      pattern={preset(gridfine)}
+      text={{ align: 'center', size: 11 }}>
+        Fine Grid</WashiTape>
 
       <WashiTape id="t-dotgrid" x={x1} y={startY + 9 * sp} width={w} height={h}
-        pattern={preset(dotgrid)}
-        text={{ align: 'center', size: 11 }}
-      >Dot Grid</WashiTape>
+      pattern={preset(dotgrid)}
+      text={{ align: 'center', size: 11 }}>
+        Dot Grid</WashiTape>
 
       <WashiTape id="t-kraftnatural" x={x1} y={startY + 10 * sp} width={w} height={h}
-        pattern={preset(kraftnatural)}
-        edge={torn(1.2)}
-        text={{ align: 'center', color: '#78350f', size: 11 }}
-      >Natural Kraft</WashiTape>
+      pattern={preset(kraftnatural)}
+      edge={torn(1.2)}
+      text={{ align: 'center', color: '#78350f', size: 11 }}>
+        Natural Kraft</WashiTape>
 
       {/* ══ Right Column — Custom Patterns ══ */}
-      <Text id="lbl-custom" x={x2} y={64}>Custom Patterns</Text>
+      <Text id="lbl-custom" x={497.5339673913044} y={64.6165081521739}>Custom Patterns</Text>
 
       {/* solid */}
       <WashiTape id="t-lavender" x={x2} y={startY} width={w} height={h}
-        pattern={solid('#e9d5ff')}
-        edge={torn(0.8)}
-        text={{ align: 'center', color: '#6b21a8', size: 11 }}
-      >Lavender</WashiTape>
+      pattern={solid('#e9d5ff')}
+      edge={torn(0.8)}
+      text={{ align: 'center', color: '#6b21a8', size: 11 }}>
+        Lavender</WashiTape>
 
       {/* MUJI branding — Natural / Red / Earth */}
       <WashiTape id="t-muji-natural" x={x2} y={startY + sp} width={w} height={h}
-        pattern={solid('#C8BBA7')}
-        text={{ align: 'center', color: '#4A3C32', size: 11 }}
-      >MUJI Natural</WashiTape>
+      pattern={solid('#C8BBA7')}
+      text={{ align: 'center', color: '#4A3C32', size: 11 }}>
+        MUJI Natural</WashiTape>
 
       <WashiTape id="t-muji-red" x={x2} y={startY + 2 * sp} width={w} height={h}
-        pattern={solid('#B5121B')}
-        text={{ align: 'center', color: '#fef2f2', size: 11 }}
-      >MUJI Red</WashiTape>
+      pattern={solid('#B5121B')}
+      text={{ align: 'center', color: '#fef2f2', size: 11 }}>
+        MUJI Red</WashiTape>
 
       <WashiTape id="t-muji-earth" x={x2} y={startY + 3 * sp} width={w} height={h}
-        pattern={solid('#4A3C32')}
-        text={{ align: 'center', color: '#C8BBA7', size: 11 }}
-      >MUJI Earth</WashiTape>
+      pattern={solid('#4A3C32')}
+      text={{ align: 'center', color: '#C8BBA7', size: 11 }}>
+        MUJI Earth</WashiTape>
 
       {/* svg — 7 patterns */}
       <WashiTape id="t-rosedot" x={x2} y={startY + 4 * sp} width={w} height={h}
-        pattern={svg({ markup: roseDotMarkup })}
-        text={{ align: 'center', color: '#9d174d', size: 11 }}
-      >Rose Dot</WashiTape>
+      pattern={svg({ markup: roseDotMarkup })}
+      text={{ align: 'center', color: '#9d174d', size: 11 }}>
+        Rose Dot</WashiTape>
 
       <WashiTape id="t-mintstripe" x={x2} y={startY + 5 * sp} width={w} height={h}
-        pattern={svg({ markup: mintStripeMarkup })}
-        text={{ align: 'center', color: '#065f46', size: 11 }}
-      >Mint Stripe</WashiTape>
+      pattern={svg({ markup: mintStripeMarkup })}
+      text={{ align: 'center', color: '#065f46', size: 11 }}>
+        Mint Stripe</WashiTape>
 
       <WashiTape id="t-gingham" x={x2} y={startY + 6 * sp} width={w} height={h}
-        pattern={svg({ markup: ginghamMarkup })}
-        text={{ align: 'center', color: '#1e40af', size: 11 }}
-      >Blue Gingham</WashiTape>
+      pattern={svg({ markup: ginghamMarkup })}
+      text={{ align: 'center', color: '#1e40af', size: 11 }}>
+        Blue Gingham</WashiTape>
 
       <WashiTape id="t-stardot" x={x2} y={startY + 7 * sp} width={w} height={h}
-        pattern={svg({ markup: starDotMarkup })}
-        text={{ align: 'center', color: '#92400e', size: 11 }}
-      >Star Dot</WashiTape>
+      pattern={svg({ markup: starDotMarkup })}
+      text={{ align: 'center', color: '#92400e', size: 11 }}>
+        Star Dot</WashiTape>
 
       <WashiTape id="t-heartline" x={x2} y={startY + 8 * sp} width={w} height={h}
-        pattern={svg({ markup: heartMarkup })}
-        text={{ align: 'center', color: '#9f1239', size: 11 }}
-      >Heart Line</WashiTape>
+      pattern={svg({ markup: heartMarkup })}
+      text={{ align: 'center', color: '#9f1239', size: 11 }}>
+        Heart Line</WashiTape>
 
       <WashiTape id="t-confetti" x={x2} y={startY + 9 * sp} width={w} height={h}
-        pattern={svg({ markup: confettiMarkup })}
-        texture={texture({ opacity: 0.12, blendMode: 'multiply' })}
-        text={{ align: 'center', color: '#6b21a8', size: 11 }}
-      >Confetti</WashiTape>
+      pattern={svg({ markup: confettiMarkup })}
+      texture={texture({ opacity: 0.12, blendMode: 'multiply' })}
+      text={{ align: 'center', color: '#6b21a8', size: 11 }}>
+        Confetti</WashiTape>
 
       <WashiTape id="t-wave" x={x2} y={startY + 10 * sp} width={w} height={h}
-        pattern={svg({ markup: waveMarkup })}
-        text={{ align: 'center', color: '#0369a1', size: 11 }}
-      >Ocean Wave</WashiTape>
+      pattern={svg({ markup: waveMarkup })}
+      text={{ align: 'center', color: '#0369a1', size: 11 }}>
+        Ocean Wave</WashiTape>
 
       {/* image — 3 patterns */}
       <WashiTape id="t-cherry" x={x2} y={startY + 11 * sp} width={w} height={h}
-        pattern={image(cherryPattern, { scale: 1, repeat: 'repeat-x' })}
-        text={{ align: 'center', color: '#9d174d', size: 11 }}
-      >Cherry Blossom</WashiTape>
+      pattern={image(cherryPattern, { scale: 1, repeat: 'repeat-x' })}
+      text={{ align: 'center', color: '#9d174d', size: 11 }}>
+        Cherry Blossom</WashiTape>
 
       <WashiTape id="t-honey" x={x2} y={startY + 12 * sp} width={w} height={h}
-        pattern={image(honeyPattern, { scale: 1, repeat: 'repeat-x' })}
-        text={{ align: 'center', color: '#78350f', size: 11 }}
-      >Honey Stripe</WashiTape>
+      pattern={image(honeyPattern, { scale: 1, repeat: 'repeat-x' })}
+      text={{ align: 'center', color: '#78350f', size: 11 }}>
+        Honey Stripe</WashiTape>
 
       <WashiTape id="t-sunset" x={x2} y={startY + 13 * sp} width={w} height={h}
-        pattern={image(sunsetPattern, { scale: 1, repeat: 'repeat-x' })}
-        text={{ align: 'center', color: '#9a3412', size: 11 }}
-      >Sunset Glow</WashiTape>
+      pattern={image(sunsetPattern, { scale: 1, repeat: 'repeat-x' })}
+      text={{ align: 'center', color: '#9a3412', size: 11 }}>
+        Sunset Glow</WashiTape>
 
       {/* ══ Featured — polar & segment ══════ */}
       <Text id="lbl-pick" x={x1} y={startY + 14 * sp + 28}>Today's Pick</Text>
@@ -316,8 +316,8 @@ export default function WashiTapeExample() {
         at={polar(320, startY + 15 * sp + 40, 340, -5, { thickness: 30 })}
         pattern={preset(pasteldots)}
         text={{ align: 'center', size: 12 }}
-        opacity={0.88}
-      >
+        opacity={0.88}>
+        
         spring mood
       </WashiTape>
 
@@ -326,14 +326,14 @@ export default function WashiTapeExample() {
         at={segment(
           { x: 100, y: startY + 16 * sp + 52 },
           { x: 480, y: startY + 16 * sp + 64 },
-          { thickness: 28 },
+          { thickness: 28 }
         )}
         pattern={solid('#fcd34d')}
         edge={torn(1.3)}
-        text={{ align: 'center', color: '#78350f', size: 12 }}
-      >
+        text={{ align: 'center', color: '#78350f', size: 12 }}>
+        
         sunshine
       </WashiTape>
-    </Canvas>
-  );
+    </Canvas>);
+
 }
